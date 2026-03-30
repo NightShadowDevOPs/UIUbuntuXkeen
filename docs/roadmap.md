@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.6.0**  
+Текущая версия линии: **v0.6.2**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -94,22 +94,34 @@
 - синтетические/system IP без host evidence исключены из таблицы клиентов и summary;
 - экран **«Трафик»** теперь честно деградирует до режима **только Mihomo**, а не делает вид, что всё сломалось.
 
-### v0.6.0 — Provider SSL checks MVP
-Статус: **сделано**
-- добавлен единый workspace SSL/TLS диагностики в разделе **«Прокси-провайдеры»**;
-- доступны реальные действия **«Проверить сейчас»** и **«Обновить SSL-кеш»**;
-- по каждому провайдеру UI показывает expires/check time/source URL/TLS error;
-- compatibility bridge и `ubuntu-service` capability layer используются как один runtime-контур вместо очередной картонной заглушки.
+### v0.6.0 — ошибочный SSL workspace в «Прокси-провайдерах»
+Статус: **откачено в v0.6.1**
+- в `v0.6.0` SSL-проверка была ошибочно вынесена в список **«Прокси-провайдеры»**;
+- это противоречило текущей архитектуре проекта, где SSL-контур живёт в разделе **«Задачи»**;
+- релиз нельзя считать правильным продуктовым направлением, даже если часть действий визуально работала.
 
-### v0.6.1 — Provider scheduler, history и GEO groundwork
+### v0.6.1 — rollback misplaced provider SSL workspace
+Статус: **сделано**
+- ошибочно добавленный workspace удалён из раздела **«Прокси-провайдеры»**;
+- список провайдеров снова очищен от лишней SSL/TLS панели;
+- docs приведены к реальному состоянию проекта без ложных заявлений о закрытом SSL MVP;
+- текущий правильный курс: развивать SSL-проверки через **«Задачи»** и существующий provider-health flow.
+
+### v0.6.2 — Tasks SSL by provider/subscription source URL
+Статус: **сделано**
+- SSL-таблица в разделе **«Задачи»** больше не завязана на `panelUrl`;
+- проверка и отображение сертификата переведены на **provider/subscription source URL**;
+- `Обновить SSL провайдеров` снова использует существующий provider-health / SSL cache refresh flow;
+- экран соответствует архитектуре проекта: SSL живёт в **«Задачах»**, а не в списке прокси-провайдеров.
+
+### v0.6.3 — provider scheduler/history и GEO groundwork
 Статус: **следующий шаг**
 План:
-- авто-проверка SSL по расписанию;
-- `next check`, job/history, last successful run;
-- GEO last update и GEO history как соседний operational блок;
-- groundwork под хранение результатов в SQLite/service state.
+- добавить `next check`, `last successful run`, job/history для provider SSL checks;
+- вывести GEO last update и GEO history как соседний operational блок;
+- подготовить storage/state контур под scheduler результаты и историю проверок.
 
-### v0.6.2 — QoS и shaping под Ubuntu
+### v0.6.4 — QoS и shaping под Ubuntu
 План:
 - host shaping profiles;
 - per-client bandwidth/QoS status;

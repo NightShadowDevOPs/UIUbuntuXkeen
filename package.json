@@ -1,6 +1,6 @@
 {
   "name": "ui-ubuntu-xkeen",
-  "version": "0.6.0",
+  "version": "0.6.2",
   "description": "UIUbuntuXkeen — Ubuntu-oriented UI for Mihomo",
   "license": "MIT",
   "type": "module",
@@ -37,7 +37,7 @@
     "lodash": "^4.17.21",
     "misans": "^4.1.0",
     "prettier-plugin-organize-imports": "^4.2.0",
-    "prettier-plugin-tailwindcss": "^0.6.14",
+    "prettier-plugin-tailwindcss": "^0.6.24",
     "pretty-bytes": "^7.0.0",
     "reconnectingwebsocket": "^1.0.0",
     "qrcode-generator": "^2.0.4",

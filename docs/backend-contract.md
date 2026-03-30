@@ -1,6 +1,6 @@
 # UIUbuntuXkeen — Ubuntu backend contract
 
-Актуальная версия документа: **v0.6.0**  
+Актуальная версия документа: **v0.6.2**  
 Дата актуализации: **2026-03-30**
 
 ## 1. Назначение
@@ -29,7 +29,7 @@
 Должен обеспечивать:
 - host resources;
 - логи и сервисы Ubuntu;
-- SSL/TLS проверки провайдеров;
+- SSL/TLS проверки провайдеров по provider/subscription source URL;
 - scheduled jobs;
 - GEO updates;
 - QoS / shaping;
@@ -169,7 +169,7 @@ Scheduler может быть:
 
 ## 7. Capability flags
 
-UI должен запрашивать capabilities и не рисовать фальшивую готовность. В релизе v0.6.0 UI уже использует эти capability для рабочего SSL/TLS workspace провайдеров, а не только для скрытых технических флагов.
+UI должен запрашивать capabilities и не рисовать фальшивую готовность. В релизе `v0.6.2` зафиксировано важное правило: capability для SSL/TLS проверок должны обслуживать контур раздела **«Задачи»** и provider-health flow, а сама проверка в UI должна опираться на **provider/subscription source URL**, а не на panel URL или отдельный workspace в списке провайдеров.
 
 Минимальные capability keys:
 - `system.metrics`

@@ -47,7 +47,7 @@
             type="button"
             class="btn btn-sm btn-ghost"
             @click="refreshProvidersPanel(true)"
-            :disabled="providersPanelBusy || panelSslProbeLoading || providerSslCacheRefreshBusy || !providerHealthAvailable"
+            :disabled="providersPanelBusy || providerSslCacheRefreshBusy || !providerHealthAvailable"
           >
             {{ $t('refresh') }}
           </button>
@@ -55,7 +55,7 @@
             type="button"
             class="btn btn-sm btn-ghost"
             @click="refreshProviderSslCacheNow"
-            :disabled="providersPanelBusy || panelSslProbeLoading || providerSslCacheRefreshBusy || !providerHealthActionsAvailable"
+            :disabled="providersPanelBusy || providerSslCacheRefreshBusy || !providerHealthActionsAvailable"
           >
             <span v-if="providerSslCacheRefreshBusy" class="loading loading-spinner loading-xs"></span>
             <span v-else>{{ $t('refreshProviderSslCache') }}</span>
@@ -86,7 +86,6 @@
 		  <div v-else>
 			<div v-if="providersPanelError" class="text-xs text-error" :title="providersPanelError">{{ friendlyProviderPanelError(providersPanelError, 'providers') }}</div>
 			<div v-else>
-			  <div v-if="panelSslProbeError" class="mb-2 text-xs text-warning" :title="panelSslProbeError">{{ friendlyProviderPanelError(panelSslProbeError, 'ssl') }}</div>
 			  <div v-if="providerSslCacheStatusText" class="mb-2 text-xs" :class="providerSslCacheStatusClass" :title="$t('providerSslRefreshingTip')">{{ providerSslCacheStatusText }}</div>
 			  <div v-if="!providersPanelRenderList.length" class="text-sm opacity-70">—</div>
 			  <div v-else>
@@ -134,24 +133,18 @@
               </div>
             </td>
 						<td>
-						  <div class="flex items-center gap-2">
-							<input
-							  type="text"
-							  class="input input-bordered input-xs flex-1 min-w-[220px]"
-							  :placeholder="$t('providerPanelUrlPlaceholder')"
-							  :value="proxyProviderPanelUrlMap[p.name] || ''"
-							  @input="(e) => setProviderPanelUrl(p.name, (e && e.target && e.target.value) || '')"
-							/>
-							<a
-							  v-if="proxyProviderPanelUrlMap[p.name]"
-							  class="btn btn-ghost btn-xs"
-							  :href="proxyProviderPanelUrlMap[p.name]"
-							  target="_blank"
-							  rel="noreferrer"
-							>
-							  {{ $t('open') }}
-							</a>
-						  </div>
+              <div class="flex items-center gap-2">
+                <div class="min-w-[220px] flex-1 break-all text-[11px] font-mono opacity-80">{{ getProviderSourceUrl(p) || '—' }}</div>
+                <a
+                  v-if="getProviderSourceUrl(p)"
+                  class="btn btn-ghost btn-xs"
+                  :href="getProviderSourceUrl(p)"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {{ $t('open') }}
+                </a>
+              </div>
 						</td>
 						<td>
 						  <div class="flex items-center gap-2">
@@ -173,10 +166,10 @@
 						<td>
 						  <span
 							class="text-[11px] font-mono"
-                            :class="sslPanelInfo(p.name, getPanelNotAfter(p.name) || p.panelSslNotAfter || p.sslNotAfter, Boolean(getPanelNotAfter(p.name) || p.panelSslNotAfter)).cls"
-                            :title="sslPanelInfo(p.name, getPanelNotAfter(p.name) || p.panelSslNotAfter || p.sslNotAfter, Boolean(getPanelNotAfter(p.name) || p.panelSslNotAfter)).title"
+                            :class="sslSubscriptionInfo(p).cls"
+                            :title="sslSubscriptionInfo(p).title"
 						  >
-                            {{ sslPanelInfo(p.name, getPanelNotAfter(p.name) || p.panelSslNotAfter || p.sslNotAfter, Boolean(getPanelNotAfter(p.name) || p.panelSslNotAfter)).text }}
+                            {{ sslSubscriptionInfo(p).text }}
 						  </span>
 						</td>
 					  </tr>
@@ -1899,7 +1892,7 @@ import TopologyActionButtons from '@/components/common/TopologyActionButtons.vue
 import { useStorage } from '@vueuse/core'
 import { getLabelFromBackend, prettyBytesHelper } from '@/helper/utils'
 import { navigateToTopology } from '@/helper/topologyNav'
-import { parseDateMaybe } from '@/helper/providerHealth'
+import { getAnyFromObj, parseDateMaybe } from '@/helper/providerHealth'
 import { showNotification } from '@/helper/notification'
 import { decodeB64Utf8 } from '@/helper/b64'
 import { countryCodeToFlagEmoji, normalizeProviderIcon } from '@/helper/providerIcon'
@@ -1907,7 +1900,7 @@ import { FLAG_CODES } from '@/helper/flagIcons'
 import { activeBackend, backendList } from '@/store/setup'
 import { agentEnabled, agentUrl } from '@/store/agent'
 import { proxyProviderIconMap, proxyProviderPanelUrlMap, proxyProviderSslWarnDaysMap, sslNearExpiryDaysDefault } from '@/store/settings'
-import { agentProviders, agentProvidersAt, agentProvidersError, agentProvidersJobStatus, agentProvidersNextCheckAtMs, agentProvidersOk, agentProvidersSslCacheReady, agentProvidersSslRefreshPending, agentProvidersSslRefreshing, fetchAgentProviders, panelSslCheckedAt, panelSslErrorByName, panelSslNotAfterByName, panelSslProbeError, panelSslProbeLoading, panelSslUrlByName, probePanelSsl, providerHealthActionsAvailable, providerHealthAvailable, refreshAgentProviderSslCache } from '@/store/providerHealth'
+import { agentProviderByName, agentProviders, agentProvidersAt, agentProvidersError, agentProvidersJobStatus, agentProvidersNextCheckAtMs, agentProvidersOk, agentProvidersSslCacheReady, agentProvidersSslRefreshPending, agentProvidersSslRefreshing, fetchAgentProviders, providerHealthActionsAvailable, providerHealthAvailable, refreshAgentProviderSslCache } from '@/store/providerHealth'
 import { proxyProviederList } from '@/store/proxies'
 import { userLimitProfiles } from '@/store/userLimitProfiles'
 import { userLimitSnapshots } from '@/store/userLimitSnapshots'
@@ -1992,7 +1985,7 @@ const copyRouterUiUrl = async (asYaml: boolean) => {
 // --- Proxy providers: shared management panel URLs (synced via users DB) ---
 const providersPanelBusy = ref(false)
 const providersPanelError = ref('')
-const providersPanelList = ref<Array<{ name: string; url?: string; host?: string; port?: string; sslNotAfter?: string; panelUrl?: string; panelSslNotAfter?: string }>>([])
+const providersPanelList = ref<Array<{ name: string; url?: string; host?: string; port?: string; sslNotAfter?: string; sslCheckedAtSec?: number; sslError?: string }>>([])
 const providersPanelExpanded = ref<boolean>(false)
 const providersPanelAt = ref<number>(0)
 
@@ -2024,54 +2017,89 @@ const toggleProvidersPanelExpanded = () => {
 
 // (no per-provider accordion state; rendered as a table)
 
-// Render list should include *all* providers known to UI (proxyProviederList), even if agent SSL probe returns only a subset.
-// Also include any providers that exist only in the synced panel-url map (so users can set URLs even before providers load).
+// Render list should include all providers known to UI plus provider rows returned by the backend.
 const providersPanelRenderList = computed(() => {
   const names = new Set<string>()
+  const providerMetaByName = new Map<string, any>()
+  const agentMetaByName = new Map<string, any>()
 
   try {
     for (const p of (proxyProviederList.value || []) as any[]) {
       const name = String(p?.name || '').trim()
-      if (!name) continue
-      if (name === 'default') continue
-      if (p?.vehicleType === 'Compatible') continue
+      if (!name || name === 'default' || p?.vehicleType === 'Compatible') continue
       names.add(name)
+      providerMetaByName.set(name, p)
     }
   } catch {
     // ignore
   }
 
-  try {
-    for (const k of Object.keys(proxyProviderPanelUrlMap.value || {})) {
-      const name = String(k || '').trim()
-      if (!name) continue
-      names.add(name)
-    }
-  } catch {
-    // ignore
-  }
-
-  const byName = new Map<string, any>()
   for (const it of (providersPanelList.value || []) as any[]) {
     const name = String(it?.name || '').trim()
     if (!name) continue
-    byName.set(name, it)
     names.add(name)
+    agentMetaByName.set(name, it)
+  }
+
+  const readSourceUrl = (provider: any, agentProvider: any): string => {
+    const direct = [
+      getAnyFromObj(provider, ['url', 'uri', 'link', 'subscriptionUrl', 'subscription_url', 'sourceUrl', 'source_url', 'downloadUrl', 'download_url', 'subscribe', 'subscription']),
+      getAnyFromObj(provider?.subscriptionInfo, ['url', 'uri', 'link', 'subscriptionUrl', 'subscription_url', 'sourceUrl', 'source_url', 'downloadUrl', 'download_url', 'subscribe', 'subscription']),
+      getAnyFromObj(agentProvider, ['url', 'providerUrl', 'provider_url', 'sourceUrl', 'source_url']),
+    ]
+      .map((v) => String(v || '').trim())
+      .find(Boolean)
+    return direct || ''
+  }
+
+  const readSslNotAfter = (provider: any, agentProvider: any): string => {
+    const direct = [
+      getAnyFromObj(provider, ['sslNotAfter', 'sslExpire', 'ssl_expire', 'certExpire', 'cert_expire', 'tlsExpire', 'tls_expire', 'certificateExpire', 'certificate_expire', 'certNotAfter', 'notAfter', 'not_after']),
+      getAnyFromObj(provider?.subscriptionInfo, ['sslNotAfter', 'sslExpire', 'ssl_expire', 'certExpire', 'cert_expire', 'tlsExpire', 'tls_expire', 'certificateExpire', 'certificate_expire', 'certNotAfter', 'notAfter', 'not_after']),
+      getAnyFromObj(agentProvider, ['sslNotAfter', 'notAfter', 'not_after', 'expiresAt', 'expires_at']),
+    ]
+      .map((v) => String(v || '').trim())
+      .find(Boolean)
+    return direct || ''
+  }
+
+  const readSslError = (provider: any, agentProvider: any): string => {
+    const direct = [
+      getAnyFromObj(provider, ['sslError', 'tlsError', 'certError', 'error']),
+      getAnyFromObj(provider?.subscriptionInfo, ['sslError', 'tlsError', 'certError', 'error']),
+      getAnyFromObj(agentProvider, ['sslError', 'tlsError', 'certError', 'error']),
+    ]
+      .map((v) => String(v || '').trim())
+      .find(Boolean)
+    return direct || ''
+  }
+
+  const readCheckedAtMs = (provider: any, agentProvider: any): number => {
+    const raw = Number(
+      getAnyFromObj(provider, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
+      getAnyFromObj(provider?.subscriptionInfo, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
+      getAnyFromObj(agentProvider, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
+      0,
+    )
+    return Number.isFinite(raw) && raw > 0 ? raw * 1000 : providersPanelAt.value || 0
   }
 
   return Array.from(names)
     .sort((a, b) => a.localeCompare(b))
     .map((name) => {
-      const it = byName.get(name)
-      if (it) return it
-      return { name }
+      const providerMeta = providerMetaByName.get(name) || null
+      const agentMeta = agentMetaByName.get(name) || (agentProviderByName.value || {})[name] || null
+      return {
+        name,
+        url: readSourceUrl(providerMeta, agentMeta),
+        host: String(agentMeta?.host || '').trim(),
+        port: String(agentMeta?.port || '').trim(),
+        sslNotAfter: readSslNotAfter(providerMeta, agentMeta),
+        sslError: readSslError(providerMeta, agentMeta),
+        sslCheckedAtMs: readCheckedAtMs(providerMeta, agentMeta),
+      }
     })
 })
-
-const fmtSslPanel = (v: any) => {
-  const d = parseDateMaybe(v)
-  return d ? d.format('DD-MM-YYYY HH:mm:ss') : '—'
-}
 
 const fmtTs = (ms: any) => {
   const n = typeof ms === 'number' ? ms : typeof ms === 'string' ? Number(ms) : 0
@@ -2117,52 +2145,38 @@ const clearProviderSslWarnOverride = (name: string) => {
   proxyProviderSslWarnDaysMap.value = cur
 }
 
-const sslPanelInfo = (name: string, v: any, fromPanel: boolean) => {
-  const d = parseDateMaybe(v)
+const getProviderSourceUrl = (item: { name: string; url?: string }) => {
+  return String(item?.url || '').trim()
+}
+
+const sslSubscriptionInfo = (item: { name: string; sslNotAfter?: string; sslError?: string; sslCheckedAtMs?: number; url?: string }) => {
+  const d = parseDateMaybe(item?.sslNotAfter)
   const backendProbeLabel = activeBackend.value?.kind === 'ubuntu-service' ? t('providerSslSourceUbuntuService') : t('providerSslSourceCompatibilityBridge')
-  const sourceLabel = fromPanel ? t('providerSslSourcePanelUrl') : t('providerSslSourceProviderUrl')
   if (!d) {
     const pending = agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value || !agentProvidersSslCacheReady.value
-    if (pending) {
+    if (pending && getProviderSourceUrl(item)) {
       return {
         text: t('providerSslRefreshing'),
         cls: 'text-info',
-        title: t('providerSslRefreshingTip'),
+        title: `${t('providerSslSourceSubscription')} • ${backendProbeLabel} • ${t('providerSslRefreshingTip')}`,
       }
     }
-    const err = fromPanel ? String((panelSslErrorByName.value || {})[String(name || '').trim()] || '').trim() : ''
-    const url = fromPanel ? String((panelSslUrlByName.value || {})[String(name || '').trim()] || '').trim() : ''
+    const err = String(item?.sslError || '').trim()
     return {
       text: err ? t('providerSslError') : '—',
       cls: err ? 'text-error' : '',
       title: err
-        ? `${sourceLabel} • ${backendProbeLabel} • ${t('providerSslError')}: ${err}${url ? ` • URL: ${url}` : ''}`
-        : `${sourceLabel} • ${backendProbeLabel}`,
+        ? `${t('providerSslSourceSubscription')} • ${backendProbeLabel} • ${t('providerSslError')}: ${err}${getProviderSourceUrl(item) ? ` • URL: ${getProviderSourceUrl(item)}` : ''}`
+        : `${t('providerSslSourceSubscription')} • ${backendProbeLabel}`,
     }
   }
   const days = d.diff(dayjs(), 'day')
   const date = d.format('DD-MM-YYYY HH:mm:ss')
-  const warnDays = getProviderWarnDays(name)
+  const warnDays = getProviderWarnDays(item.name)
   const cls = days < 0 ? 'text-error' : days <= warnDays ? 'text-warning' : 'text-base-content/60'
   const text = days < 0 ? `${date} (${t('providerSslStatusExpired')})` : `${date} (${days}${t('daysShort')})`
-  const checkedMs = fromPanel ? panelSslCheckedAt.value : providersPanelAt.value
-  const title = `${sourceLabel} • ${backendProbeLabel} • ${t('checkedAt')}: ${fmtTs(checkedMs)}`
+  const title = `${t('providerSslSourceSubscription')} • ${backendProbeLabel} • ${t('checkedAt')}: ${fmtTs(item?.sslCheckedAtMs || providersPanelAt.value)}`
   return { text, cls, title }
-}
-
-const getPanelNotAfter = (name: string): string => {
-  const k = String(name || '').trim()
-  return (panelSslNotAfterByName.value || {})[k] || ''
-}
-
-const setProviderPanelUrl = (name: string, url: string) => {
-  const k = String(name || '').trim()
-  if (!k) return
-  const v = String(url || '').trim()
-  const cur = { ...(proxyProviderPanelUrlMap.value || {}) }
-  if (!v) delete cur[k]
-  else cur[k] = v
-  proxyProviderPanelUrlMap.value = cur
 }
 
 // ---- Provider icon (flag/globe) ----
@@ -2370,11 +2384,6 @@ const refreshProvidersPanel = async (force = false) => {
     await fetchAgentProviders(force)
   } catch {
     // ignore store refresh failure here
-  }
-  try {
-    await probePanelSsl(force)
-  } catch {
-    // Keep provider list visible even if SSL probing is unavailable.
   }
 }
 
@@ -4104,8 +4113,10 @@ const refreshSsl = async () => {
   try {
     const id = startJob('Refresh providers SSL')
     try {
-      await probePanelSsl(true)
-      const n = activeBackend.value?.kind === 'ubuntu-service' ? (Array.isArray(agentProviders.value) ? agentProviders.value.length : 0) : Object.keys(panelSslNotAfterByName.value || {}).length
+      const refreshRes: any = await refreshAgentProviderSslCache()
+      if (!refreshRes?.ok) throw new Error(refreshRes?.error || 'failed')
+      await refreshProvidersPanel(true)
+      const n = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value.filter((it: any) => String(it?.url || '').trim()).length : 0
       finishJob(id, { ok: true, meta: { probed: n } })
       showNotification({ content: 'sslRefreshed', type: 'alert-success', timeout: 1600 })
     } catch (e: any) {
