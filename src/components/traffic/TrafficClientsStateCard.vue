@@ -25,6 +25,10 @@
       <span class="badge badge-ghost">{{ $t('updated') }} · {{ updatedLabel }}</span>
     </div>
 
+    <div v-if="notice" class="rounded-lg border border-base-content/10 bg-base-200/20 px-3 py-2 text-sm opacity-80">
+      {{ notice }}
+    </div>
+
     <div v-if="error" class="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm">
       {{ error }}
     </div>
@@ -135,6 +139,7 @@ const { t } = useI18n()
 const query = ref('')
 const loading = ref(false)
 const error = ref('')
+const notice = ref('')
 const hostTraffic = ref<AgentHostTrafficLiveItem[]>([])
 const lanHosts = ref<AgentLanHost[]>([])
 const lastAgentUpdateAt = ref(0)
@@ -144,16 +149,47 @@ let timer: number | undefined
 const formatRate = (bytes: number) => `${prettyBytesHelper(bytes || 0)}/s`
 const formatBytes = (bytes: number) => prettyBytesHelper(bytes || 0)
 
+const isLikelySystemOrSyntheticIp = (ip: string) => {
+  const value = String(ip || '').trim().toLowerCase()
+  if (!value) return true
+  if (value === '0.0.0.0' || value === '::' || value === '::1') return true
+  if (/^127\./.test(value)) return true
+  if (/^169\.254\./.test(value)) return true
+  if (/^198\.(18|19)\./.test(value)) return true
+  return false
+}
+
+const normalizeOptionalAgentError = (message: string) => {
+  const raw = String(message || '').trim()
+  if (!raw) return t('trafficHostTelemetryUnavailable')
+  const low = raw.toLowerCase()
+  if (
+    low === 'network error'
+    || low.includes('timeout')
+    || low.includes('failed')
+    || low.includes('offline')
+    || low.includes('not found')
+    || low.includes('404')
+    || low.includes('cmd')
+  ) {
+    return t('trafficHostTelemetryUnavailable')
+  }
+  return raw
+}
+
 const refreshAll = async () => {
   if (!agentEnabled.value) {
     agentLive.value = false
     error.value = ''
+    notice.value = ''
     hostTraffic.value = []
     lanHosts.value = []
     return
   }
 
   loading.value = true
+  notice.value = ''
+  error.value = ''
   try {
     const [trafficRes, hostsRes] = await Promise.allSettled([agentHostTrafficLiveAPI(), agentLanHostsAPI()])
 
@@ -161,18 +197,25 @@ const refreshAll = async () => {
       hostTraffic.value = trafficRes.value.items || []
       lastAgentUpdateAt.value = Date.now()
       agentLive.value = true
-      error.value = ''
-    } else if (trafficRes.status === 'fulfilled' && trafficRes.value?.error) {
+    } else {
+      hostTraffic.value = []
       agentLive.value = false
-      error.value = trafficRes.value.error
-    } else if (trafficRes.status === 'rejected') {
-      agentLive.value = false
-      error.value = trafficRes.reason?.message || 'agent host_traffic_live failed'
+      const rawError = trafficRes.status === 'fulfilled'
+        ? String(trafficRes.value?.error || '')
+        : String(trafficRes.reason?.message || '')
+      notice.value = normalizeOptionalAgentError(rawError)
     }
 
     if (hostsRes.status === 'fulfilled' && hostsRes.value?.ok) {
       lanHosts.value = hostsRes.value.items || []
+    } else {
+      lanHosts.value = []
     }
+  } catch (e: any) {
+    agentLive.value = false
+    hostTraffic.value = []
+    lanHosts.value = []
+    error.value = normalizeOptionalAgentError(e?.message || 'agent host_traffic_live failed')
   } finally {
     loading.value = false
   }
@@ -237,6 +280,8 @@ const rows = computed<Row[]>(() => {
     const host = hostsMap.get(ip)
     const traffic = trafficMap.get(ip)
     const label = getIPLabelFromMap(ip)
+
+    if (!host && !traffic && isLikelySystemOrSyntheticIp(ip)) continue
     const mihomoDownBps = active.reduce((sum, conn) => sum + Number(conn.downloadSpeed || 0), 0)
     const mihomoUpBps = active.reduce((sum, conn) => sum + Number(conn.uploadSpeed || 0), 0)
     const mihomoTotalBytes = active.reduce((sum, conn) => sum + Number(conn.download || 0) + Number(conn.upload || 0), 0)
@@ -310,6 +355,8 @@ defineExpose({
   rows,
   agentLive,
   lastAgentUpdateAt,
+  notice,
+  error,
   refreshAll,
 })
 </script>

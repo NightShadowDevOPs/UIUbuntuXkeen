@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.6 - 2026-03-30
+- `TrafficClientsStateCard.vue` больше не показывает пугающий `Network Error`, если optional agent endpoint `host_traffic_live` недоступен; вместо этого UI спокойно остаётся в режиме **только Mihomo**;
+- из таблицы состояний клиентов отфильтрованы синтетические/system IP без host evidence (например `198.18.x.x`), чтобы в трафике не появлялись фальшивые ‘клиенты’;
+- `TrafficRuntimeSummaryCard.vue` теперь считает уникальные источники и активных клиентов без системных synthetic IP;
+- добавлен текстовый fallback `trafficHostTelemetryUnavailable` для честного режима degraded telemetry;
+- обновлены roadmap, release journal, transfer docs и спецификация под hotfix v0.5.6.
+
 ## v0.5.5 - 2026-03-30
 - раздел **«Трафик»** перестроен в единый operational workspace вместо разрозненных экранов;
 - добавлены `TrafficRuntimeSummaryCard.vue` и `TrafficClientsStateCard.vue` для живой сводки и таблицы клиентов по IP;

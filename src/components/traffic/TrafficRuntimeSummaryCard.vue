@@ -70,10 +70,24 @@ const props = defineProps<{
   lastAgentUpdateAt?: number
 }>()
 
+const isLikelySystemOrSyntheticIp = (ip: string) => {
+  const value = String(ip || '').trim().toLowerCase()
+  if (!value) return true
+  if (value === '0.0.0.0' || value === '::' || value === '::1') return true
+  if (/^127\./.test(value)) return true
+  if (/^169\.254\./.test(value)) return true
+  if (/^198\.(18|19)\./.test(value)) return true
+  return false
+}
+
 const activeCount = computed(() => activeConnections.value.length)
 const closedCount = computed(() => closedConnections.value.length)
-const uniqueSourceCount = computed(() => new Set((activeConnections.value || []).map((item) => item.metadata.sourceIP).filter(Boolean)).size)
-const activeClientCount = computed(() => props.items.length || uniqueSourceCount.value)
+const uniqueSourceCount = computed(() => new Set(
+  (activeConnections.value || [])
+    .map((item) => String(item.metadata.sourceIP || '').trim())
+    .filter((ip) => ip && !isLikelySystemOrSyntheticIp(ip)),
+).size)
+const activeClientCount = computed(() => Math.max(props.items.length, uniqueSourceCount.value))
 const downloadLabel = computed(() => `${prettyBytesHelper(downloadTotal.value)}/s`)
 const uploadLabel = computed(() => `${prettyBytesHelper(uploadTotal.value)}/s`)
 const connectionsFresh = computed(() => {

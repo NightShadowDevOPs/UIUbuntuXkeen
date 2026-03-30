@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.5.5**  
+Текущая версия линии: **v0.5.6**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -88,7 +88,13 @@
 - live connections и user-traffic теперь доступны на одной странице;
 - compatibility-режим показывает host traffic и QoS прямо в разделе **«Трафик»** через существующий agent bridge.
 
-### v0.5.6 — GEO-файлы, локальные правила и top rules
+### v0.5.6 — Трафик: practical hotfix по synthetic IP и degraded telemetry
+Статус: **сделано**
+- убран шумный generic `Network Error`, когда optional `host_traffic_live` недоступен;
+- синтетические/system IP без host evidence исключены из таблицы клиентов и summary;
+- экран **«Трафик»** теперь честно деградирует до режима **только Mihomo**, а не делает вид, что всё сломалось.
+
+### v0.5.7 — GEO-файлы, локальные правила и top rules
 Статус: **следующий шаг**
 План:
 - last GEO update;
@@ -97,7 +103,7 @@
 - top rules;
 - drill-down по rule/provider activity.
 
-### v0.5.7 — QoS и shaping под Ubuntu
+### v0.5.8 — QoS и shaping под Ubuntu
 План:
 - host shaping profiles;
 - per-client bandwidth/QoS status;
