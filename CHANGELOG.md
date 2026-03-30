@@ -1,3 +1,8 @@
+## v0.2.9
+- fixed TypeScript build errors in `AgentCard.vue`, `ProxyProvider.vue` and Axios request config typing
+- kept CI green path while removing false-positive build annotations for the fixed files
+- updated docs release notes and transfer package
+
 ## v0.2.8
 
 - simplified GitHub Actions toolchain bootstrap using Corepack + pnpm 9.12.1

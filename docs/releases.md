@@ -1,3 +1,9 @@
+## v0.2.9 — TypeScript build annotations cleanup
+- исправлена ошибка шаблона в `src/components/router/AgentCard.vue`, где `it` использовался вне области `v-for`;
+- исправлен вызов `showNotification` в `src/components/proxies/ProxyProvider.vue` под актуальную сигнатуру helper-а;
+- добавлено типобезопасное расширение `AxiosRequestConfig` с полем `silent`, чтобы убрать ошибки `src/api/index.ts`;
+- обновлены transfer-документы и журнал релизов.
+
 ## v0.2.8 — CI install bootstrap fallback
 
 - GitHub Actions switched from pnpm/action-setup to Corepack activation of pnpm 9.12.1.

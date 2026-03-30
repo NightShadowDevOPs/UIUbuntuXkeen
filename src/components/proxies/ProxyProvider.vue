@@ -1015,10 +1015,15 @@ const killSessionsClickHandler = async () => {
       }
     }
 
-    showNotification(
-      t('killProviderSessionsDone', { ok, fail, count: ids.length }) as any,
-      fail > 0 ? 'warning' : 'success',
-    )
+    showNotification({
+      content: 'killProviderSessionsDone',
+      params: {
+        ok: String(ok),
+        fail: String(fail),
+        count: String(ids.length),
+      },
+      type: fail > 0 ? 'alert-warning' : 'alert-success',
+    })
   } finally {
     isKilling.value = false
   }

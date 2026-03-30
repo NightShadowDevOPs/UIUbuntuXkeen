@@ -137,16 +137,16 @@
                 <div class="mt-1 flex flex-wrap items-center gap-1">
                   <span class="badge badge-sm badge-success" v-if="backupUploadOkCount > 0">OK: {{ backupUploadOkCount }}</span>
                   <span class="badge badge-sm badge-error" v-if="backupUploadFailCount > 0">ERR: {{ backupUploadFailCount }}</span>
-                  <span
-                    v-for="it in lastBackupUploadResults"
-                    :key="`upload-${it.remote}`"
-                    class="badge badge-sm"
-                    :class="uploadStatusBadgeClass(it.ok)"
-                    :title="it.error || ''"
-                  >
-                    {{ it.remote }} · {{ it.ok ? $t('agentBackupRemoteOk') : $t('agentBackupRemoteFail') }}
-                  </span>
-                  <span v-if="!it.ok && it.error" class="w-full break-all text-[11px] text-error">{{ it.remote }}: {{ it.error }}</span>
+                  <template v-for="it in lastBackupUploadResults" :key="`upload-${it.remote}`">
+                    <span
+                      class="badge badge-sm"
+                      :class="uploadStatusBadgeClass(it.ok)"
+                      :title="it.error || ''"
+                    >
+                      {{ it.remote }} · {{ it.ok ? $t('agentBackupRemoteOk') : $t('agentBackupRemoteFail') }}
+                    </span>
+                    <span v-if="!it.ok && it.error" class="w-full break-all text-[11px] text-error">{{ it.remote }}: {{ it.error }}</span>
+                  </template>
                 </div>
               </div>
               <div class="sm:col-span-2" v-if="cloudStatus.configPath">
