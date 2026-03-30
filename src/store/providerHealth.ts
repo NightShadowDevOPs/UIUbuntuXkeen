@@ -121,30 +121,55 @@ export const fetchAgentProviders = async (force = false) => {
 
       const providers = Array.isArray(checks?.providers) ? checks.providers : []
       const hasProviders = providers.length > 0
-      agentProvidersOk.value = Boolean(checks?.ok || cache?.ok || hasProviders)
-      agentProvidersError.value = hasProviders ? null : checks?.error || cache?.error || null
-      agentProviders.value = hasProviders ? providers : force ? [] : (agentProviders.value || [])
+      const backendOk = Boolean(checks?.ok || cache?.ok || hasProviders)
+      const backendError = hasProviders ? null : checks?.error || cache?.error || null
 
-      agentProvidersSslCacheReady.value = Boolean(checks?.sslCacheReady ?? cache?.sslCacheReady)
-      agentProvidersSslCacheFresh.value = Boolean(checks?.sslCacheFresh ?? cache?.sslCacheFresh)
-      agentProvidersSslRefreshing.value = Boolean(checks?.sslRefreshing ?? cache?.sslRefreshing)
-      agentProvidersSslRefreshPending.value = Boolean(checks?.sslRefreshPending ?? cache?.sslRefreshPending)
+      if (backendOk || !agentEnabled.value) {
+        agentProvidersOk.value = backendOk
+        agentProvidersError.value = backendError
+        agentProviders.value = hasProviders ? providers : force ? [] : (agentProviders.value || [])
 
-      const ageSec = Number(checks?.sslCacheAgeSec ?? cache?.sslCacheAgeSec)
+        agentProvidersSslCacheReady.value = Boolean(checks?.sslCacheReady ?? cache?.sslCacheReady)
+        agentProvidersSslCacheFresh.value = Boolean(checks?.sslCacheFresh ?? cache?.sslCacheFresh)
+        agentProvidersSslRefreshing.value = Boolean(checks?.sslRefreshing ?? cache?.sslRefreshing)
+        agentProvidersSslRefreshPending.value = Boolean(checks?.sslRefreshPending ?? cache?.sslRefreshPending)
+
+        const ageSec = Number(checks?.sslCacheAgeSec ?? cache?.sslCacheAgeSec)
+        agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
+
+        const nextRefreshSec = Number(checks?.sslCacheNextRefreshAtSec ?? cache?.sslCacheNextRefreshAtSec)
+        agentProvidersSslCacheNextRefreshAtMs.value = Number.isFinite(nextRefreshSec) && nextRefreshSec > 0 ? nextRefreshSec * 1000 : 0
+
+        const checkedAtSec = Number(checks?.checkedAtSec ?? cache?.checkedAtSec)
+        agentProvidersAt.value = Number.isFinite(checkedAtSec) && checkedAtSec > 0 ? checkedAtSec * 1000 : Date.now()
+
+        const nextCheckSec = Number(checks?.nextCheckAtSec)
+        agentProvidersNextCheckAtMs.value = Number.isFinite(nextCheckSec) && nextCheckSec > 0 ? nextCheckSec * 1000 : 0
+
+        const job = checks?.job || cache?.job || null
+        agentProvidersJobStatus.value = String(job?.status || '').trim()
+        agentProvidersJobId.value = String(job?.id || '').trim()
+        return
+      }
+
+      const agentRes = await agentMihomoProvidersAPI(force)
+      const agentRows = Array.isArray((agentRes as any)?.providers) ? ((agentRes as any)?.providers as any[]) : []
+      agentProvidersOk.value = Boolean((agentRes as any)?.ok || agentRows.length)
+      agentProvidersError.value = agentRows.length ? backendError : (agentRes as any)?.error || backendError || null
+      agentProviders.value = agentRows.length ? agentRows : force ? [] : (agentProviders.value || [])
+      agentProvidersSslCacheReady.value = Boolean((agentRes as any)?.sslCacheReady)
+      agentProvidersSslCacheFresh.value = Boolean((agentRes as any)?.sslCacheFresh)
+      agentProvidersSslRefreshing.value = Boolean((agentRes as any)?.sslRefreshing)
+      agentProvidersSslRefreshPending.value = Boolean((agentRes as any)?.sslRefreshPending)
+      const ageSec = Number((agentRes as any)?.sslCacheAgeSec)
       agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
-
-      const nextRefreshSec = Number(checks?.sslCacheNextRefreshAtSec ?? cache?.sslCacheNextRefreshAtSec)
+      const nextRefreshSec = Number((agentRes as any)?.sslCacheNextRefreshAtSec)
       agentProvidersSslCacheNextRefreshAtMs.value = Number.isFinite(nextRefreshSec) && nextRefreshSec > 0 ? nextRefreshSec * 1000 : 0
-
-      const checkedAtSec = Number(checks?.checkedAtSec ?? cache?.checkedAtSec)
+      const checkedAtSec = Number((agentRes as any)?.checkedAtSec)
       agentProvidersAt.value = Number.isFinite(checkedAtSec) && checkedAtSec > 0 ? checkedAtSec * 1000 : Date.now()
-
-      const nextCheckSec = Number(checks?.nextCheckAtSec)
-      agentProvidersNextCheckAtMs.value = Number.isFinite(nextCheckSec) && nextCheckSec > 0 ? nextCheckSec * 1000 : 0
-
-      const job = checks?.job || cache?.job || null
-      agentProvidersJobStatus.value = String(job?.status || '').trim()
-      agentProvidersJobId.value = String(job?.id || '').trim()
+      agentProvidersNextCheckAtMs.value = 0
+      agentProvidersJobStatus.value = ''
+      agentProvidersJobId.value = ''
       return
     } finally {
       agentProvidersLoading.value = false
@@ -218,12 +243,16 @@ export const refreshAgentProviderSslCache = async () => {
   if (providerHealthUsesUbuntuService.value) {
     let res: any = { ok: false, error: 'capability-missing' }
 
-    if (hasUbuntuProviderCapability('providerSslCacheRefresh')) {
-      res = await refreshUbuntuProviderSslCacheAPI()
-    } else if (hasUbuntuProviderCapability('providerChecksRun')) {
-      res = await runUbuntuProviderChecksAPI()
-    } else if (hasUbuntuProviderCapability('providerRefresh')) {
-      res = await refreshUbuntuProvidersAPI()
+    try {
+      if (hasUbuntuProviderCapability('providerSslCacheRefresh')) {
+        res = await refreshUbuntuProviderSslCacheAPI()
+      } else if (hasUbuntuProviderCapability('providerChecksRun')) {
+        res = await runUbuntuProviderChecksAPI()
+      } else if (hasUbuntuProviderCapability('providerRefresh')) {
+        res = await refreshUbuntuProvidersAPI()
+      }
+    } catch (e: any) {
+      res = { ok: false, error: e?.message || 'failed' }
     }
 
     if (res?.ok) {
@@ -241,18 +270,38 @@ export const refreshAgentProviderSslCache = async () => {
       agentProvidersNextCheckAtMs.value = Number.isFinite(nextCheckSec) && nextCheckSec > 0 ? nextCheckSec * 1000 : agentProvidersNextCheckAtMs.value
       agentProvidersJobStatus.value = String(res?.job?.status || agentProvidersJobStatus.value || '').trim()
       agentProvidersJobId.value = String(res?.job?.id || agentProvidersJobId.value || '').trim()
+      return res
     }
-    return res
+
+    if (!agentEnabled.value) return res
   }
 
-  if (isUbuntuProviderServiceMode.value) return { ok: false, error: 'capability-missing' }
+  if (isUbuntuProviderServiceMode.value && !agentEnabled.value) return { ok: false, error: 'capability-missing' }
   if (!agentEnabled.value) return { ok: false, error: 'agent-disabled' }
-  const res: any = await agentProviderSslCacheRefreshAPI()
+
+  let res: any = await agentProviderSslCacheRefreshAPI()
+  if (!res?.ok) {
+    const agentRes: any = await agentMihomoProvidersAPI(true)
+    const providers = Array.isArray(agentRes?.providers) ? agentRes.providers : []
+    if (agentRes?.ok || providers.length) {
+      res = {
+        ok: true,
+        checkedAtSec: Number(agentRes?.checkedAtSec) || Math.floor(Date.now() / 1000),
+        ready: Boolean(agentRes?.sslCacheReady),
+        fresh: Boolean(agentRes?.sslCacheFresh),
+        refreshing: Boolean(agentRes?.sslRefreshing ?? true),
+        cacheAgeSec: Number(agentRes?.sslCacheAgeSec),
+        nextRefreshAtSec: Number(agentRes?.sslCacheNextRefreshAtSec),
+        fallback: 'mihomo_providers',
+      }
+    }
+  }
+
   if (res?.ok) {
     agentProvidersSslCacheReady.value = Boolean(res?.ready)
     agentProvidersSslCacheFresh.value = Boolean(res?.fresh)
     agentProvidersSslRefreshing.value = Boolean(res?.refreshing ?? true)
-    agentProvidersSslRefreshPending.value = true
+    agentProvidersSslRefreshPending.value = Boolean(res?.refreshing ?? true)
     const ageSec = Number(res?.cacheAgeSec)
     agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
     const nextSec = Number(res?.nextRefreshAtSec)

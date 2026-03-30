@@ -6,13 +6,13 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.6.10**
+- Текущая версия линии: **v0.6.11**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 - Текущий шаг: **Tasks provider SSL cache flow (no blocking batch probe)**
 
 
 
-Релиз **v0.6.10** убирает ошибочный blocking flow в разделе **«Задачи»**:
+Релиз **v0.6.11** добивает fallback и cache-flow в Tasks: в разделе **«Задачи»**:
 - direct `ssl_probe_batch` больше не запускается из UI и не подвешивает экран на длинных таймаутах;
 - обновление SSL теперь идёт через штатный agent cache flow: `ssl_cache_refresh` + повторное чтение `mihomo_providers`;
 - таблица Tasks читает `panelSslNotAfter` из agent provider cache и показывает результат проверки URL 3x-ui подписок.

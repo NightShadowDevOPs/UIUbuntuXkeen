@@ -1,3 +1,9 @@
+## v0.6.11 — Tasks SSL cache fallback and agent bridge recovery
+
+- если `ssl_cache_refresh` недоступен, UI Tasks теперь делает fallback к `mihomo_providers` вместо немого `Network Error`;
+- список провайдеров и SSL-статусы пытаются дочитываться через agent bridge даже при сбое Ubuntu-service provider checks;
+- статус SSL в таблице больше не залипает в `SSL обновляется…`, если backend вернул глобальную ошибку refresh.
+
 ## v0.6.10 — Tasks provider SSL cache flow (no blocking batch probe)
 
 Что сделано:

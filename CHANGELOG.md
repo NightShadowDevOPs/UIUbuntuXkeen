@@ -1,3 +1,9 @@
+## v0.6.11 - 2026-03-30
+
+- исправлен fallback SSL-кеша в разделе **«Задачи»**: если dedicated refresh endpoint недоступен или падает с `Network Error`, UI переключается на штатное чтение `mihomo_providers`;
+- compatibility fallback добавлен и для списка провайдеров: при сбое Ubuntu-service checks UI пытается читать agent cache, а не оставляет Tasks в подвешенном состоянии;
+- в таблице SSL-статусов теперь учитываются `panelSslError` и `panelSslCheckedAtSec`, а глобальная ошибка refresh показывается честно вместо вечного `SSL обновляется…`.
+
 # Changelog
 
 ## v0.6.10 - 2026-03-30

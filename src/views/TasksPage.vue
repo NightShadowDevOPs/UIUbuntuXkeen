@@ -2125,7 +2125,7 @@ const providersPanelRenderList = computed(() => {
     const direct = [
       getAnyFromObj(provider, ['sslError', 'tlsError', 'certError', 'error']),
       getAnyFromObj(provider?.subscriptionInfo, ['sslError', 'tlsError', 'certError', 'error']),
-      getAnyFromObj(agentProvider, ['sslError', 'tlsError', 'certError', 'error']),
+      getAnyFromObj(agentProvider, ['panelSslError', 'sslError', 'tlsError', 'certError', 'error']),
     ]
       .map((v) => String(v || '').trim())
       .find(Boolean)
@@ -2140,7 +2140,7 @@ const providersPanelRenderList = computed(() => {
     const raw = Number(
       getAnyFromObj(provider, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
       getAnyFromObj(provider?.subscriptionInfo, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
-      getAnyFromObj(agentProvider, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
+      getAnyFromObj(agentProvider, ['panelSslCheckedAtSec', 'sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
       0,
     )
     return Number.isFinite(raw) && raw > 0 ? raw * 1000 : providerSslLastCheckedAtMs.value || 0
@@ -2295,16 +2295,16 @@ const sslSubscriptionInfo = (item: { name: string; sslNotAfter?: string; sslErro
       ? t('providerSslSourceUbuntuService')
       : t('providerSslSourceCompatibilityBridge')
   if (!d) {
-    const pending = providerHealthAvailable.value && (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value || !agentProvidersSslCacheReady.value)
-    if (pending && getProviderSourceUrl(item)) {
+    const err = String(item?.sslError || '').trim()
+    const hasUrl = Boolean(getProviderSourceUrl(item))
+    const pending = providerHealthAvailable.value && !err && (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value || !agentProvidersSslCacheReady.value)
+    if (pending && hasUrl) {
       return {
         text: t('providerSslRefreshing'),
         cls: 'text-info',
         title: `${t('providerSslSourceSubscription')} • ${backendProbeLabel} • ${t('providerSslRefreshingTip')}`,
       }
     }
-    const err = String(item?.sslError || '').trim()
-    const hasUrl = Boolean(getProviderSourceUrl(item))
     return {
       text: err ? t('providerSslError') : (hasUrl ? '—' : t('providersPanelNoSubscriptionUrl')),
       cls: err ? 'text-error' : (!hasUrl ? 'text-warning' : ''),
@@ -2324,7 +2324,7 @@ const sslSubscriptionInfo = (item: { name: string; sslNotAfter?: string; sslErro
 
 const providerSslMetaText = (item: { sslError?: string; sslCheckedAtMs?: number; url?: string }) => {
   const checked = fmtTs(item?.sslCheckedAtMs || providersPanelAt.value)
-  const err = String(item?.sslError || '').trim()
+  const err = String(item?.sslError || '').trim() || providerSslProbeErrorText.value
   const url = String(item?.url || '').trim()
   if (!url) return `${t('providerPanelUrl')}: ${t('providersPanelNoSubscriptionUrl')}`
   if (err) return `${t('checkedAt')}: ${checked} • ${t('providerSslError')}: ${err}`
@@ -2578,6 +2578,7 @@ const refreshProviderSslCacheNow = async () => {
       await sleep(1000)
     }
     const hasSslRows = (providersPanelRenderList.value || []).some((it: any) => String(it?.sslNotAfter || '').trim() || String(it?.sslError || '').trim())
+    panelSslProbeError.value = !hasSslRows && refreshError ? refreshError : null
     if (!hasSslRows && refreshError) {
       showNotification({ content: refreshError || 'operationFailed', type: 'alert-error', timeout: 2200 })
       return
@@ -4291,6 +4292,7 @@ const refreshSsl = async () => {
       const n = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value.filter((it: any) => String(it?.url || '').trim()).length : 0
       const okRows = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value.filter((it: any) => String(it?.sslNotAfter || '').trim()).length : 0
       const errorRows = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value.filter((it: any) => String(it?.sslError || '').trim()).length : 0
+      panelSslProbeError.value = !okRows && !errorRows && refreshError ? refreshError : null
       if (!okRows && !errorRows && refreshError) throw new Error(refreshError)
       finishJob(id, { ok: true, meta: { probed: n, ok: okRows, errors: errorRows } })
       showNotification({ content: 'sslRefreshed', type: 'alert-success', timeout: 1600 })
