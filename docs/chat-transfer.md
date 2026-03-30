@@ -1,22 +1,94 @@
-UI Mihomo / Ultra — обновление переноса v1.2.106
+# UIUbuntuXkeen — сообщение для нового чата
 
-Что изменилось в этом релизе:
-- релиз `v1.2.106` не добавляет новую фичу, а чинит production build после `v1.2.105`
-- в `MihomoConfigEditor.vue` исправлены недостающие закрывающие теги в секции `proxy-providers`, из-за которых Vue/Vite падали на `Element is missing end tag`
-- сохранены изменения `v1.2.105`: сценарный мастер создания `proxies` и проверка обязательных полей перед шагом `Проверка`
-- `router-agent` в этом релизе не менялся; линия остаётся `0.6.22`
+Вставь этот файл целиком в новый чат.
 
-Текущие версии:
-- UI: v1.2.106
-- v1.2.106: build-fix для `MihomoConfigEditor.vue`; устранено падение сборки на секции `proxy-providers`; router-agent не менялся
-- router-agent: 0.6.22
+---
 
-Что важно по интерфейсу:
-- `Mihomo` остаётся отдельным рабочим разделом
-- `Settings` держит только интерфейс, поведение и связанные настройки отображения
-- safe managed-config flow сохранён: `draft / validate / apply / rollback / baseline / history`
-- raw YAML-редактор не убирался: structured-блоки работают поверх текущего черновика и не ломают безопасный pipeline
-- вкладка `Роутер` по-прежнему разбита на `Обзор / Трафик / Сеть`
+Мы продолжаем проект **UIUbuntuXkeen**.
 
-Следующий логичный шаг:
-- после `v1.2.106` можно спокойно продолжать развитие мастеров/structured-редакторов, уже без текущей build-мины в `proxy-providers`
+## Что это за проект
+
+UIUbuntuXkeen — это отдельный Ubuntu-oriented веб-интерфейс для управления **Mihomo** на Ubuntu-хосте/сервере.
+
+Проект вырос из линии **UltraUIXkeen / UI Mihomo / Ultra**, но теперь развивается как **самостоятельный продукт под Ubuntu**, а не как роутерный UI для Netcraze Ultra.
+
+## Репозиторий и рабочий процесс
+
+- Репозиторий: `https://github.com/NightShadowDevOPs/UIUbuntuXkeen`
+- Пользователь загружает релизы в репозиторий через **GitHub Desktop**
+- После push пользователь проверяет **GitHub Actions**
+- Обновление UI на сервере выполняется через кнопку **«Обновить»** в самом UI
+
+## Как работаем по релизам
+
+Ты всегда отвечаешь в таком порядке:
+1. даёшь **дистрибутив архивом**;
+2. отдельно даёшь **commit message**;
+3. соблюдаешь **версионность**;
+4. в каждом релизе обновляешь `docs/`;
+5. в каждом релизе обязательно обновляешь этот transfer-файл для нового чата.
+
+## Обязательные документы в docs
+
+В `docs/` всегда должны быть:
+- `project-spec.md` — полное ТЗ;
+- `roadmap.md` — план работ по релизам;
+- `releases.md` — журнал выполненных релизов;
+- `chat-transfer.md` — актуальный перенос в новый чат.
+
+## Текущий статус
+
+Текущий релиз: **v0.1.0**
+
+Что уже сделано:
+- залита стартовая база нового репозитория;
+- docs приведены к одному каноничному комплекту;
+- сформировано полное ТЗ Ubuntu-линии;
+- сформирован roadmap переноса;
+- сформирован единый transfer-файл;
+- удалены лишние устаревшие документы из `docs/`.
+
+## Архитектурные правила проекта
+
+### Ubuntu paths
+Используем только Ubuntu-ориентированную модель путей:
+- `/etc/mihomo/config.yaml`
+- `/var/lib/ultra-ui-ubuntu/`
+- `/var/lib/ultra-ui-ubuntu/config/`
+- `/var/log/ultra-ui-ubuntu/`
+- `/etc/ultra-ui-ubuntu/agent.env`
+
+Старые Xkeen/Entware пути не считаются каноничными для новой линии.
+
+### Что переносим из старого проекта
+- лучшие части текущего UI;
+- Mihomo Workspace;
+- safe config flow;
+- structured editors;
+- traffic / providers / rules / subscriptions / diagnostics.
+
+### Что перепроектируем
+- `router-agent` shell/cgi;
+- роутерные пути и роутерную системную модель;
+- host/runtime контур под Ubuntu;
+- QoS/shaping под Ubuntu.
+
+## Текущий roadmap
+
+Ближайшие релизы:
+- `v0.2.0` — Ubuntu bootstrap metadata
+- `v0.3.0` — Backend contract foundation
+- `v0.4.0` — Runtime / Setup / Observability foundation
+- `v0.5.0` — Safe config core
+- `v0.6.0` — Structured editors MVP
+- `v0.7.0` — Operational parity I
+- `v0.8.0` — Operational parity II
+- `v0.9.0` — Backup / Restore / Diagnostics
+- `v1.0.0` — Ubuntu MVP complete
+
+## Что важно помнить в следующем чате
+
+- docs нужно обновлять **в каждом релизе**;
+- не плодить пачку отдельных transfer-файлов по патчам;
+- не тащить Xkeen-пути в Ubuntu-линейку как основную архитектуру;
+- переход делать этапами, а не одним безумным прыжком через пропасть.

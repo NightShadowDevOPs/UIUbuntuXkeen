@@ -1,7 +1,7 @@
 {
-  "name": "mihomo-ultra-ui",
-  "version": "1.2.106",
-  "description": "UltraUIXkeen — dashboard for Netcraze Ultra (Mihomo)",
+  "name": "ui-ubuntu-xkeen",
+  "version": "0.1.0",
+  "description": "UIUbuntuXkeen — Ubuntu-oriented UI for Mihomo",
   "license": "MIT",
   "type": "module",
   "scripts": {

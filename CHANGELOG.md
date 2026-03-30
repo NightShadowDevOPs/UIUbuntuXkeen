@@ -1,3 +1,10 @@
+## v0.1.0 — 2026-03-30
+
+- bootstrap of the new Ubuntu-oriented product line `UIUbuntuXkeen` based on the `UltraUIXkeen` source tree
+- replaced the fragmented legacy docs set with a canonical `docs/` bundle: full project spec, roadmap, release log and a single chat-transfer file
+- reset package metadata to the new project identity and version line
+- documented the Ubuntu-native path model and the mandatory release workflow for future releases
+
 ## 1.2.106 (2026-03-29)
 
 ### Bug Fixes
