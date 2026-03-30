@@ -286,8 +286,12 @@ export const connectionCardLines = useStorage<CONNECTIONS_TABLE_ACCESSOR_KEY[][]
 
 export const sourceIPLabelList = useStorage<SourceIPLabel[]>('config/source-ip-label-list', [])
 
-// Shared (synced via router-agent users DB): optional management panel URL per proxy-provider
+// Shared (synced via router-agent users DB): optional 3x-ui subscription URL per proxy-provider.
+// Storage key stays legacy-compatible because existing browsers/users DB data already use this key.
 export const proxyProviderPanelUrlMap = useStorage<Record<string, string>>('config/proxy-provider-panel-url-map', {})
+
+// Canonical alias used by Tasks/Providers code. Do not change the storage key without an explicit migration.
+export const proxyProviderSubscriptionUrlMap = proxyProviderPanelUrlMap
 
 // Shared (synced via router-agent users DB): optional per-provider icon (country flag or globe)
 // Values: '' (unset), 'globe', or ISO 3166-1 alpha-2 like 'RU', 'US'

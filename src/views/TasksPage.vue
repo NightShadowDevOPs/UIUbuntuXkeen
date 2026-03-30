@@ -79,110 +79,121 @@
         </div>
         <div class="text-[11px] opacity-60">{{ $t('sslWarnThresholdTip') }}</div>
 
-        <div v-if="!providerHealthAvailable" class="mb-2 text-xs text-warning">
-          {{ $t('providerHealthBackendUnavailable') }}
+        <div v-if="!providerHealthAvailable" class="mb-2 mt-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+          <div>{{ $t('providerHealthBackendUnavailable') }}</div>
+          <div class="mt-1 opacity-80">{{ $t('providersPanelSavedListHint') }}</div>
         </div>
         <div v-if="providersPanelBusy" class="text-sm opacity-70">…</div>
-		  <div v-else>
-			<div v-if="providersPanelError" class="text-xs text-error" :title="providersPanelError">{{ friendlyProviderPanelError(providersPanelError, 'providers') }}</div>
-			<div v-else>
-			  <div v-if="providerSslCacheStatusText" class="mb-2 text-xs" :class="providerSslCacheStatusClass" :title="$t('providerSslRefreshingTip')">{{ providerSslCacheStatusText }}</div>
-			  <div v-if="!providersPanelRenderList.length" class="text-sm opacity-70">—</div>
-			  <div v-else>
-				<div class="mt-1 text-[11px] opacity-60">
-				  <div>{{ $t('providersPanelColumnsExplain') }}</div>
-				  <div class="mt-0.5">{{ $t('sslSource') }} • {{ $t('checkedAt') }}: {{ fmtTs(providersPanelAt) }}</div>
-				  <div v-if="agentProvidersNextCheckAtMs || agentProvidersJobStatus" class="mt-0.5">{{ $t('providerChecksStateLine', { next: fmtTs(agentProvidersNextCheckAtMs), status: agentProvidersJobStatus || '—' }) }}</div>
-				</div>
-				
-				<div class="mt-2 overflow-x-auto">
-				  <table class="table table-zebra table-sm">
-					<thead>
-					  <tr>
-						<th class="w-[160px]">{{ $t('provider') }}</th>
-						<th>{{ $t('panelUrl') }}</th>
-						<th class="w-[140px]">{{ $t('sslWarnDays') }}</th>
-						<th class="w-[190px]">{{ $t('sslExpires') }}</th>
-					  </tr>
-					</thead>
-					<tbody>
-					  <tr v-for="p in providersPanelRenderList" :key="p.name">
-						<td class="font-mono text-xs">
-              <div class="flex items-center gap-2">
-								<button
-                      type="button"
-                      class="btn btn-ghost btn-xs h-7 w-10 shrink-0 px-0"
-                      @click.stop="(e) => openProviderIconPicker(e, p.name)"
-                      :title="$t('providerIcon')"
-                    >
-                      <ProviderIconBadge :icon="getProviderIconRaw(p.name)" />
-                    </button>
-                    <select
-                      class="select select-bordered select-xs w-24"
-                      :value="getProviderIconRaw(p.name)"
-                      @change="(e) => setProviderIcon(p.name, ((e.target as HTMLSelectElement)?.value || ''))"
-                      :title="$t('providerIcon')"
-                    >
-                      <option value="">—</option>
-                      <option value="globe">🌐 globe</option>
-                      <option v-for="cc in providerIconCountries" :key="`sel-${p.name}-${cc}`" :value="cc">{{ fmtProviderIcon(cc) }}</option>
-                    </select>
+        <div v-else>
+          <div v-if="providersPanelError" class="text-xs text-error" :title="providersPanelError">{{ friendlyProviderPanelError(providersPanelError, 'providers') }}</div>
+          <div v-else>
+            <div v-if="providerSslCacheStatusText" class="mb-2 text-xs" :class="providerSslCacheStatusClass" :title="$t('providerSslRefreshingTip')">{{ providerSslCacheStatusText }}</div>
+            <div class="mt-2 flex flex-wrap gap-2 text-[11px]">
+              <span class="badge badge-ghost badge-sm">{{ $t('providersPanelKnownProviders') }}: {{ providersPanelStats.total }}</span>
+              <span class="badge badge-ghost badge-sm">{{ $t('providersPanelWithSubscriptions') }}: {{ providersPanelStats.withUrl }}</span>
+              <span v-if="providersPanelStats.withoutUrl" class="badge badge-warning badge-sm">{{ $t('providersPanelWithoutSubscriptions') }}: {{ providersPanelStats.withoutUrl }}</span>
+              <span v-if="providersPanelStats.problems" class="badge badge-error badge-sm">{{ $t('providersPanelProblems') }}: {{ providersPanelStats.problems }}</span>
+              <span v-if="providersPanelStats.expiringSoon" class="badge badge-warning badge-sm">{{ $t('providersPanelExpiringSoon') }}: {{ providersPanelStats.expiringSoon }}</span>
+            </div>
+            <div v-if="!providersPanelRenderList.length" class="mt-2 text-sm opacity-70">{{ $t('providersPanelEmpty') }}</div>
+            <div v-else>
+              <div class="mt-2 text-[11px] opacity-60">
+                <div>{{ $t('providersPanelColumnsExplain') }}</div>
+                <div class="mt-0.5">{{ $t('sslSource') }} • {{ $t('checkedAt') }}: {{ fmtTs(providersPanelAt) }}</div>
+                <div v-if="agentProvidersNextCheckAtMs || agentProvidersJobStatus" class="mt-0.5">{{ $t('providerChecksStateLine', { next: fmtTs(agentProvidersNextCheckAtMs), status: agentProvidersJobStatus || '—' }) }}</div>
+              </div>
 
-                <span class="min-w-0 truncate" :title="p.name">{{ p.name }}</span>
-                <TopologyActionButtons :stage="'P'" :value="p.name" :grouped="true" />
-              </div>
-            </td>
-						<td>
-              <div class="flex items-center gap-2">
-                <input
-                  class="input input-bordered input-xs min-w-[260px] flex-1 font-mono"
-                  :value="getProviderSourceUrlDraft(p.name)"
-                  :placeholder="$t('providerPanelUrlPlaceholder')"
-                  @input="(e) => setProviderSourceUrlDraft(p.name, (e.target as HTMLInputElement)?.value || '')"
-                  @keydown.enter.stop.prevent="saveProviderSourceUrl(p.name)"
-                  @blur="saveProviderSourceUrl(p.name)"
-                />
-                <a
-                  v-if="getProviderSourceUrlDraft(p.name)"
-                  class="btn btn-ghost btn-xs"
-                  :href="getProviderSourceUrlDraft(p.name)"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {{ $t('open') }}
-                </a>
-              </div>
-						</td>
-						<td>
-						  <div class="flex items-center gap-2">
-							<input
-							  type="number"
-							  min="0"
-							  max="365"
-							  class="input input-bordered input-xs w-20"
-							  :placeholder="String(sslNearExpiryDaysDefault)"
-							  :value="getProviderSslWarnOverride(p.name) === null ? '' : String(getProviderSslWarnOverride(p.name))"
-							  @input="(e) => setProviderSslWarnOverride(p.name, (e && e.target && e.target.value) || '')"
-							/>
-							<button type="button" class="btn btn-ghost btn-xs" @click="clearProviderSslWarnOverride(p.name)">
-							  {{ $t('clear') }}
-							</button>
-						  </div>
-						  <div class="mt-0.5 text-[10px] opacity-60">{{ $t('sslWarnDaysHint', { d: sslNearExpiryDaysDefault }) }}</div>
-						</td>
-						<td>
-						  <span
-							class="text-[11px] font-mono"
+              <div class="mt-2 overflow-x-auto">
+                <table class="table table-zebra table-sm">
+                  <thead>
+                    <tr>
+                      <th class="w-[180px]">{{ $t('provider') }}</th>
+                      <th>{{ $t('panelUrl') }}</th>
+                      <th class="w-[148px]">{{ $t('sslWarnDays') }}</th>
+                      <th class="w-[220px]">{{ $t('sslExpires') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="p in providersPanelRenderList" :key="p.name">
+                      <td class="font-mono text-xs">
+                        <div class="flex items-center gap-2">
+                          <button
+                            type="button"
+                            class="btn btn-ghost btn-xs h-7 w-10 shrink-0 px-0"
+                            @click.stop="(e) => openProviderIconPicker(e, p.name)"
+                            :title="$t('providerIcon')"
+                          >
+                            <ProviderIconBadge :icon="getProviderIconRaw(p.name)" />
+                          </button>
+                          <select
+                            class="select select-bordered select-xs w-24"
+                            :value="getProviderIconRaw(p.name)"
+                            @change="(e) => setProviderIcon(p.name, ((e.target as HTMLSelectElement)?.value || ''))"
+                            :title="$t('providerIcon')"
+                          >
+                            <option value="">—</option>
+                            <option value="globe">🌐 globe</option>
+                            <option v-for="cc in providerIconCountries" :key="`sel-${p.name}-${cc}`" :value="cc">{{ fmtProviderIcon(cc) }}</option>
+                          </select>
+
+                          <span class="min-w-0 truncate" :title="p.name">{{ p.name }}</span>
+                          <TopologyActionButtons :stage="'P'" :value="p.name" :grouped="true" />
+                        </div>
+                      </td>
+                      <td>
+                        <div class="flex items-center gap-2">
+                          <input
+                            class="input input-bordered input-xs min-w-[260px] flex-1 font-mono"
+                            :value="getProviderSourceUrlDraft(p.name)"
+                            :placeholder="$t('providerPanelUrlPlaceholder')"
+                            @input="(e) => setProviderSourceUrlDraft(p.name, (e.target as HTMLInputElement)?.value || '')"
+                            @keydown.enter.stop.prevent="saveProviderSourceUrl(p.name)"
+                            @blur="saveProviderSourceUrl(p.name)"
+                          />
+                          <a
+                            v-if="getProviderSourceUrlDraft(p.name)"
+                            class="btn btn-ghost btn-xs"
+                            :href="getProviderSourceUrlDraft(p.name)"
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {{ $t('open') }}
+                          </a>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max="365"
+                            class="input input-bordered input-xs w-20"
+                            :placeholder="String(sslNearExpiryDaysDefault)"
+                            :value="getProviderSslWarnOverride(p.name) === null ? '' : String(getProviderSslWarnOverride(p.name))"
+                            @input="(e) => setProviderSslWarnOverride(p.name, (e && e.target && e.target.value) || '')"
+                          />
+                          <button type="button" class="btn btn-ghost btn-xs" @click="clearProviderSslWarnOverride(p.name)">
+                            {{ $t('clear') }}
+                          </button>
+                        </div>
+                        <div class="mt-0.5 text-[10px] opacity-60">{{ $t('sslWarnDaysHint', { d: sslNearExpiryDaysDefault }) }}</div>
+                      </td>
+                      <td>
+                        <div class="flex flex-col gap-0.5">
+                          <span
+                            class="text-[11px] font-mono"
                             :class="sslSubscriptionInfo(p).cls"
                             :title="sslSubscriptionInfo(p).title"
-						  >
+                          >
                             {{ sslSubscriptionInfo(p).text }}
-						  </span>
-						</td>
-					  </tr>
-					</tbody>
-				  </table>
-				</div>
+                          </span>
+                          <span class="text-[10px] opacity-60">{{ providerSslMetaText(p) }}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
           <!-- Provider icon picker (teleported to body to avoid clipping in overflow containers) -->
           <Teleport to="body">
@@ -1906,7 +1917,7 @@ import { countryCodeToFlagEmoji, normalizeProviderIcon } from '@/helper/provider
 import { FLAG_CODES } from '@/helper/flagIcons'
 import { activeBackend, backendList } from '@/store/setup'
 import { agentEnabled, agentUrl } from '@/store/agent'
-import { proxyProviderIconMap, proxyProviderPanelUrlMap as proxyProviderSubscriptionUrlMap, proxyProviderSslWarnDaysMap, sslNearExpiryDaysDefault } from '@/store/settings'
+import { proxyProviderIconMap, proxyProviderSubscriptionUrlMap, proxyProviderSslWarnDaysMap, sslNearExpiryDaysDefault } from '@/store/settings'
 import { agentProviderByName, agentProviders, agentProvidersAt, agentProvidersError, agentProvidersJobStatus, agentProvidersNextCheckAtMs, agentProvidersOk, agentProvidersSslCacheReady, agentProvidersSslRefreshPending, agentProvidersSslRefreshing, fetchAgentProviders, providerHealthActionsAvailable, providerHealthAvailable, refreshAgentProviderSslCache } from '@/store/providerHealth'
 import { fetchProxyProvidersOnly, proxyProviederList } from '@/store/proxies'
 import { userLimitProfiles } from '@/store/userLimitProfiles'
@@ -2026,9 +2037,37 @@ const toggleProvidersPanelExpanded = () => {
 
 // (no per-provider accordion state; rendered as a table)
 
+const collectOrderedProviderNames = () => {
+  const ordered: string[] = []
+  const seen = new Set<string>()
+  const pushName = (raw: any) => {
+    const name = String(raw || '').trim()
+    if (!name || seen.has(name)) return
+    seen.add(name)
+    ordered.push(name)
+  }
+
+  try {
+    for (const p of (proxyProviederList.value || []) as any[]) {
+      const name = String(p?.name || '').trim()
+      if (!name || name === 'default' || p?.vehicleType === 'Compatible') continue
+      pushName(name)
+    }
+  } catch {
+    // ignore
+  }
+
+  for (const name of Object.keys(proxyProviderSubscriptionUrlMap.value || {})) pushName(name)
+  for (const name of Object.keys(proxyProviderIconMap.value || {})) pushName(name)
+  for (const name of Object.keys(proxyProviderSslWarnDaysMap.value || {})) pushName(name)
+  for (const it of (providersPanelList.value || []) as any[]) pushName(it?.name)
+
+  return ordered
+}
+
 // Render list should include all providers known to UI plus provider rows returned by the backend.
 const providersPanelRenderList = computed(() => {
-  const names = new Set<string>()
+  const orderedNames = collectOrderedProviderNames()
   const providerMetaByName = new Map<string, any>()
   const agentMetaByName = new Map<string, any>()
 
@@ -2036,7 +2075,6 @@ const providersPanelRenderList = computed(() => {
     for (const p of (proxyProviederList.value || []) as any[]) {
       const name = String(p?.name || '').trim()
       if (!name || name === 'default' || p?.vehicleType === 'Compatible') continue
-      names.add(name)
       providerMetaByName.set(name, p)
     }
   } catch {
@@ -2046,21 +2084,7 @@ const providersPanelRenderList = computed(() => {
   for (const it of (providersPanelList.value || []) as any[]) {
     const name = String(it?.name || '').trim()
     if (!name) continue
-    names.add(name)
     agentMetaByName.set(name, it)
-  }
-
-  for (const name of Object.keys(proxyProviderSubscriptionUrlMap.value || {})) {
-    const normalized = String(name || '').trim()
-    if (normalized) names.add(normalized)
-  }
-  for (const name of Object.keys(proxyProviderIconMap.value || {})) {
-    const normalized = String(name || '').trim()
-    if (normalized) names.add(normalized)
-  }
-  for (const name of Object.keys(proxyProviderSslWarnDaysMap.value || {})) {
-    const normalized = String(name || '').trim()
-    if (normalized) names.add(normalized)
   }
 
   const readSourceUrl = (provider: any, agentProvider: any, name: string): string => {
@@ -2108,21 +2132,52 @@ const providersPanelRenderList = computed(() => {
     return Number.isFinite(raw) && raw > 0 ? raw * 1000 : providersPanelAt.value || 0
   }
 
-  return Array.from(names)
-    .sort((a, b) => a.localeCompare(b))
-    .map((name) => {
-      const providerMeta = providerMetaByName.get(name) || null
-      const agentMeta = agentMetaByName.get(name) || (agentProviderByName.value || {})[name] || null
-      return {
-        name,
-        url: readSourceUrl(providerMeta, agentMeta, name),
-        host: String(agentMeta?.host || '').trim(),
-        port: String(agentMeta?.port || '').trim(),
-        sslNotAfter: readSslNotAfter(providerMeta, agentMeta),
-        sslError: readSslError(providerMeta, agentMeta),
-        sslCheckedAtMs: readCheckedAtMs(providerMeta, agentMeta),
-      }
-    })
+  return orderedNames.map((name) => {
+    const providerMeta = providerMetaByName.get(name) || null
+    const agentMeta = agentMetaByName.get(name) || (agentProviderByName.value || {})[name] || null
+    return {
+      name,
+      url: readSourceUrl(providerMeta, agentMeta, name),
+      host: String(agentMeta?.host || '').trim(),
+      port: String(agentMeta?.port || '').trim(),
+      sslNotAfter: readSslNotAfter(providerMeta, agentMeta),
+      sslError: readSslError(providerMeta, agentMeta),
+      sslCheckedAtMs: readCheckedAtMs(providerMeta, agentMeta),
+    }
+  })
+})
+
+const providersPanelStats = computed(() => {
+  const now = dayjs()
+  let withUrl = 0
+  let withoutUrl = 0
+  let problems = 0
+  let expiringSoon = 0
+
+  for (const item of providersPanelRenderList.value || []) {
+    const url = String(item?.url || '').trim()
+    if (url) withUrl += 1
+    else withoutUrl += 1
+
+    const err = String(item?.sslError || '').trim()
+    const date = parseDateMaybe(item?.sslNotAfter)
+    if (err) {
+      problems += 1
+      continue
+    }
+    if (date) {
+      const days = date.diff(now, 'day')
+      if (days <= getProviderWarnDays(item.name)) expiringSoon += 1
+    }
+  }
+
+  return {
+    total: providersPanelRenderList.value.length,
+    withUrl,
+    withoutUrl,
+    problems,
+    expiringSoon,
+  }
 })
 
 const fmtTs = (ms: any) => {
@@ -2235,11 +2290,12 @@ const sslSubscriptionInfo = (item: { name: string; sslNotAfter?: string; sslErro
       }
     }
     const err = String(item?.sslError || '').trim()
+    const hasUrl = Boolean(getProviderSourceUrl(item))
     return {
-      text: err ? t('providerSslError') : '—',
-      cls: err ? 'text-error' : '',
+      text: err ? t('providerSslError') : (hasUrl ? '—' : t('providersPanelNoSubscriptionUrl')),
+      cls: err ? 'text-error' : (!hasUrl ? 'text-warning' : ''),
       title: err
-        ? `${t('providerSslSourceSubscription')} • ${backendProbeLabel} • ${t('providerSslError')}: ${err}${getProviderSourceUrl(item) ? ` • URL: ${getProviderSourceUrl(item)}` : ''}`
+        ? `${t('providerSslSourceSubscription')} • ${backendProbeLabel} • ${t('providerSslError')}: ${err}${hasUrl ? ` • URL: ${getProviderSourceUrl(item)}` : ''}`
         : `${t('providerSslSourceSubscription')} • ${backendProbeLabel}`,
     }
   }
@@ -2250,6 +2306,15 @@ const sslSubscriptionInfo = (item: { name: string; sslNotAfter?: string; sslErro
   const text = days < 0 ? `${date} (${t('providerSslStatusExpired')})` : `${date} (${days}${t('daysShort')})`
   const title = `${t('providerSslSourceSubscription')} • ${backendProbeLabel} • ${t('checkedAt')}: ${fmtTs(item?.sslCheckedAtMs || providersPanelAt.value)}`
   return { text, cls, title }
+}
+
+const providerSslMetaText = (item: { sslError?: string; sslCheckedAtMs?: number; url?: string }) => {
+  const checked = fmtTs(item?.sslCheckedAtMs || providersPanelAt.value)
+  const err = String(item?.sslError || '').trim()
+  const url = String(item?.url || '').trim()
+  if (!url) return `${t('panelUrl')}: ${t('providersPanelNoSubscriptionUrl')}`
+  if (err) return `${t('checkedAt')}: ${checked} • ${t('providerSslError')}: ${err}`
+  return `${t('checkedAt')}: ${checked}`
 }
 
 // ---- Provider icon (flag/globe) ----

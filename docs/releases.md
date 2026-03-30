@@ -1,5 +1,15 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.6.6 — Tasks providers SSL operational polish
+Дата: **2026-03-30**
+
+Сделано:
+- раздел **«Задачи»** доведён ближе к каноничной operational-форме со скринов: в блоке провайдеров появились сводные счётчики по URL/ошибкам/скорым истечениям и явная meta-строка с checked/error под статусом сертификата;
+- список провайдеров в Tasks теперь сохраняет практический порядок источников: реальные proxy providers UI → сохранённые subscription URL/иконки/SSL override-настройки → backend extras;
+- если backend provider-health/checks временно недоступен, Tasks больше не выглядит пустым: предупреждение показывается отдельно, но локально сохранённый список провайдеров и 3x-ui subscription URL остаётся доступным для редактирования;
+- спецификация проекта уточнена: Providers задают URL 3x-ui подписок, а Tasks выполняет SSL/TLS-опрос и показывает operational-результат.
+
+
 ## v0.6.5 — Tasks providers list and form audit
 Дата: **2026-03-30**
 
@@ -18,7 +28,7 @@
 - корректирующий релиз по списку провайдеров и аудиту формы Tasks.
 
 Следующий плановый релиз:
-- `v0.6.6` — полировка Tasks под эталонные скрины и история/scheduler для SSL-проверок.
+- `v0.6.7` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.4 — Tasks alignment: 3x-ui subscription URLs
 Дата: **2026-03-30**
@@ -38,7 +48,7 @@
 - функциональный корректирующий релиз по Tasks/Providers модели.
 
 Следующий плановый релиз:
-- `v0.6.6` — provider scheduler/history и GEO groundwork.
+- `v0.6.7` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.3 — build/install stabilization
 - добавлен `.npmrc` с отключённым frozen lockfile, чтобы CI не падал на этапе `Install dependencies`;
@@ -63,7 +73,7 @@
 - функциональный корректирующий шаг по SSL-контуру в разделе **«Задачи»**.
 
 Следующий плановый релиз:
-- `v0.6.6` — provider scheduler/history и GEO groundwork.
+- `v0.6.7` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.1 — rollback misplaced provider SSL workspace
 Дата: **2026-03-30**
@@ -82,7 +92,7 @@
 - исправляющий rollback/hotfix после неверного хода в `v0.6.0`.
 
 Следующий плановый релиз:
-- `v0.6.6` — provider scheduler/history и GEO groundwork.
+- `v0.6.7` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.0 — ошибочный provider SSL workspace
 Дата: **2026-03-30**

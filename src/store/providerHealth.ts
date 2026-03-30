@@ -6,7 +6,7 @@ import { computed, ref, watch } from 'vue'
 import { agentEnabled } from './agent'
 import { activeBackendCapabilities } from './backendCapabilities'
 import { activeBackend } from './setup'
-import { proxyProviderPanelUrlMap } from './settings'
+import { proxyProviderSubscriptionUrlMap } from './settings'
 
 export const autoSortProxyProvidersByHealth = useStorage<boolean>(
   'config/auto-sort-proxy-providers-by-health',
@@ -262,7 +262,7 @@ export const refreshAgentProviderSslCache = async () => {
 }
 
 const buildProbeLines = (): string => {
-  const map = proxyProviderPanelUrlMap.value || {}
+  const map = proxyProviderSubscriptionUrlMap.value || {}
   const lines: string[] = []
   for (const [name, url] of Object.entries(map)) {
     const n = String(name || '').trim()
@@ -374,7 +374,7 @@ watch(
 // explicitly refreshes it. This avoids false 'agent unavailable' / empty-state
 // regressions when one dead panel makes SSL probing slow.
 watch(
-  proxyProviderPanelUrlMap,
+  proxyProviderSubscriptionUrlMap,
   () => {
     panelSslCheckedAt.value = 0
     panelSslErrorByName.value = {}

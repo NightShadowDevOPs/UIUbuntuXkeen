@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.6.5**  
+Текущая версия линии: **v0.6.6**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -133,14 +133,21 @@
 - SSL/TLS-опрос в Tasks приоритетно идёт по сохранённым URL подписок провайдеров;
 - терминология очищена от ложной модели «панелей управления» там, где речь идёт именно о ссылке подписки.
 
-### v0.6.6 — provider scheduler/history и GEO groundwork
+### v0.6.6 — Tasks providers SSL operational polish
+Статус: **сделано**
+- раздел **«Задачи»** доведён ближе к эталонной форме со скринов без переноса SSL-логики в список прокси-провайдеров;
+- список провайдеров сохраняет реальный порядок provider sources и не теряет локально сохранённые subscription URL при временной недоступности backend checks;
+- в блоке провайдеров показаны сводные счётчики по URL/ошибкам/скорым истечениям и явный checked/error meta line по каждому URL 3x-ui подписки;
+- docs уточнили границу ответственности: Providers задают subscription URL, Tasks показывает SSL/TLS operational state.
+
+### v0.6.7 — provider scheduler/history и GEO groundwork
 Статус: **следующий шаг**
 План:
 - добавить `next check`, `last successful run`, job/history для provider SSL checks;
 - вывести GEO last update и GEO history как соседний operational блок;
 - подготовить storage/state контур под scheduler результаты и историю проверок.
 
-### v0.6.7 — QoS и shaping под Ubuntu
+### v0.6.8 — QoS и shaping под Ubuntu
 План:
 - host shaping profiles;
 - per-client bandwidth/QoS status;
