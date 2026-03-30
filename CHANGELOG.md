@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7] - 2026-03-30
+
+### Fixed
+- GitHub Actions now fails directly inside `Install dependencies` after printing the full `pnpm install` log inline, so the useful text stays in the same step instead of hiding behind a separate fail marker.
+- Removed the extra \`Fail job if install failed\` step that turned the workflow into a mute red brick without the interesting part.
+- Kept install diagnostics in plain console output for copy-paste analysis.
+
 ## [0.2.6] - 2026-03-30
 
 ### Fixed

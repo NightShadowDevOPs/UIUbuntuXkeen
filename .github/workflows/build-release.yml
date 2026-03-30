@@ -67,8 +67,6 @@ jobs:
           } | tee ci-logs/preflight.log
 
       - name: Install dependencies
-        id: install
-        continue-on-error: true
         shell: bash
         env:
           CI: true
@@ -76,23 +74,14 @@ jobs:
         run: |
           set +e
           mkdir -p ci-logs
-          pnpm install --frozen-lockfile --ignore-scripts --reporter=append-only > ci-logs/pnpm-install.log 2>&1
-          status=$?
-          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
           echo '--- pnpm install log begin ---'
-          cat ci-logs/pnpm-install.log
+          pnpm install --frozen-lockfile --ignore-scripts --reporter=append-only 2>&1 | tee ci-logs/pnpm-install.log
+          status=${PIPESTATUS[0]}
           echo '--- pnpm install log end ---'
-          exit 0
-
-      - name: Fail job if install failed
-        if: ${{ steps.install.outputs.exit_code != '0' }}
-        shell: bash
-        run: |
-          echo "Install dependencies failed with exit code ${{ steps.install.outputs.exit_code }}"
-          exit 1
+          exit $status
 
       - name: Type check (informational)
-        if: ${{ steps.install.outputs.exit_code == '0' }}
+        if: ${{ success() }}
         continue-on-error: true
         shell: bash
         run: |
@@ -101,7 +90,7 @@ jobs:
           pnpm type-check 2>&1 | tee ci-logs/type-check.log
 
       - name: Build UI
-        if: ${{ steps.install.outputs.exit_code == '0' }}
+        if: ${{ success() }}
         shell: bash
         run: |
           set -o pipefail
@@ -109,7 +98,7 @@ jobs:
           pnpm build 2>&1 | tee ci-logs/build.log
 
       - name: Print build log tail on failure
-        if: ${{ failure() && steps.install.outputs.exit_code == '0' }}
+        if: ${{ failure() }}
         shell: bash
         run: |
           echo '--- build.log (last 200 lines) ---'

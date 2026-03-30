@@ -1,5 +1,22 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.2.7 — 2026-03-30
+
+Тип релиза: **hotfix / inline install failure in the same GitHub step**
+
+Сделано:
+- GitHub Actions шаг `Install dependencies` теперь сам печатает полный `pnpm install` лог в консоль через `tee` и завершаетcя с реальным exit code этой команды;
+- удалён отдельный шаг `Fail job if install failed`, который показывал только сухой `exit code 1` и маскировал полезный текст ошибки;
+- диагностика install failure теперь остаётся в одном и том же шаге GitHub Actions, откуда её удобно копировать целиком;
+- обновлены `docs`, transfer-пакет и changelog под новый CI-hotfix.
+
+Результат:
+- при следующем падении стадии `Install dependencies` полезный лог должен быть прямо внутри этого же шага, без отдельной красной плашки-пустышки;
+- это позволяет быстро скопировать текст и прислать его на анализ без плясок с артефактами и дополнительными fail-step.
+
+Следующий плановый релиз:
+- `v0.3.0` — Backend contract foundation.
+
 ## v0.2.6 — 2026-03-30
 
 Тип релиза: **hotfix / inline CI install log output**
