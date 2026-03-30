@@ -1,5 +1,24 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.2.5 — 2026-03-30
+
+Тип релиза: **hotfix / CI diagnostics and log capture**
+
+Сделано:
+- в GitHub Actions добавлен шаг **Preflight diagnostics** с выводом базовой среды выполнения: event/ref, версии `node`, `pnpm`, `python3`, наличие `package.json` и `pnpm-lock.yaml`, а также `sha256` для package/lock-файлов;
+- шаги `Install dependencies`, `Type check` и `Build UI` теперь пишут подробный вывод в `ci-logs/` через `tee`, а не теряют его в молчаливом красном прямоугольнике;
+- при падении `Install dependencies` или `Build UI` хвост соответствующего лога выводится прямо в консоль GitHub Actions;
+- артефакт `uiubuntuxkeen-ci-logs-vX.Y.Z` загружается в каждом прогоне workflow, даже если сборка упала;
+- обновлены `docs`, transfer-пакет и changelog под диагностический hotfix-релиз.
+
+Результат:
+- теперь по падению workflow можно забирать отдельный лог-артефакт и видеть хвост install/build-лога прямо в GitHub Actions без гадания;
+- следующий упавший прогон уже должен дать достаточно данных, чтобы понять реальную причину сбоя на `pnpm install`;
+- тестирование на сервере откладывается до первого зелёного Actions после этого hotfix.
+
+Следующий плановый релиз:
+- `v0.3.0` — Backend contract foundation.
+
 ## v0.2.4 — 2026-03-30
 
 Тип релиза: **hotfix / GitHub Actions install step**

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.5 — 2026-03-30
+
+- added GitHub Actions preflight diagnostics and persistent CI log capture for install, type-check and build stages
+- upload `ci-logs/` as a separate workflow artifact on every run so failed installs can be inspected without guessing from a blank red step
+- print the tail of install/build logs directly into the GitHub Actions job output on failure for faster triage
+
 ## v0.2.4 — 2026-03-30
 
 - hardened the GitHub Actions install step for CI by disabling Husky hook execution and other lifecycle scripts during `pnpm install`

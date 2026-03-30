@@ -47,18 +47,63 @@ jobs:
           )
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      - name: Preflight diagnostics
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ci-logs
+          {
+            echo "event=${{ github.event_name }}"
+            echo "ref=${{ github.ref }}"
+            echo "runner_os=$RUNNER_OS"
+            echo "node=$(node -v)"
+            echo "pnpm=$(pnpm -v)"
+            echo "python=$(python3 --version 2>&1)"
+            echo "cwd=$PWD"
+            echo "package_json=$(test -f package.json && echo yes || echo no)"
+            echo "pnpm_lock=$(test -f pnpm-lock.yaml && echo yes || echo no)"
+            echo "lockfile_sha256:"
+            sha256sum package.json pnpm-lock.yaml
+          } | tee ci-logs/preflight.log
+
       - name: Install dependencies
+        shell: bash
         env:
           CI: true
           HUSKY: 0
-        run: pnpm install --frozen-lockfile --ignore-scripts
+        run: |
+          set -o pipefail
+          mkdir -p ci-logs
+          pnpm install --frozen-lockfile --ignore-scripts --reporter=append-only 2>&1 | tee ci-logs/pnpm-install.log
+
+      - name: Print install log tail on failure
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          echo '--- pnpm-install.log (last 200 lines) ---'
+          tail -n 200 ci-logs/pnpm-install.log || true
 
       - name: Type check (informational)
         continue-on-error: true
-        run: pnpm type-check
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p ci-logs
+          pnpm type-check 2>&1 | tee ci-logs/type-check.log
 
       - name: Build UI
-        run: pnpm build
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p ci-logs
+          pnpm build 2>&1 | tee ci-logs/build.log
+
+      - name: Print build log tail on failure
+        if: ${{ failure() }}
+        shell: bash
+        run: |
+          echo '--- build.log (last 200 lines) ---'
+          tail -n 200 ci-logs/build.log || true
 
       - name: Pack release archives
         run: |
@@ -67,6 +112,14 @@ jobs:
           zip -qr ../release/dist.zip .
           cd ..
           cp release/dist.zip "release/uiubuntuxkeen-dist-v${{ steps.meta.outputs.version }}.zip"
+
+      - name: Upload CI logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: uiubuntuxkeen-ci-logs-${{ steps.meta.outputs.version }}
+          path: ci-logs/
+          if-no-files-found: warn
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
