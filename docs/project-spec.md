@@ -1,15 +1,21 @@
 # UIUbuntuXkeen — полное ТЗ проекта
 
-Актуальная версия документа: **v0.5.0**  
+Актуальная версия документа: **v0.5.2**  
 Дата актуализации: **2026-03-30**
 
 ## 0. Статус документа
 
-Документ соответствует релизу **v0.5.0**. На этом этапе уже зафиксированы release-flow новой линии, foundation backend contract, hybrid backend setup flow, runtime/setup/observability foundation и первый целевой блок по провайдерам: UI показывает backend contract preview, data flow модель, каноничный путь к логу Mihomo на Ubuntu `/var/log/mihomo/mihomo.log` и расширенную SSL/TLS-диагностику провайдеров.
+Документ соответствует релизу **v0.5.2**. На этом этапе проект уже имеет рабочий release-flow и подтверждённый server update path на релизе **v0.2.10**, а в UI появился capability-aware foundation-слой для provider runtime в режиме `ubuntu-service`. При этом полноценный operational-перенос всё ещё требует нового **Ubuntu service** с живыми endpoint-ами и scheduler/storage контуром.
+
+Текущее состояние проекта нужно понимать так:
+- UI и release-flow уже живые;
+- часть operational UX уже видна в интерфейсе;
+- прямой Mihomo API покрывает только часть задач;
+- для провайдеров, GEO, ресурсов хоста, QoS, shaping, фоновых проверок и записи результатов нужен новый backend/service слой.
 
 ## 1. Назначение проекта
 
-**UIUbuntuXkeen** — это отдельный Ubuntu-oriented продукт для управления **Mihomo** на Ubuntu-хосте или Ubuntu-сервере.
+**UIUbuntuXkeen** — отдельный Ubuntu-oriented веб-интерфейс для управления **Mihomo** на Ubuntu-хосте или Ubuntu-сервере.
 
 Проект создаётся на основе линии **UltraUIXkeen / UI Mihomo / Ultra**, но не должен оставаться роутерным форком с косметическим ребрендингом. Цель — превратить лучший опыт текущего UI в самостоятельный operational-интерфейс под Ubuntu.
 
@@ -17,55 +23,63 @@
 - сохранить сильные стороны текущего UI Mihomo;
 - отказаться от жёсткой привязки к Netcraze Ultra / Entware / BusyBox / CGI;
 - перейти на Ubuntu-native модель путей, сервисов и системной интеграции;
-- безопасно работать с `config.yaml` Mihomo;
+- безопасно и предсказуемо работать с конфигурацией и operational state Mihomo;
 - быть удобным для постоянной desktop/web эксплуатации.
 
-## 2. Базовый источник требований
+## 2. Базовые источники требований
 
 Исходная база:
 - проект-источник: **UltraUIXkeen**;
 - технологическая база: **Vue 3 + TypeScript**;
 - функциональный ориентир: UI для Mihomo с расширениями через `router-agent`;
-- стартовая кодовая основа для нового проекта: линия **1.2.106**.
+- стартовая кодовая основа Ubuntu-линии: **UltraUIXkeen 1.2.106**;
+- текущая Ubuntu-линия: **UIUbuntuXkeen**;
+- подтверждённо рабочий release/update flow: **v0.2.10**.
 
 Для Ubuntu-линии источником требований считаются:
 - текущий UI и его рабочие модули;
 - пакет переноса проекта под Ubuntu;
-- зафиксированный roadmap переноса;
-- требования по безопасному редактированию конфигурации Mihomo.
+- исходный `router-agent` и его команды;
+- глубокий аудит функционального паритета `docs/functional-audit.md`;
+- зафиксированный roadmap переноса.
 
-## 3. Цель MVP
+## 3. Продуктовая цель
 
-Первый полноценный MVP Ubuntu-линии должен уметь:
-1. Подключаться к Mihomo на Ubuntu.
-2. Показывать operational dashboard.
-3. Давать безопасный контур редактирования `config.yaml`.
-4. Показывать прокси, провайдеры, правила, соединения, логи и базовые метрики.
-5. Работать через Ubuntu-native backend/service API, а не через router CGI.
-6. Делать backup/restore.
-7. Быть удобным для desktop/web эксплуатации.
+Проект должен стать **операционным центром управления Mihomo на Ubuntu**, а не только визуальной оболочкой к части API.
 
-## 3.1. Текущий продуктовый приоритет
+Целевой продукт должен покрывать:
+1. Подключение к Mihomo на Ubuntu.
+2. Раздел **«Хост»** со статусом сервера и Mihomo.
+3. Раздел **«Провайдеры»** с диагностикой SSL/TLS, плановыми проверками и историей.
+4. Раздел **«Трафик»** с графиками, usage и состоянием клиентов.
+5. Разделы соединений, правил, подписок и задач.
+6. QoS / shaping / policy runtime.
+7. GEO-файлы, локальные правила, топ правил и связанные operational summary.
+8. Safe config flow и structured editors — как отдельный контур, но не ближайший приоритет.
 
-На текущем этапе переноса пользователь зафиксировал такой ближайший приоритет развития:
+## 3.1. Текущий приоритет
+
+На текущем этапе пользователь зафиксировал такой приоритет развития:
 - диагностика провайдеров и их SSL/TLS-сертификатов;
-- раздел **«Трафик»** и usage-представление;
-- раздел **«Хост»** со статусом сервера и Mihomo;
-- QoS / shaping / policy runtime;
-- safe config flow и structured editors остаются в проекте, но временно отложены как следующий слой, а не как ближайший релизный шаг.
+- информация о трафике и состояниях клиентов;
+- состояние сервера и раздел **«Хост»**;
+- шейпинг / QoS / policy runtime;
+- GEO-файлы, локальные правила и топ правил;
+- safe config flow и structured editors отложены на потом.
 
-## 4. Платформа и пути Ubuntu
+## 4. Платформа Ubuntu и каноничные пути
 
 Новый проект работает под **Ubuntu Server / Ubuntu Desktop**.
 
-### Канонические пути
+### Каноничные пути
 
 - активный конфиг Mihomo: `/etc/mihomo/config.yaml`
 - состояние приложения: `/var/lib/ultra-ui-ubuntu/`
 - safe-config state: `/var/lib/ultra-ui-ubuntu/config/`
+- runtime/cache/jobs/db: `/var/lib/ultra-ui-ubuntu/runtime/`
 - логи приложения: `/var/log/ultra-ui-ubuntu/`
+- каноничный лог Mihomo: `/var/log/mihomo/mihomo.log`
 - конфиг backend-service: `/etc/ultra-ui-ubuntu/agent.env`
-- backend contract foundation: `docs/backend-contract.md`
 - systemd unit-файлы и timers — штатный способ запуска и фоновых задач
 
 ### Платформенные ожидания
@@ -73,7 +87,7 @@
 - сервисный менеджер: `systemd`
 - системные утилиты: `ip`, `ss`, `tc`, `nft`, `iptables` (fallback), `curl`, `openssl`
 - журналы: `journalctl` и/или файловые логи
-- фоновые задачи: `systemd timers` предпочтительно, cron как fallback
+- фоновые задачи: предпочтительно встроенный scheduler service + `systemd`, cron только как fallback
 
 **Важно:** старые пути Xkeen/Entware не считаются основной архитектурой и не должны использоваться как канон для новой Ubuntu-линии.
 
@@ -86,12 +100,15 @@
 - развитие в сторону более чистого Ubuntu-friendly operational UI
 
 ### Backend / service layer
-- отдельный backend-service под Ubuntu
-- предпочтительный стек: FastAPI или Go
+- отдельный **Ubuntu service** под Ubuntu
+- предпочтительный стек: **FastAPI**
 - shell/cgi допускаются только как временный переходный мост, но не как основа продукта
+- UI должен различать:
+  - `compatibility-bridge` — переходный режим
+  - `ubuntu-service` — целевой режим
 
 ### Storage / state
-На этапе MVP допускается file-based state, позже возможно вынесение части состояния в SQLite/PostgreSQL, если это даст практическую пользу для history, audit, jobs, users и limits.
+На этапе MVP допускается **SQLite** как основное operational-хранилище для runtime state, jobs, SSL-check history, GEO updates, host snapshots и QoS/shaping state. Позже возможно вынесение части данных в PostgreSQL, если это даст практическую пользу.
 
 ### Transport
 - REST API
@@ -103,242 +120,146 @@
 
 ## 6. Функциональные модули
 
-### 6.1 Overview
+### 6.1. Обзор
 Сводный operational dashboard:
 - состояние Mihomo;
-- состояние backend-service;
+- состояние Ubuntu service;
 - CPU / RAM / uptime / load;
-- базовые health-индикаторы;
-- краткая сводка по трафику, соединениям и журналу.
+- краткая сводка по трафику, соединениям, провайдерам и заданиям.
 
-### 6.2 Runtime / Host
-Ubuntu-версия раздела Router:
-- host runtime;
-- сетевой статус;
-- системные сервисы;
-- runtime capabilities;
-- диагностика backend-service.
+### 6.2. Хост
+Ubuntu-версия прежнего Router runtime:
+- ресурсы хоста;
+- состояние сервисов;
+- состояние Mihomo;
+- путь к каноничному логу `/var/log/mihomo/mihomo.log`;
+- диагностика backend/service.
 
-### 6.3 Mihomo Workspace
-Ключевой рабочий раздел проекта.
+### 6.3. Провайдеры
+Раздел должен показывать не только список proxy-providers, но и operational diagnostics:
+- panel URL / provider URL;
+- статус SSL/TLS;
+- срок действия сертификата;
+- issuer / subject / SAN;
+- ошибка проверки;
+- последняя проверка;
+- следующая проверка;
+- состояние фоновой задачи;
+- ручные действия `Обновить`, `Обновить SSL-кеш`, `Проверить сейчас`.
 
-Должен объединять:
-- Runtime;
-- Proxies;
-- Proxy Providers;
-- Proxy Groups;
-- Rules;
-- Rule Providers;
-- Config;
-- Diagnostics / History / Compare.
+### 6.4. Трафик
+- общий usage;
+- графики;
+- хосты/клиенты;
+- состояние трафика по каждому клиенту;
+- через Mihomo / мимо Mihomo / routed client;
+- QoS/shaping markers.
 
-### 6.4 Proxies / Providers / Rules
-UI должен поддерживать:
-- список прокси и групп;
-- переключение активных групп;
-- latency preview;
-- статусы и бейджи;
-- proxy providers и rule providers;
-- правила и их связь с policy/target.
-
-### 6.5 Connections / Logs / Traffic
+### 6.5. Соединения
 - живые соединения;
-- фильтрация и детализация;
-- live/log views;
-- traffic statistics;
-- подготовка контура QoS / shaping / policy operations.
+- фильтрация;
+- детализация по правилу / прокси / источнику.
 
-### 6.6 Subscriptions
-- клиентские подписки;
-- генерация output-форматов;
-- QR-коды;
-- подготовка к публикации через внешний HTTPS-контур.
+### 6.6. Правила
+- список правил;
+- локальные правила;
+- top rules;
+- визуальные summary по клиентам/правилам/провайдерам.
 
-### 6.7 Users / Policies / Limits
-- список пользователей / хостов / клиентов;
-- labels и операционная логика;
-- limits / policies как отдельный развиваемый контур.
+### 6.7. Задачи
+- GEO update;
+- provider refresh / SSL refresh;
+- backup/restore jobs;
+- системные long-running operations.
 
-### 6.8 Jobs / Tasks
-- сервисные операции;
-- долгие фоновые задачи;
-- import/export/maintenance workflows;
-- visible progress и состояния выполнения.
+### 6.8. QoS / shaping
+- профили;
+- текущие применения;
+- приоритеты;
+- ограничения;
+- состояние правил;
+- история применений.
 
-### 6.9 Setup / Settings
-- первичная настройка подключения к Mihomo и backend-service;
-- прикладные настройки UI;
-- capabilities;
-- режимы работы;
-- системные параметры проекта.
-
-### 6.10 Global Search / Command Palette
-- быстрый поиск сущностей;
-- быстрые переходы по разделам;
-- быстрый запуск действий уровня оператора.
-
-## 7. Критичный контур: безопасное управление `config.yaml`
-
-Редактор конфигурации — отдельный критичный контур продукта, а не просто текстовое поле.
-
-### Обязательные принципы
-
-- active config и draft разделены;
-- все изменения сначала попадают в draft;
-- draft валидируется локальным Mihomo binary;
-- перед apply создаётся snapshot текущего рабочего состояния;
-- после apply доступен rollback;
-- есть baseline для аварийного восстановления;
-- ведётся history ревизий и журнал операций.
-
-### Safe flow
-1. Читать active config.
-2. Создавать/обновлять draft.
-3. Показывать diff active vs draft.
-4. Validate draft.
-5. Apply validated draft.
-6. При неуспешном запуске выполнять rollback.
-7. Сохранять revision/history/audit trail.
-
-### Structured editors
-Structured-редакторы должны стать основным путём работы, а raw YAML остаётся fallback-режимом.
-
-Первый обязательный набор:
-- DNS
-- Rules
-- Proxies
-
-Далее:
-- Proxy Groups
-- Proxy Providers
-- Rule Providers
-- Tun / Profile / Sniffer
-- дополнительные nested-поля
-
-Редкие поля можно временно держать в `extra YAML`, но мастер создания сущности не должен напрямую ломать весь YAML.
-
-## 8. Требования к backend-service API
-
-На релизах `v0.3.0–v0.5.0` в проекте уже зафиксирован foundation backend contract: режимы `compatibility-bridge` и `ubuntu-service`, каноничные Ubuntu paths, стартовый набор endpoint groups, явный выбор backend mode, UI-preview backend contract в setup/edit flow, наглядная data flow модель и каноничный путь к логу Mihomo `/var/log/mihomo/mihomo.log` в runtime/setup экранах. Это ещё не финальная реализация Ubuntu service, но уже каноничная точка для дальнейшего развития API, hybrid data model, capability-driven UI и observability-модели.
-
-
-Backend-service должен обеспечивать:
-- status / health / version / capability discovery;
-- системные метрики;
-- config active / draft / baseline / history;
+### 6.9. Safe config flow
+Контур сохраняется в продукте, но сейчас не является ближайшим шагом:
+- active / draft / baseline / history;
 - validate / apply / rollback;
-- backup / restore;
-- subscriptions;
-- QoS / shaping / policy operations;
-- users / limits / related state;
-- provider SSL diagnostics;
-- jobs / task status.
+- structured editors.
 
-### Минимальные endpoint-группы
-- `/api/status`
-- `/api/health`
-- `/api/version`
-- `/api/mihomo/config/*`
-- `/api/mihomo/proxies`
-- `/api/mihomo/proxy-providers`
-- `/api/mihomo/rules`
-- `/api/mihomo/rule-providers`
-- `/api/system/metrics`
-- `/api/system/network`
-- `/api/system/connections`
-- `/api/system/logs`
-- `/api/traffic`
-- `/api/qos`
-- `/api/users`
-- `/api/limits`
-- `/api/subscriptions`
-- `/api/backups`
-- `/api/jobs`
+## 7. Глубокий вывод аудита
 
-## 9. UX-требования
+Результат функционального аудита такой:
+- **напрямую из Mihomo** можно и нужно читать прокси, группы, правила, соединения и часть runtime-данных;
+- значимая operational-часть старой линии была завязана на `router-agent`;
+- без нового Ubuntu service нельзя полноценно вернуть:
+  - проверку провайдеров по расписанию;
+  - SSL-кеш и историю SSL-проверок;
+  - дату и время последнего обновления GEO-файлов;
+  - ресурсы хоста;
+  - QoS / shaping;
+  - состояние клиентов на уровне хоста;
+  - запись результата в БД;
+  - ручные действия `Обновить`, `Обновить SSL-кеш` и их автоматизацию.
 
-Интерфейс должен:
-- не быть бесконечной простынёй;
-- раскладывать крупные разделы на вкладки и подвкладки;
-- явно показывать опасные действия: Validate, Apply, Rollback, Restore;
-- показывать progress/state для долгих операций;
-- быть удобным на desktop/web под Ubuntu;
-- сохранять быстрый доступ к главным действиям;
-- поддерживать global search / command palette.
+То есть проекту нужна **hybrid-модель**:
+- direct Mihomo API для всего, что Mihomo уже умеет отдавать сам;
+- Ubuntu service для системных, scheduled и stateful задач.
+
+## 8. Технические требования к Ubuntu service
+
+Ubuntu service должен обеспечивать:
+- `/api/status`, `/api/health`, `/api/version`, `/api/capabilities`;
+- `/api/system/metrics`, `/api/system/resources`, `/api/system/logs`, `/api/system/services`;
+- `/api/providers`, `/api/providers/checks`, `/api/providers/refresh`, `/api/providers/ssl-cache/refresh`;
+- `/api/geo/info`, `/api/geo/update`, `/api/geo/history`;
+- `/api/traffic/clients`, `/api/traffic/overview`, `/api/traffic/topology`;
+- `/api/qos/status`, `/api/qos/set`, `/api/qos/remove`;
+- `/api/shape/set`, `/api/shape/remove`;
+- `/api/jobs`, `/api/jobs/<built-in function id>`;
+- в будущем — `/api/mihomo/config/*` для safe config flow.
+
+## 9. Требования к данным и хранению результатов
+
+Минимальные сущности для SQLite/DB:
+- `providers`
+- `provider_ssl_checks`
+- `provider_refresh_jobs`
+- `provider_ssl_cache`
+- `geo_updates`
+- `host_resource_snapshots`
+- `client_runtime_snapshots`
+- `qos_rules`
+- `shape_rules`
+- `job_runs`
+
+Для каждого результата проверки или фоновой операции должны храниться минимум:
+- время старта;
+- время завершения;
+- статус;
+- ошибка, если была;
+- связанный объект;
+- полезная нагрузка результата.
 
 ## 10. Нефункциональные требования
 
-- надёжность: конфиг не должен ломать рабочий Mihomo без rollback;
-- безопасность: bearer token, audit trail, ограничение destructive actions;
-- производительность: virtualized tables/lists для больших логов и соединений;
-- наблюдаемость: health endpoints, capability diagnostics, сервисные логи;
-- отказоустойчивость: backend-service не зависит от перезапуска UI;
+- надёжность: UI не должен делать вид, что данных больше, чем реально доступно;
+- наблюдаемость: все scheduled checks и service actions должны иметь статус и историю;
+- безопасность: bearer token, audit trail, ограничение destructive operations;
+- производительность: большие таблицы и графики должны оставаться отзывчивыми;
+- переносимость: Ubuntu 22.04+ как базовая платформа;
 - локализация: RU обязательно, EN желательно;
-- темы: светлая и тёмная;
-- обновляемость: простой release flow;
-- тестируемость: validate/apply/rollback и YAML parsing/building должны иметь автоматические тесты.
+- обновляемость: release/update flow через GitHub + кнопку **«Обновить»** должен оставаться стабильным.
 
-## 11. Что переносим, а что перепроектируем
+## 11. Критерии приёмки ближайшего функционального этапа
 
-### Переносим почти как есть
-- базовую навигацию;
-- Mihomo Workspace;
-- сильные UI-паттерны текущего проекта;
-- raw YAML fallback;
-- global search.
+Ближайший функциональный этап считается закрытым, когда:
+1. есть формализованный audit-map старого функционала;
+2. раздел **«Провайдеры»** переведён на модель фоновых проверок и истории;
+3. раздел **«Хост»** показывает ресурсы сервера и Mihomo;
+4. раздел **«Трафик»** возвращает графики и состояния клиентов;
+5. GEO / local rules / top rules возвращены как осмысленные operational-блоки;
+6. QoS / shaping имеют foundation contract под Ubuntu service.
 
-### Адаптируем под Ubuntu
-- structured editors;
-- backup/restore;
-- subscriptions;
-- setup/settings;
-- traffic / users / diagnostics.
+## 12. Краткий вывод
 
-### Перепроектируем
-- `router-agent` shell/cgi;
-- host/runtime контур под Ubuntu;
-- QoS/shaping модель под Ubuntu;
-- системную интеграцию с файлами, журналами и сервисами.
-
-## 12. Критерии приёмки первого полноценного релиза
-
-Первый полноценный релиз Ubuntu-линии считается готовым, когда:
-1. UI подключается к Mihomo на Ubuntu и показывает статус.
-2. Есть разделы Overview, Runtime, Proxies, Proxy Providers, Rules, Mihomo, Settings.
-3. Есть safe config flow: draft / validate / apply / rollback / history.
-4. Structured editors покрывают минимум DNS, Rules и Proxies.
-5. Ошибка в конфиге не оставляет систему без rollback.
-6. Есть live connections, logs и базовые metrics.
-7. Есть backup/restore в локальный каталог.
-8. Есть bearer-token auth для backend-service.
-9. UI ощущается как Ubuntu-продукт, а не как роутерная панель, открытая в браузере.
-
-## 13. Release flow проекта
-
-Порядок работы по релизу:
-1. ChatGPT готовит дистрибутив проекта.
-2. Вместе с релизом отдаёт commit message.
-3. Пользователь заливает изменения в репозиторий через GitHub Desktop.
-4. Пользователь проверяет GitHub Actions.
-5. Пользователь обновляет UI на сервере через кнопку **«Обновить»** в самом UI.
-6. В релиз обязательно входят обновлённые документы в `docs/`.
-7. В релиз обязательно входит актуальный файл переноса в новый чат.
-
-## 14. Обязательные документы в каждом релизе
-
-В папке `docs/` всегда должны быть:
-- полное ТЗ проекта;
-- план работ/roadmap;
-- журнал выполненных релизов;
-- актуальный transfer-файл для нового чата.
-
-## 15. Roadmap после MVP
-
-После закрытия MVP проект развивается в сторону:
-- расширенных мастеров создания сущностей;
-- редких nested structured editors;
-- audit views;
-- продвинутых policy / automation сценариев;
-- multi-instance support;
-- optional desktop wrapper;
-- cluster/fleet сценариев при необходимости.
+UIUbuntuXkeen уже жив как проект и как release-flow, но для достижения реального функционального паритета с сильными сторонами старой линии ему нужен не только UI, а новый **Ubuntu service** со scheduler-логикой, БД и системной интеграцией. Именно это и должно стать центром ближайших релизов.

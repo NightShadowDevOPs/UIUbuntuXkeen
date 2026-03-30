@@ -385,6 +385,8 @@ agentRestoreConfirm: 'Restore from backup? This will overwrite files on the rout
   providerTrafficDebugMatchedByProxy: 'match: proxy',
   providersPanelTitle: 'Proxy providers: management panels',
   providersPanelTip: 'Panel URL is stored in shared UI settings and used for provider panel and certificate checks.',
+  providerHealthBackendUnavailable: 'This block needs a compatibility bridge or an Ubuntu service with provider-check capabilities.',
+  providerChecksStateLine: 'Next check: {next} • Job status: {status}',
   providersPanelColumnsExplain:
     'Columns: “Panel link” is the URL opened by the Open button. “SSL warn days” controls when “SSL soon” is shown (empty = global threshold).',
   panelUrl: 'Panel link',

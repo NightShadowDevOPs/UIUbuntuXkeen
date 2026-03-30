@@ -6,6 +6,28 @@ export type BackendCapabilities = Partial<{
   version: boolean
   capabilities: boolean
   metrics: boolean
+  resources: boolean
+  services: boolean
+  network: boolean
+  providers: boolean
+  providerChecks: boolean
+  providerChecksRun: boolean
+  providerRefresh: boolean
+  providerSslCacheRefresh: boolean
+  providerSslCacheStatus: boolean
+  geoInfo: boolean
+  geoUpdate: boolean
+  geoHistory: boolean
+  trafficOverview: boolean
+  trafficClients: boolean
+  trafficTopology: boolean
+  qosStatus: boolean
+  qosSet: boolean
+  qosRemove: boolean
+  shapeSet: boolean
+  shapeRemove: boolean
+  jobs: boolean
+  jobsRetry: boolean
   connections: boolean
   logs: boolean
   configActive: boolean

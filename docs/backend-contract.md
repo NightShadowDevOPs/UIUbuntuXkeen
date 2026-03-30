@@ -1,131 +1,220 @@
 # UIUbuntuXkeen — Ubuntu backend contract
 
-Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.5.0**
+Актуальная версия документа: **v0.5.2**  
+Дата актуализации: **2026-03-30**
 
-## Назначение
+## 1. Назначение
 
-Этот документ фиксирует технический каркас нового Ubuntu backend contract для UIUbuntuXkeen.
+Этот документ описывает целевой backend/service слой для Ubuntu-линии **UIUbuntuXkeen**.
 
-Цель: постепенно уйти от router-oriented compatibility bridge к **Ubuntu-native service API**, не ломая текущий рабочий UI и встроенное обновление.
+Главная идея простая:
+- **прямой Mihomo API** используем там, где Mihomo уже умеет отдавать данные сам;
+- **Ubuntu service** делаем для системных, scheduled и stateful задач, которые раньше были завязаны на `router-agent`.
 
-## Текущая модель backend-ов
+## 2. Режимы backend-а
 
-На линии `v0.5.0` считаем допустимыми два режима backend-а:
+### `compatibility-bridge`
+Переходный режим для текущей UI-базы.
 
-### 1. Compatibility bridge
-Используется как переходный режим.
+Подходит для:
+- статуса Mihomo;
+- прокси и групп;
+- правил и rule-providers;
+- соединений;
+- части runtime-данных.
 
-Подходит для текущей UI-базы, где ещё живы части логики, пришедшие из router-agent / router-host сценариев.
-
-Характеристики:
-- допускает старую модель secondary path;
-- может опираться на bridge-логику для QoS, users DB и service-side helper calls;
-- не считается финальной архитектурой Ubuntu-линии.
-
-### 2. Ubuntu service
+### `ubuntu-service`
 Целевой режим нового продукта.
 
-Характеристики:
-- отдельный service/API под Ubuntu;
-- каноничные Ubuntu paths;
-- capability-driven contract между UI и backend-service;
-- безопасный config flow для Mihomo.
+Должен обеспечивать:
+- host resources;
+- логи и сервисы Ubuntu;
+- SSL/TLS проверки провайдеров;
+- scheduled jobs;
+- GEO updates;
+- QoS / shaping;
+- хранение результатов в SQLite/DB;
+- в будущем safe config flow.
 
-## Каноничные Ubuntu paths
+## 3. Каноничные пути
 
-Используем только Ubuntu-oriented модель путей:
+- `MIHOMO_ACTIVE_CONFIG=/etc/mihomo/config.yaml`
+- `ULTRA_UI_HOME=/var/lib/ultra-ui-ubuntu`
+- `ULTRA_UI_RUNTIME=/var/lib/ultra-ui-ubuntu/runtime`
+- `ULTRA_UI_CONFIG_STATE=/var/lib/ultra-ui-ubuntu/config`
+- `ULTRA_UI_LOG_DIR=/var/log/ultra-ui-ubuntu`
+- `MIHOMO_LOG_FILE=/var/log/mihomo/mihomo.log`
+- `ULTRA_UI_AGENT_ENV=/etc/ultra-ui-ubuntu/agent.env`
 
-- active config: `/etc/mihomo/config.yaml`
-- app state root: `/var/lib/ultra-ui-ubuntu/`
-- config draft/history/baseline: `/var/lib/ultra-ui-ubuntu/config/`
-- app logs: `/var/log/ultra-ui-ubuntu/`
-- agent/service env: `/etc/ultra-ui-ubuntu/agent.env`
+## 4. Базовый endpoint set
 
-Xkeen / Entware / BusyBox пути не считаются каноничными для новой линии.
+### Базовые
+- `GET /api/status`
+- `GET /api/health`
+- `GET /api/version`
+- `GET /api/capabilities`
 
-## Foundation endpoint groups
+### Система / хост
+- `GET /api/system/metrics`
+- `GET /api/system/resources`
+- `GET /api/system/services`
+- `GET /api/system/logs?source=mihomo|service&tail=...`
+- `GET /api/system/network`
 
-Минимальный Ubuntu backend contract должен ориентироваться на следующие endpoint-группы:
+### Провайдеры
+- `GET /api/providers`
+- `GET /api/providers/<built-in function id>`
+- `GET /api/providers/checks`
+- `POST /api/providers/checks/run`
+- `POST /api/providers/refresh`
+- `POST /api/providers/ssl-cache/refresh`
+- `GET /api/providers/ssl-cache/status`
 
-### Status / platform
-- `/api/status`
-- `/api/health`
-- `/api/version`
-- `/api/capabilities`
+### GEO
+- `GET /api/geo/info`
+- `POST /api/geo/update`
+- `GET /api/geo/history`
 
-### System observability
-- `/api/system/metrics`
-- `/api/system/connections`
-- `/api/system/logs`
+### Трафик / клиенты
+- `GET /api/traffic/overview`
+- `GET /api/traffic/clients`
+- `GET /api/traffic/clients/<built-in function id>`
+- `GET /api/traffic/topology`
 
-### Mihomo config flow
-- `/api/mihomo/config/active`
-- `/api/mihomo/config/draft`
-- `/api/mihomo/config/history`
-- `/api/mihomo/config/validate`
-- `/api/mihomo/config/apply`
-- `/api/mihomo/config/rollback`
+### QoS / shaping
+- `GET /api/qos/status`
+- `POST /api/qos/set`
+- `POST /api/qos/remove`
+- `POST /api/shape/set`
+- `POST /api/shape/remove`
 
-## Capability keys
+### Jobs
+- `GET /api/jobs`
+- `GET /api/jobs/<built-in function id>`
+- `POST /api/jobs/<built-in function id>/retry`
 
-UI должен уметь ориентироваться не только на URL, но и на набор capabilities backend-а.
+### Safe config flow (позже)
+- `GET /api/mihomo/config/active`
+- `GET /api/mihomo/config/draft`
+- `GET /api/mihomo/config/history`
+- `POST /api/mihomo/config/validate`
+- `POST /api/mihomo/config/apply`
+- `POST /api/mihomo/config/rollback`
 
-Базовый capability set:
-- `status`
-- `health`
-- `version`
-- `capabilities`
-- `metrics`
-- `connections`
-- `logs`
-- `configActive`
-- `configDraft`
-- `configHistory`
-- `configValidate`
-- `configApply`
-- `configRollback`
+## 5. Scheduler / automation model
 
-## Что сделано в v0.3.0–v0.5.0
+Service должен уметь выполнять плановые проверки без участия UI.
 
-На этом релизе в кодовой базе заложен foundation-слой:
-- central project/release constants вынесены в отдельный config-модуль;
-- rolling release URL и GitHub release API переведены на единый источник;
-- добавлены типы `BackendKind` и `BackendCapabilities`;
-- добавлена нормализация backend secondary path;
-- добавлена базовая детекция backend kind: `compatibility-bridge` / `ubuntu-service`;
-- add/update backend в setup-store теперь проходят через normalization layer;
-- setup/edit backend получили явный выбор backend mode (`compatibility-bridge` / `ubuntu-service`);
-- для backend mode добавлен рекомендуемый secondary path: пустой для direct/bridge и `/api` для Ubuntu service;
-- setup list теперь визуально показывает режим backend-а badge-ом;
-- в Setup и Edit Backend добавлен backend contract preview: connection preview, probe/runtime endpoint-ы и каноничные Ubuntu paths для режима `ubuntu-service`;
-- runtime workspace начинает переключать видимый смысл между router-oriented и host-oriented режимом по выбранному backend kind.
+Минимум нужны фоновые задачи:
+- проверка SSL/TLS провайдеров по расписанию;
+- refresh SSL cache;
+- GEO update;
+- host resource snapshots;
+- сбор runtime snapshots по клиентам;
+- housekeeping старых записей.
 
-## Что ещё не считается завершённым
+Scheduler может быть:
+- встроенным в FastAPI service;
+- либо поддерживаться через `systemd` timer как внешний trigger.
 
-На `v0.5.0` это **ещё не полноценный Ubuntu backend-service**.
+Предпочтительный вариант для MVP: **встроенный scheduler + systemd unit для service**.
 
-Пока не считаются закрытыми:
-- реальные `/api/status|health|capabilities` для Ubuntu service;
-- service-side metrics/logs implementation;
-- safe config API вместо legacy-переходников;
-- окончательный отказ от router-oriented terminology внутри всей UI.
+## 6. Модель хранения данных
 
-## Следующий шаг
+Предпочтительная база на первом этапе: **SQLite**.
 
-Следующий крупный этап: **v0.5.0 — Safe config core**.
+Минимальные таблицы:
+- `providers`
+- `provider_ssl_checks`
+- `provider_refresh_jobs`
+- `provider_ssl_cache`
+- `geo_updates`
+- `host_resource_snapshots`
+- `client_runtime_snapshots`
+- `qos_rules`
+- `shape_rules`
+- `job_runs`
 
-На нём нужно:
-- углубить переход от раздела “Роутер” к Host Runtime;
-- подготовить setup flow под Ubuntu service;
-- начать реальную capability-driven observability model;
-- подготовить hybrid data model: direct Mihomo для runtime-данных и Ubuntu service для системных/config-операций.
+### Что хранить в `provider_ssl_checks`
+- provider id / name
+- url
+- checked_at
+- status
+- expires_at
+- days_left
+- issuer
+- subject
+- san
+- error_text
+- raw_payload
 
+### Что хранить в `geo_updates`
+- kind (`geoip`, `geosite`, `asn`)
+- started_at
+- finished_at
+- status
+- source
+- path
+- size
+- error_text
 
-## Что добавлено на UI-уровне в v0.5.0
+### Что хранить в `client_runtime_snapshots`
+- client identity (ip/mac/hostname/source)
+- traffic in/out
+- connection count
+- via (`mihomo`, `bypass`, `vpn`, `tunnel`)
+- qos profile
+- shape state
+- captured_at
 
-На экранах Setup, Edit Backend и Runtime теперь есть отдельная карточка data flow. Она показывает оператору две вещи:
-- что разумно и безопасно читать напрямую из Mihomo API;
-- что должно идти только через отдельный Ubuntu service.
+## 7. Capability flags
 
-Это нужно не для красоты, а чтобы не смешивать в одну кучу direct Mihomo runtime и системные Ubuntu-операции вроде host metrics, systemd/journalctl и safe-config flow.
+UI должен запрашивать capabilities и не рисовать фальшивую готовность.
+
+Минимальные capability keys:
+- `system.metrics`
+- `system.logs`
+- `system.services`
+- `providers.sslChecks`
+- `providers.sslCacheRefresh`
+- `providers.refresh`
+- `geo.info`
+- `geo.update`
+- `traffic.clients`
+- `traffic.topology`
+- `qos.status`
+- `qos.set`
+- `shape.set`
+- `shape.remove`
+- `mihomo.configFlow`
+
+## 8. Что идёт напрямую в Mihomo
+
+Без Ubuntu service UI может и должен читать напрямую:
+- прокси;
+- proxy groups;
+- rules;
+- rule providers;
+- connections;
+- часть overview/runtime-данных.
+
+Это **не** должно смешиваться с системными Ubuntu-функциями.
+
+## 9. Что обязан делать Ubuntu service
+
+Без Ubuntu service нельзя считать закрытыми такие функции:
+- провайдеры и SSL/TLS проверки по расписанию;
+- ручные действия `Обновить` и `Обновить SSL-кеш`;
+- GEO update state и history;
+- ресурсы хоста;
+- QoS / shaping;
+- runtime state клиентов на уровне хоста;
+- запись результата в БД;
+- jobs/status/history.
+
+## 10. UX-правило для UI
+
+Если capability нет, UI не должен делать вид, что функция работает. Он должен честно показывать одно из состояний:
+- функция доступна и данные живые;
+- функция будет доступна после подключения Ubuntu service;
+- функция в проекте запланирована, но backend capability пока отсутствует.

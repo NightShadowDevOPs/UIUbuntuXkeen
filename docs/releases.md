@@ -1,203 +1,99 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.5.2 — провайдеры: foundation Ubuntu service в UI runtime
+Дата: **2026-03-30**
+
+Сделано:
+- добавлен capability-aware foundation-слой для `ubuntu-service` backend-а;
+- расширены `BackendCapabilities` и `UBUNTU_BACKEND_ENDPOINTS` под provider/GEO/traffic/QoS/jobs контуры;
+- добавлены `src/helper/backendCapabilities.ts`, `src/store/backendCapabilities.ts`, `src/api/ubuntuService.ts`;
+- `src/store/providerHealth.ts` переведён на общую модель: legacy agent bridge **или** Ubuntu service provider endpoints;
+- `TasksPage` больше не блокирует provider SSL/runtime-контур только по старому `agentEnabled`, а честно смотрит на capabilities активного backend-а;
+- обновлены README, roadmap, transfer docs и журнал релизов.
+
+Результат:
+- UI перестал считать provider runtime агент-эксклюзивной функцией;
+- появился нормальный foundation для следующего шага, где backend уже начнёт реально отдавать provider checks, cache status и jobs;
+- миграция в Ubuntu-line стала чуть менее «рисуем карточки, но данных нет» и чуть более честной.
+
+Статус:
+- foundation-релиз UI; для полного эффекта нужен следующий backend/service этап.
+
+Следующий плановый релиз:
+- `v0.5.3` — Хост: ресурсы сервера и Mihomo.
+
+## v0.5.1 — глубокий аудит функционального паритета и пакет документации для переноса
+Дата: **2026-03-30**
+
+Сделано:
+- выполнен глубокий аудит функционального паритета линии **UltraUIXkeen 1.2.106** и текущей Ubuntu-линии;
+- добавлен новый документ `docs/functional-audit.md`;
+- обновлено полное ТЗ проекта в `docs/project-spec.md`;
+- обновлён `docs/backend-contract.md` с явной моделью Ubuntu service, scheduler и SQLite-хранилища;
+- перестроен `docs/roadmap.md` под реальные приоритеты: провайдеры, хост, трафик, GEO, QoS и shaping;
+- обновлены `docs/chat-transfer.md`, `TRANSFER_CHAT`, `README.md`, `CHANGELOG.md`;
+- подготовлен новый пакет документации для переноса в новый чат.
+
+Результат:
+- проект теперь имеет не только общую архитектурную идею, но и честную карту функционального паритета;
+- стало явно видно, что можно брать напрямую из Mihomo, а что требует нового Ubuntu service;
+- roadmap перестроен под реальный operational перенос, а не под косметические экраны.
+
+Статус:
+- документационный релиз, серверного теста не требует.
+
+Следующий плановый релиз:
+- `v0.5.2` — Провайдеры: foundation Ubuntu service.
+
 ## v0.5.0 — Провайдеры: SSL / TLS и диагностика
 Дата: **2026-03-30**
 
 Сделано:
-- в старую линию Xkeen уже был встроен полезный контур SSL-проверок провайдеров; в этом релизе он адаптирован под Ubuntu-ветку без ломки текущего update flow;
-- `src/store/providerHealth.ts` теперь сохраняет не только `notAfter`, но и `url`/`error` по каждой probe-проверке панели управления;
-- `src/helper/providerHealth.ts` расширен общим helper-ом SSL/TLS diagnostics для провайдеров с поддержкой panel URL, provider URL, checkedAt, issuer / subject / SAN и ошибок probe;
-- `src/components/proxies/ProxyProvider.vue` теперь показывает отдельный диагностический блок: статус сертификата, источник проверки, время проверки, URL проверки, а также ошибку probe, если сертификат не удалось получить;
-- `src/views/TasksPage.vue` и i18n-строки подправлены под новый язык проекта: не только legacy `router-agent`, но и backend bridge / Ubuntu service;
-- обновлены `README.md`, `docs/project-spec.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
+- в старую линию Xkeen уже был встроен полезный контур SSL-проверок провайдеров; в этом релизе он адаптирован по UI-слою для Ubuntu-линии;
+- в карточках/панелях провайдеров сохранены поля даты истечения, URL проверки и текста ошибки probe;
+- обновлены документы и transfer-файл.
 
 Результат:
-- раздел «Провайдеры» в Ubuntu-линии теперь показывает не только дату истечения SSL, но и более полную картину проверки сертификата;
-- если probe не удалась, UI может показать URL и текст ошибки вместо немого `SSL —`;
-- groundwork под будущий Ubuntu service стал практичнее: UI уже готов принимать более богатые SSL/TLS-поля без переделки карточек провайдеров.
+- стало видно, какие поля нужны для provider SSL diagnostics;
+- последующий audit показал, что для полноценной автоматической проверки нужен новый Ubuntu service.
 
 Статус:
-- подготовлено, ожидает пользовательской проверки.
+- подготовлено как foundation, но не закрывает полный провайдерный контур без service.
 
-Следующий плановый релиз:
-- `v0.5.1` — Хост: состояние сервера и Mihomo.
-
-## v0.4.1 — Observability log-path polish
+## v0.4.1 — observability log-path polish
 Дата: **2026-03-30**
+- в Setup, Edit Backend и host/runtime карточках показан каноничный лог Mihomo `/var/log/mihomo/mihomo.log`.
 
-Сделано:
-- в `src/config/project.ts` добавлен каноничный путь к логу Mihomo: `/var/log/mihomo/mihomo.log`;
-- в `BackendContractCard` путь к логу Mihomo теперь показывается рядом с Ubuntu path-моделью;
-- в `BackendDataFlowCard` добавлен отдельный observability-блок с подсказкой, какой лог смотреть на Ubuntu;
-- подправлены RU-тексты для раздела «Хост / рантайм» и backend contract preview;
-- обновлены `README.md`, `docs/project-spec.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
-
-Результат:
-- в интерфейсе теперь видно не только модель данных direct Mihomo / Ubuntu service, но и конкретный путь к основному логу Mihomo на Ubuntu;
-- проверять разделы «Настройка», «Редактирование backend» и «Роутер / рантайм» стало проще;
-- groundwork под следующий этап safe config core не ломает текущий рабочий update flow.
-
-Статус:
-- подготовлено, ожидает пользовательской проверки.
-
-Следующий плановый релиз:
-- `v0.5.0` — Safe config core.
-
-## v0.4.0 — Runtime / Setup / Observability data foundation
+## v0.4.0 — runtime/setup data-flow preview
 Дата: **2026-03-30**
+- UI стал показывать разницу между direct Mihomo data и тем, что должен давать Ubuntu service.
 
-Сделано:
-- добавлен `src/components/settings/BackendDataFlowCard.vue`;
-- в `SetupPage` и `EditBackendModal` добавлена наглядная карточка data flow: что UI читает напрямую из Mihomo, а что должно идти через отдельный Ubuntu service;
-- в `RouterPage` этот же data flow preview вынесен в runtime workspace, чтобы оператор видел архитектурную модель уже на рабочем экране;
-- обновлены RU/EN переводы для hybrid data model и observability foundation;
-- обновлены `README.md`, `docs/project-spec.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
-
-Результат:
-- hybrid data model стала понятной прямо в интерфейсе, а не только в документации;
-- direct Mihomo и Ubuntu service теперь разведены по смыслу на setup/edit/runtime-экранах;
-- groundwork под следующий этап capability-driven observability стал заметно понятнее для реальной проверки пользователем.
-
-Статус:
-- подготовлено, ожидает пользовательской проверки.
-
-Следующий плановый релиз:
-- `v0.5.0` — Safe config core.
-
-## v0.3.2 — Runtime/setup contract preview
+## v0.3.2 — runtime/setup contract preview
 Дата: **2026-03-30**
+- Setup и Edit Backend показывают backend contract preview: base URL, expected probe/runtime endpoint-ы и каноничные Ubuntu paths.
 
-Сделано:
-- добавлен `src/components/settings/BackendContractCard.vue`;
-- в `SetupPage` и `EditBackendModal` добавлен backend contract preview: base URL, expected probe/runtime endpoints и каноничные Ubuntu paths;
-- в helper-слой backend-а добавлены runtime/info title helpers и списки probe endpoint-ов для `compatibility-bridge` и `ubuntu-service`;
-- `RouterPage` начал динамически менять видимые workspace/info заголовки в зависимости от backend mode;
-- обновлены `README.md`, `docs/project-spec.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
-
-Результат:
-- hybrid data model и Ubuntu backend contract теперь видны в setup/edit flow прямо в UI;
-- runtime-раздел стал ближе к host-oriented модели без поломки текущего compatibility режима;
-- groundwork под следующий этап observability теперь есть и в коде, и в документации.
-
-Статус:
-- подготовлено, ожидает пользовательской проверки.
-
-Следующий плановый релиз:
-- `v0.4.0` — Runtime / Setup / Observability data foundation.
-
-## v0.3.1 — Hybrid backend setup polish
+## v0.3.1 — hybrid backend setup polish
 Дата: **2026-03-30**
+- добавлен явный выбор backend mode: `compatibility-bridge` / `ubuntu-service`.
 
-Сделано:
-- в `SetupPage` добавлен явный выбор backend mode: `compatibility-bridge` / `ubuntu-service`;
-- в `EditBackendModal` добавлен такой же выбор backend mode для уже сохранённых backend entries;
-- добавлен helper рекомендуемого secondary path: пустой путь для direct/bridge и `/api` для Ubuntu service;
-- в списке backend-ов на экране Setup добавлены badge-ы режима direct / ubuntu-service;
-- `exportSettings()` теперь отдаёт архив настроек с Ubuntu-oriented именем `ui-ubuntu-xkeen-settings`;
-- обновлены `README.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
-
-Результат:
-- setup flow уже явно разделяет direct Mihomo backend и будущий Ubuntu service backend;
-- groundwork под hybrid-модель стал виден прямо в UI, а не только в документах;
-- механизм rolling update не менялся и должен проверяться как обычный следующий релиз.
-
-Статус:
-- подготовлено, ожидает пользовательской проверки.
-
-Следующий плановый релиз:
-- `v0.4.0` — Runtime / Setup / Observability data foundation.
-
-## v0.3.0 — Backend contract foundation
+## v0.3.0 — backend contract foundation
 Дата: **2026-03-30**
+- добавлен foundation-слой project/release constants и backend kinds/capabilities.
 
-Сделано:
-- добавлен `src/config/project.ts` с едиными project/release constants;
-- добавлен `src/config/backendContract.ts` с foundation-моделью Ubuntu backend contract;
-- добавлены типы `BackendKind` и `BackendCapabilities`;
-- нормализация backend secondary path вынесена в отдельный helper;
-- `addBackend` / `updateBackend` переведены на normalization layer;
-- `SetupPage` теперь отправляет backend в уже нормализованном виде;
-- rolling release URL, GitHub release API и branding-точки переведены на единый config-source;
-- в UI название раздела `router` на видимом уровне смещено к host-oriented смыслу;
-- добавлен `docs/backend-contract.md`;
-- обновлены `README.md`, `docs/README.md`, `docs/project-spec.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
-
-Результат:
-- в кодовой базе появился первый явный foundation-слой для перехода от compatibility bridge к Ubuntu service API;
-- release/update URLs больше не размазаны по нескольким файлам;
-- серверный update flow не менялся по механике и должен проверяться как обычный следующий релиз.
-
-Статус:
-- подготовлено, ожидает пользовательской проверки.
-
-Следующий плановый релиз:
-- `v0.4.0` — Runtime / Setup / Observability data foundation.
-
-## v0.2.10 — Первый подтверждённо рабочий серверный релиз
+## v0.2.10 — первый подтверждённо рабочий серверный релиз
 Дата: **2026-03-30**
-
-Сделано:
-- исправлены остаточные TypeScript build annotations в `UserTrafficStats.vue`, `ProxiesCtrl.tsx`, `RuleCard.vue`, `HostQosCard.vue` и `AgentCard.vue`;
-- build pipeline прошёл успешно;
-- обновление через кнопку **«Обновить»** на сервере прошло успешно.
-
-Результат:
-- релиз подтверждён пользователем как рабочий;
-- release flow новой Ubuntu-линии подтверждён на реальном сервере.
+- сборка прошла;
+- сервер успешно обновился через кнопку **«Обновить»**.
 
 ## v0.2.9 — TypeScript build annotations cleanup
 Дата: **2026-03-30**
-- исправлены ошибки в `AgentCard.vue`, `ProxyProvider.vue` и Axios config typing;
-- зачищены основные build annotations после стабилизации CI.
+- исправлены build annotations после стабилизации CI.
 
 ## v0.2.8 — CI install bootstrap fallback
 Дата: **2026-03-30**
 - GitHub Actions переведены на Corepack + `pnpm@9.12.1`;
-- install step смягчён для первого зелёного pipeline нового репозитория;
-- добавлена расширенная preflight-диагностика среды.
+- install step смягчён для первого зелёного pipeline нового репозитория.
 
-## v0.2.7 — Inline install failure in the same GitHub step
+## v0.2.7 — inline install failure in the same GitHub step
 Дата: **2026-03-30**
-- GitHub Actions шаг `Install dependencies` теперь печатает лог и падает в этом же шаге;
-- удалён бесполезный отдельный fail-step.
-
-## v0.2.6 — Inline CI install log output
-Дата: **2026-03-30**
-- install-лог переведён в консоль job для копирования без артефактов;
-- сборка и публикация оставлены только после успешной установки зависимостей.
-
-## v0.2.5 — CI diagnostics and log capture
-Дата: **2026-03-30**
-- добавлены preflight diagnostics и лог capture для install/type-check/build;
-- подготовлена база для разбора падений нового pipeline.
-
-## v0.2.4 — GitHub Actions install step hardening
-Дата: **2026-03-30**
-- install step hardened для CI;
-- Husky/lifecycle hooks перестали ломать выпуск артефакта.
-
-## v0.2.3 — GitHub Actions metadata step fix
-Дата: **2026-03-30**
-- исправлен шаг `Read project version`;
-- версия читается напрямую из `package.json`.
-
-## v0.2.2 — Actions Node 24 readiness
-Дата: **2026-03-30**
-- workflow переведён на Node 24-ready action versions;
-- сборочный runtime оставлен на Node 22.
-
-## v0.2.1 — CI hotfix after exit code 2
-Дата: **2026-03-30**
-- `pnpm type-check` переведён в informational-режим;
-- выпуск артефакта завязан на успешный `pnpm build`.
-
-## v0.2.0 — Ubuntu bootstrap metadata
-Дата: **2026-03-30**
-- обновлены branding и project metadata новой Ubuntu-линии;
-- переключены ссылки обновлений на `NightShadowDevOPs/UIUbuntuXkeen`;
-- добавлен release pipeline и rolling `dist.zip`.
-
-## v0.1.0 — Docs bootstrap
-Дата: **2026-03-30**
-- собран каноничный комплект проектной документации;
-- удалены лишние исторические документы старой линии.
+- лог install failure печатается в том же шаге.

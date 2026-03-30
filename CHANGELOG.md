@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.5.2 - 2026-03-30
+- добавлен capability-aware foundation-слой для provider runtime в режиме `ubuntu-service`;
+- расширены `BackendCapabilities` и Ubuntu backend endpoints под провайдеры, GEO, traffic, QoS, shaping и jobs;
+- добавлены `src/helper/backendCapabilities.ts`, `src/store/backendCapabilities.ts`, `src/api/ubuntuService.ts`;
+- `src/store/providerHealth.ts` теперь умеет работать не только через legacy agent bridge, но и через Ubuntu service provider endpoints;
+- `TasksPage` больше не блокирует provider SSL/runtime-действия только по флагу старого agent, а честно смотрит на capability активного backend-а;
+- обновлены README, roadmap, release journal и transfer docs под следующий шаг `v0.5.3`.
+
+## v0.5.1 - 2026-03-30
+- выполнен глубокий аудит функционального паритета UltraUIXkeen → UIUbuntuXkeen;
+- добавлен `docs/functional-audit.md`;
+- обновлены `docs/project-spec.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/releases.md`, `docs/chat-transfer.md`, `README.md`, `TRANSFER_CHAT`;
+- roadmap перестроен под реальные operational-приоритеты: провайдеры, хост, трафик, GEO, QoS и shaping.
+
+
 ## v0.5.0
 - adapted the legacy provider SSL/TLS checks from the Xkeen line into the Ubuntu project flow
 - provider cards now show richer SSL/TLS diagnostics: source, checked time, probe URL and probe errors

@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.5.0**  
+Текущая версия линии: **v0.5.2**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -9,7 +9,7 @@
 - новый набор изменений = новый номер версии;
 - старт новой Ubuntu-линии идёт с `0.x`;
 - после закрытия MVP и критериев приёмки выходим в `1.0.0`;
-- roadmap, release journal и chat-transfer обновляются в каждом релизе.
+- roadmap, release journal, audit и chat-transfer обновляются в каждом релизе.
 
 ## Уже сделано
 
@@ -30,103 +30,108 @@
 Статус: **готово и подтверждено**
 - сборка проходит;
 - обновление через кнопку **«Обновить»** в UI прошло успешно;
-- release flow для нового репозитория подтверждён на реальном сервере.
+- release flow нового репозитория подтверждён на реальном сервере.
 
-### v0.3.0 — Backend contract foundation
-Статус: **готово, ожидает серверной проверки**
+### v0.3.0–v0.4.1 — foundation backend contract и Ubuntu path model
+Статус: **сделано как foundation**
 - вынесены central project/release constants;
-- заложен Ubuntu backend contract foundation;
-- добавлены типы backend kind/capabilities;
-- add/update backend проходят через normalization layer;
-- начало перевода раздела `router` в host-oriented смысл на уровне UI-названий.
+- добавлен Ubuntu backend contract foundation;
+- Setup/Edit Backend переведены на hybrid backend mode;
+- зафиксирован каноничный лог Mihomo `/var/log/mihomo/mihomo.log`;
+- groundwork под host-oriented wording и capability-driven UI стал виден в интерфейсе.
 
-### v0.3.1 — Hybrid backend setup polish
-Статус: **готово, ожидает серверной проверки**
-- в Setup и Edit Backend добавлен явный выбор backend mode;
-- добавлен рекомендуемый secondary path для `compatibility-bridge` и `ubuntu-service`;
-- список backend-ов в Setup показывает режим direct/ubuntu-service;
-- groundwork под hybrid-модель: direct Mihomo + Ubuntu service.
+### v0.5.0 — провайдеры: подготовка SSL/TLS-диагностики
+Статус: **частично / требует service**
+- адаптированы UI-кусочки SSL/TLS diagnostics из старой линии;
+- audit показал, что полноценная автоматическая проверка, refresh SSL cache и хранение результата были завязаны на агент и не могут считаться закрытыми без нового Ubuntu service.
 
-### v0.3.2 — Runtime/setup contract preview
-Статус: **готово, ожидает серверной проверки**
-- Setup и Edit Backend теперь показывают backend contract preview: базовый URL, probe/runtime endpoint-ы и каноничные Ubuntu paths;
-- runtime workspace начал переключать visible wording между router-oriented и host-oriented режимом;
-- groundwork под capability-driven observability стал виден в UI, а не только в docs.
+### v0.5.1 — глубокий аудит функционального паритета и обновление документации
+Статус: **готово**
+- выполнен audit Xkeen → Ubuntu по ключевым функциональным контурам;
+- добавлен `docs/functional-audit.md`;
+- обновлены ТЗ, backend contract, roadmap, release journal и transfer docs;
+- roadmap перестроен по реальным operational-блокам, а не по косметическим экранам.
 
-### v0.4.0 — Runtime / Setup / Observability data foundation
-Статус: **готово, ожидает серверной проверки**
-- добавлена явная карточка data flow в Setup, Edit Backend и Runtime;
-- UI теперь показывает по-человечески, что читается напрямую из Mihomo, а что должно жить в Ubuntu service;
-- groundwork под hybrid data model стал виден не только в docs, но и в рабочих экранах;
-- подготовлена более понятная операторская логика для следующего этапа capability-driven observability.
+## Текущий приоритет
+
+> Пользователь зафиксировал приоритет: **провайдеры, SSL/сроки, трафик, состояния клиентов, раздел «Хост», ресурсы хоста, GEO-файлы, локальные правила, QoS, shaping**. Safe config flow и structured editors пока отложены.
 
 ## Ближайшая очередь
 
-> Текущий приоритет пользователя: **провайдеры (SSL/сроки/диагностика), трафик, состояние сервера/раздел «Хост», QoS и шейпинг**. Редактирование `config.yaml` и safe config flow **отложены на потом**.
+### v0.5.2 — Провайдеры: foundation Ubuntu service
+Статус: **сделано как UI/runtime foundation**
+- добавлена capability-aware модель для `/api/capabilities`;
+- расширен Ubuntu backend contract в коде под provider/GEO/traffic/QoS/jobs endpoint-ы;
+- provider runtime в UI теперь умеет читать provider state через Ubuntu service, а не только через legacy agent bridge;
+- ручные действия и блокировки в Tasks/Providers теперь завязаны на capability активного backend-а, а не только на старый `agentEnabled`;
+- заложены состояния `last check`, `next check`, `job status`, `error` для следующего backend-этапа.
 
-### v0.5.0 — Провайдеры: SSL / TLS и диагностика
+### v0.5.3 — Хост: ресурсы сервера и Mihomo
 План:
-- карточки и таблицы провайдеров с нормальной SSL/TLS-диагностикой;
-- дата истечения, сколько дней осталось, источник проверки, URL проверки;
-- ошибки TLS/SSL и подготовка полей issuer / subject / SAN для Ubuntu service;
-- перенос и адаптация проверок сертификатов из старой Xkeen-линии.
+- раздел **«Хост»** как operational-экран Ubuntu;
+- CPU / RAM / load / uptime / disk / network;
+- статус Mihomo;
+- каноничный лог `/var/log/mihomo/mihomo.log`;
+- host-oriented wording без router-era хвостов.
 
-### v0.5.1 — Хост: состояние сервера и Mihomo
+### v0.5.4 — Трафик и состояния клиентов
 План:
-- CPU / RAM / uptime / load / диск / сеть;
-- статус Mihomo и каноничный лог `/var/log/mihomo/mihomo.log`;
-- host-oriented wording вместо роутерных хвостов там, где это уже можно сделать без поломки UI.
+- графики трафика;
+- карточки и таблицы клиентов;
+- routed/vpn/bypass/mihomo state;
+- usage summary;
+- foundation для topology / traffic relations.
 
-### v0.5.2 — Трафик
+### v0.5.5 — GEO-файлы, локальные правила и top rules
 План:
-- общий трафик и активность по хостам/клиентам;
-- текущая скорость / usage / читаемые карточки и таблицы;
-- подготовка Ubuntu-oriented модели трафика без жёсткой завязки на роутер.
+- last GEO update;
+- GEO history;
+- local rules;
+- top rules;
+- summary по client → rule → provider flows.
 
-### v0.6.0 — QoS / шейпинг foundation
+### v0.6.0 — QoS / shaping foundation
 План:
-- профили, приоритеты и признаки применения;
-- состояние правил и groundwork под Ubuntu shaping/qos service;
-- вынос логики из чисто роутерной модели в более универсальную host-модель.
+- API-контракт для qos/shaping;
+- runtime state и профили;
+- jobs и audit trail;
+- UI foundation в разделах **«Хост»** и **«Трафик»**.
 
-### v0.7.0 — Safe config core
+### v0.7.0 — Subscriptions / tasks operational parity
+План:
+- адаптация подписок и сервисных задач под Ubuntu service;
+- доведение jobs/status/history до единой модели.
+
+### v0.8.0 — Safe config core
 План:
 - active / draft / baseline / history;
 - validate / apply / rollback;
 - операционный журнал изменений.
 
-### v0.8.0 — Structured editors MVP
+### v0.9.0 — Structured editors MVP
 План:
 - structured editors: DNS / Rules / Proxies;
 - raw YAML как fallback;
 - form-driven сценарий как основной путь работы.
 
-### v0.9.0 — Backup / Restore / Diagnostics
-План:
-- backup/restore;
-- capability diagnostics;
-- audit trail foundation.
-
 ### v1.0.0 — Ubuntu MVP complete
 Критерии:
 - работа с Mihomo на Ubuntu;
-- safe config flow;
-- базовые structured editors;
-- live metrics/logs/connections;
-- backup/restore;
-- bearer-token auth;
-- UI ощущается как отдельный Ubuntu-продукт.
+- разделы **«Провайдеры»**, **«Хост»**, **«Трафик»** и **«Задачи»** закрывают ключевой operational функционал;
+- есть foundation QoS/shaping и jobs/history;
+- есть safe config flow;
+- UI ощущается как отдельный Ubuntu-продукт, а не как роутерный UI без агента.
 
 ## После v1.0.0
 
 ### v1.1.x
-- wizards и шаблоны создания сущностей;
-- редкие nested structured editors.
+- расширенные wizards и шаблоны создания сущностей;
+- углубление subscriptions/policies.
 
 ### v1.2.x
 - audit views;
-- policies;
-- automation.
+- automation;
+- housekeeping jobs и retention policy для runtime history.
 
 ### v1.3.x
 - multi-instance support.

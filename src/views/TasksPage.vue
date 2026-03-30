@@ -9,7 +9,7 @@
         <button type="button" class="btn btn-sm" @click="applyEnforcement" :disabled="busy">
           {{ $t('applyEnforcementNow') }}
         </button>
-        <button type="button" class="btn btn-sm" @click="refreshSsl" :disabled="busy || !agentEnabled">
+        <button type="button" class="btn btn-sm" @click="refreshSsl" :disabled="busy || !providerHealthActionsAvailable">
           {{ $t('refreshProvidersSsl') }}
         </button>
       </div>
@@ -47,7 +47,7 @@
             type="button"
             class="btn btn-sm btn-ghost"
             @click="refreshProvidersPanel(true)"
-            :disabled="providersPanelBusy || panelSslProbeLoading || providerSslCacheRefreshBusy || !agentEnabled"
+            :disabled="providersPanelBusy || panelSslProbeLoading || providerSslCacheRefreshBusy || !providerHealthAvailable"
           >
             {{ $t('refresh') }}
           </button>
@@ -55,7 +55,7 @@
             type="button"
             class="btn btn-sm btn-ghost"
             @click="refreshProviderSslCacheNow"
-            :disabled="providersPanelBusy || panelSslProbeLoading || providerSslCacheRefreshBusy || !agentEnabled"
+            :disabled="providersPanelBusy || panelSslProbeLoading || providerSslCacheRefreshBusy || !providerHealthActionsAvailable"
           >
             <span v-if="providerSslCacheRefreshBusy" class="loading loading-spinner loading-xs"></span>
             <span v-else>{{ $t('refreshProviderSslCache') }}</span>
@@ -79,8 +79,8 @@
         </div>
         <div class="text-[11px] opacity-60">{{ $t('sslWarnThresholdTip') }}</div>
 
-        <div v-if="!agentEnabled" class="text-sm opacity-70">
-          {{ $t('agentDisabled') }}
+        <div v-if="!providerHealthAvailable" class="text-sm opacity-70">
+          {{ $t('providerHealthBackendUnavailable') }}
         </div>
         <div v-else-if="providersPanelBusy" class="text-sm opacity-70">…</div>
 		  <div v-else>
@@ -93,6 +93,7 @@
 				<div class="mt-1 text-[11px] opacity-60">
 				  <div>{{ $t('providersPanelColumnsExplain') }}</div>
 				  <div class="mt-0.5">{{ $t('sslSource') }} • {{ $t('checkedAt') }}: {{ fmtTs(providersPanelAt) }}</div>
+				  <div v-if="agentProvidersNextCheckAtMs || agentProvidersJobStatus" class="mt-0.5">{{ $t('providerChecksStateLine', { next: fmtTs(agentProvidersNextCheckAtMs), status: agentProvidersJobStatus || '—' }) }}</div>
 				</div>
 				
 				<div class="mt-2 overflow-x-auto">
@@ -1888,7 +1889,6 @@ import {
   agentGeoUpdateAPI,
   agentLogsAPI,
   agentLogsFollowAPI,
-  agentMihomoProvidersAPI,
   agentRulesInfoAPI,
   agentStatusAPI,
   agentUsersDbGetRevAPI,
@@ -1907,7 +1907,7 @@ import { FLAG_CODES } from '@/helper/flagIcons'
 import { activeBackend, backendList } from '@/store/setup'
 import { agentEnabled, agentUrl } from '@/store/agent'
 import { proxyProviderIconMap, proxyProviderPanelUrlMap, proxyProviderSslWarnDaysMap, sslNearExpiryDaysDefault } from '@/store/settings'
-import { agentProvidersSslCacheReady, agentProvidersSslRefreshPending, agentProvidersSslRefreshing, fetchAgentProviders, panelSslCheckedAt, panelSslErrorByName, panelSslNotAfterByName, panelSslProbeError, panelSslProbeLoading, panelSslUrlByName, probePanelSsl, refreshAgentProviderSslCache } from '@/store/providerHealth'
+import { agentProviders, agentProvidersAt, agentProvidersError, agentProvidersJobStatus, agentProvidersNextCheckAtMs, agentProvidersOk, agentProvidersSslCacheReady, agentProvidersSslRefreshPending, agentProvidersSslRefreshing, fetchAgentProviders, panelSslCheckedAt, panelSslErrorByName, panelSslNotAfterByName, panelSslProbeError, panelSslProbeLoading, panelSslUrlByName, probePanelSsl, providerHealthActionsAvailable, providerHealthAvailable, refreshAgentProviderSslCache } from '@/store/providerHealth'
 import { proxyProviederList } from '@/store/proxies'
 import { userLimitProfiles } from '@/store/userLimitProfiles'
 import { userLimitSnapshots } from '@/store/userLimitSnapshots'
@@ -2338,7 +2338,7 @@ const friendlyProviderPanelError = (err: any, kind: 'providers' | 'ssl' = 'provi
 }
 
 const loadProvidersPanel = async (force = false) => {
-  if (!agentEnabled.value) {
+  if (!providerHealthAvailable.value) {
     providersPanelList.value = []
     providersPanelError.value = ''
     return
@@ -2347,14 +2347,15 @@ const loadProvidersPanel = async (force = false) => {
   providersPanelBusy.value = true
   providersPanelError.value = ''
   try {
-    const r: any = await agentMihomoProvidersAPI(force)
-    if (!r?.ok) {
-      providersPanelError.value = r?.error || 'failed'
+    await fetchAgentProviders(force)
+    if (!agentProvidersOk.value && (!Array.isArray(agentProviders.value) || !agentProviders.value.length)) {
+      providersPanelError.value = agentProvidersError.value || 'failed'
       providersPanelList.value = []
       return
     }
-    providersPanelList.value = Array.isArray(r?.providers) ? r.providers : []
-    providersPanelAt.value = typeof r?.checkedAtSec === "number" && r.checkedAtSec > 0 ? r.checkedAtSec * 1000 : Date.now()
+    providersPanelError.value = agentProvidersError.value || ''
+    providersPanelList.value = Array.isArray(agentProviders.value) ? agentProviders.value : []
+    providersPanelAt.value = agentProvidersAt.value || Date.now()
   } catch (e: any) {
     providersPanelError.value = e?.message || 'failed'
     providersPanelList.value = []
@@ -2393,7 +2394,7 @@ const providerSslCacheStatusClass = computed(() => {
 })
 
 const refreshProviderSslCacheNow = async () => {
-  if (!agentEnabled.value || providerSslCacheRefreshBusy.value) return
+  if (!providerHealthActionsAvailable.value || providerSslCacheRefreshBusy.value) return
   providerSslCacheRefreshBusy.value = true
   try {
     const res: any = await refreshAgentProviderSslCache()
@@ -4095,8 +4096,8 @@ const applyEnforcement = async () => {
 
 const refreshSsl = async () => {
   if (busy.value) return
-  if (!agentEnabled.value) {
-    showNotification({ content: 'agentDisabled', type: 'alert-warning', timeout: 2000 })
+  if (!providerHealthActionsAvailable.value) {
+    showNotification({ content: 'providerHealthBackendUnavailable', type: 'alert-warning', timeout: 2200 })
     return
   }
   busy.value = true
@@ -4104,7 +4105,7 @@ const refreshSsl = async () => {
     const id = startJob('Refresh providers SSL')
     try {
       await probePanelSsl(true)
-      const n = Object.keys(panelSslNotAfterByName.value || {}).length
+      const n = activeBackend.value?.kind === 'ubuntu-service' ? (Array.isArray(agentProviders.value) ? agentProviders.value.length : 0) : Object.keys(panelSslNotAfterByName.value || {}).length
       finishJob(id, { ok: true, meta: { probed: n } })
       showNotification({ content: 'sslRefreshed', type: 'alert-success', timeout: 1600 })
     } catch (e: any) {
@@ -4123,8 +4124,8 @@ const providersUpdateBusy = ref(false)
 const rulesRescanBusy = ref(false)
 
 const updateGeoNow = async () => {
-  if (!agentEnabled.value) {
-    showNotification({ content: 'agentDisabled', type: 'alert-warning', timeout: 2000 })
+  if (!providerHealthActionsAvailable.value) {
+    showNotification({ content: 'providerHealthBackendUnavailable', type: 'alert-warning', timeout: 2200 })
     return
   }
   if (geoUpdateBusy.value) return
@@ -4272,8 +4273,8 @@ const updateRuleProvidersNow = async () => {
 }
 
 const rescanLocalRules = async () => {
-  if (!agentEnabled.value) {
-    showNotification({ content: 'agentDisabled', type: 'alert-warning', timeout: 2000 })
+  if (!providerHealthActionsAvailable.value) {
+    showNotification({ content: 'providerHealthBackendUnavailable', type: 'alert-warning', timeout: 2200 })
     return
   }
   if (rulesRescanBusy.value) return
