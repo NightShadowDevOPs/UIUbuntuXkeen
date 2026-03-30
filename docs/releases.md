@@ -1,3 +1,18 @@
+## v0.6.9 — Tasks provider list visibility and effective SSL source probing
+
+Что сделано:
+- список провайдеров в разделе **«Задачи»** больше не исчезает целиком, если backend provider checks вернули ошибку; предупреждение показывается отдельно, а таблица остаётся доступной;
+- direct SSL/TLS probe теперь берёт effective URL 3x-ui подписок не только из сохранённой карты, но и из текущих proxy providers, `subscriptionInfo` и backend provider metadata;
+- заголовки и мета-подписи в таблице приведены к каноничной модели **«3x-ui подписка / ссылка подписки»**.
+
+Что проверять:
+- в **«Задачах»** список провайдеров виден даже если backend checks временно вернули ошибку;
+- кнопка **«Обновить SSL провайдеров»** умеет отрабатывать по URL, пришедшим не только из ручного overrides map, но и из provider metadata;
+- под таблицей и в мета-тексте больше нет старой двусмысленной panel URL терминологии.
+
+Следующий шаг:
+- `v0.6.10` — scheduler/history для SSL-проверок и GEO groundwork.
+
 # UIUbuntuXkeen — журнал релизов
 
 ## v0.6.8 — Tasks real SSL polling by subscription URLs
@@ -18,7 +33,7 @@
 - функциональный релиз по реальному SSL polling в Tasks.
 
 Следующий плановый релиз:
-- `v0.6.8` — scheduler/history для SSL-проверок и GEO groundwork.
+- `v0.6.10` — scheduler/history для SSL-проверок и GEO groundwork.
 
 
 ## v0.6.6 — Tasks providers SSL operational polish
@@ -49,7 +64,7 @@
 - корректирующий релиз по списку провайдеров и аудиту формы Tasks.
 
 Следующий плановый релиз:
-- `v0.6.8` — scheduler/history для SSL-проверок и GEO groundwork.
+- `v0.6.10` — scheduler/history для SSL-проверок и GEO groundwork.
 
 ## v0.6.4 — Tasks alignment: 3x-ui subscription URLs
 Дата: **2026-03-30**
@@ -69,7 +84,7 @@
 - функциональный корректирующий релиз по Tasks/Providers модели.
 
 Следующий плановый релиз:
-- `v0.6.8` — scheduler/history для SSL-проверок и GEO groundwork.
+- `v0.6.10` — scheduler/history для SSL-проверок и GEO groundwork.
 
 ## v0.6.3 — build/install stabilization
 - добавлен `.npmrc` с отключённым frozen lockfile, чтобы CI не падал на этапе `Install dependencies`;
@@ -94,7 +109,7 @@
 - функциональный корректирующий шаг по SSL-контуру в разделе **«Задачи»**.
 
 Следующий плановый релиз:
-- `v0.6.8` — scheduler/history для SSL-проверок и GEO groundwork.
+- `v0.6.10` — scheduler/history для SSL-проверок и GEO groundwork.
 
 ## v0.6.1 — rollback misplaced provider SSL workspace
 Дата: **2026-03-30**
@@ -113,7 +128,7 @@
 - исправляющий rollback/hotfix после неверного хода в `v0.6.0`.
 
 Следующий плановый релиз:
-- `v0.6.8` — scheduler/history для SSL-проверок и GEO groundwork.
+- `v0.6.10` — scheduler/history для SSL-проверок и GEO groundwork.
 
 ## v0.6.0 — ошибочный provider SSL workspace
 Дата: **2026-03-30**

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.6.9 - 2026-03-30
+- раздел **«Задачи»** больше не прячет всю таблицу провайдеров из-за backend/provider-check ошибки: warning показывается отдельно, а список провайдеров и URL 3x-ui подписок остаётся доступным для работы;
+- direct SSL/TLS probe теперь собирает effective subscription URL не только из сохранённой карты `proxyProviderSubscriptionUrlMap`, но и из текущего списка proxy providers / `subscriptionInfo` / provider-health metadata;
+- в таблице Tasks заголовок и мета-подписи приведены к каноничной модели **«3x-ui подписка / ссылка подписки»**, а не к старой терминологии panel URL.
+
 ## v0.6.8 - 2026-03-30
 - в разделе **«Задачи»** наконец подключён реальный SSL/TLS-опрос по сохранённым URL 3x-ui подписок провайдеров: `refreshProvidersSsl` и `refreshProviderSslCache` теперь не только дёргают backend refresh, но и запускают прямой probe по subscription URL через compatibility bridge, если он доступен;
 - таблица провайдеров в Tasks теперь подмешивает результаты `probePanelSsl()` как приоритетный источник `sslNotAfter` / `sslError` / `checkedAt`, поэтому список начинает показывать реальные даты сертификатов и ошибки по самим ссылкам подписок, а не только backend хвосты;

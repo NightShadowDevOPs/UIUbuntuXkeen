@@ -85,8 +85,8 @@
         </div>
         <div v-if="providersPanelBusy" class="text-sm opacity-70">…</div>
         <div v-else>
-          <div v-if="providersPanelError" class="text-xs text-error" :title="providersPanelError">{{ friendlyProviderPanelError(providersPanelError, 'providers') }}</div>
-          <div v-else>
+          <div v-if="providersPanelError" class="mb-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning" :title="providersPanelError">{{ friendlyProviderPanelError(providersPanelError, 'providers') }}</div>
+          <div>
             <div v-if="providerSslCacheStatusText" class="mb-2 text-xs" :class="providerSslCacheStatusClass" :title="$t('providerSslRefreshingTip')">{{ providerSslCacheStatusText }}</div>
             <div class="mt-2 flex flex-wrap gap-2 text-[11px]">
               <span class="badge badge-ghost badge-sm">{{ $t('providersPanelKnownProviders') }}: {{ providersPanelStats.total }}</span>
@@ -109,7 +109,7 @@
                   <thead>
                     <tr>
                       <th class="w-[180px]">{{ $t('provider') }}</th>
-                      <th>{{ $t('panelUrl') }}</th>
+                      <th>{{ $t('providerPanelUrl') }}</th>
                       <th class="w-[148px]">{{ $t('sslWarnDays') }}</th>
                       <th class="w-[220px]">{{ $t('sslExpires') }}</th>
                     </tr>
@@ -2326,7 +2326,7 @@ const providerSslMetaText = (item: { sslError?: string; sslCheckedAtMs?: number;
   const checked = fmtTs(item?.sslCheckedAtMs || providersPanelAt.value)
   const err = String(item?.sslError || '').trim()
   const url = String(item?.url || '').trim()
-  if (!url) return `${t('panelUrl')}: ${t('providersPanelNoSubscriptionUrl')}`
+  if (!url) return `${t('providerPanelUrl')}: ${t('providersPanelNoSubscriptionUrl')}`
   if (err) return `${t('checkedAt')}: ${checked} • ${t('providerSslError')}: ${err}`
   return `${t('checkedAt')}: ${checked}`
 }

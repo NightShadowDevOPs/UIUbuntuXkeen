@@ -7,6 +7,7 @@ import { agentEnabled } from './agent'
 import { activeBackendCapabilities } from './backendCapabilities'
 import { activeBackend } from './setup'
 import { proxyProviderSubscriptionUrlMap } from './settings'
+import { proxyProviederList } from './proxies'
 
 export const autoSortProxyProvidersByHealth = useStorage<boolean>(
   'config/auto-sort-proxy-providers-by-health',
@@ -261,17 +262,68 @@ export const refreshAgentProviderSslCache = async () => {
   return res
 }
 
-const buildProbeLines = (): string => {
-  const map = proxyProviderSubscriptionUrlMap.value || {}
-  const lines: string[] = []
-  for (const [name, url] of Object.entries(map)) {
-    const n = String(name || '').trim()
-    const u = String(url || '').trim()
-    if (!n || !u) continue
-    // Probe only TLS-capable subscription links.
-    if (!/^(https|wss):\/\//i.test(u)) continue
-    lines.push(`${n}\t${u}`)
+const readProviderProbeUrl = (provider: any, agentProvider: any, name: string): string => {
+  const key = String(name || '').trim()
+  const override = String((proxyProviderSubscriptionUrlMap.value || {})[key] || '').trim()
+  if (override) return override
+
+  const candidates = [provider, provider?.subscriptionInfo, agentProvider]
+  for (const item of candidates) {
+    const url = String(
+      item?.url ??
+      item?.uri ??
+      item?.link ??
+      item?.subscriptionUrl ??
+      item?.subscription_url ??
+      item?.sourceUrl ??
+      item?.source_url ??
+      item?.downloadUrl ??
+      item?.download_url ??
+      item?.subscribe ??
+      item?.subscription ??
+      item?.panelUrl ??
+      item?.panel_url ??
+      '',
+    ).trim()
+    if (url) return url
   }
+
+  return ''
+}
+
+const buildProbeLines = (): string => {
+  const names: string[] = []
+  const seen = new Set<string>()
+  const pushName = (raw: any) => {
+    const name = String(raw || '').trim()
+    if (!name || seen.has(name) || name === 'default') return
+    seen.add(name)
+    names.push(name)
+  }
+
+  for (const provider of proxyProviederList.value || []) pushName((provider as any)?.name)
+  for (const name of Object.keys(proxyProviderSubscriptionUrlMap.value || {})) pushName(name)
+  for (const provider of agentProviders.value || []) pushName((provider as any)?.name)
+
+  const providerMetaByName = new Map<string, any>()
+  for (const provider of proxyProviederList.value || []) {
+    const name = String((provider as any)?.name || '').trim()
+    if (name) providerMetaByName.set(name, provider)
+  }
+
+  const agentMetaByName = new Map<string, any>()
+  for (const provider of agentProviders.value || []) {
+    const name = String((provider as any)?.name || '').trim()
+    if (name) agentMetaByName.set(name, provider)
+  }
+
+  const lines: string[] = []
+  for (const name of names) {
+    const url = readProviderProbeUrl(providerMetaByName.get(name), agentMetaByName.get(name), name)
+    if (!/^(https|wss):\/\//i.test(url)) continue
+    lines.push(`${name}	${url}`)
+  }
+
   return lines.join('\n') + (lines.length ? '\n' : '')
 }
 
