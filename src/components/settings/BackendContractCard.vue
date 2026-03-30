@@ -77,6 +77,7 @@ const ubuntuPathItems = computed(() => [
   { key: 'state', label: t('backendContractPathStateRoot'), value: UBUNTU_PATHS.stateRoot },
   { key: 'config', label: t('backendContractPathConfigRoot'), value: UBUNTU_PATHS.configRoot },
   { key: 'logs', label: t('backendContractPathLogsRoot'), value: UBUNTU_PATHS.logsRoot },
+  { key: 'mihomoLog', label: t('backendContractPathMihomoLog'), value: UBUNTU_PATHS.mihomoLog },
   { key: 'env', label: t('backendContractPathAgentEnv'), value: UBUNTU_PATHS.agentEnv },
 ])
 </script>

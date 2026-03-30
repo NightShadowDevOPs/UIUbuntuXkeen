@@ -39,11 +39,20 @@
         </ul>
       </div>
     </div>
+    <div class="mt-3 rounded-xl border border-info/30 bg-info/10 p-3">
+      <div class="font-semibold">{{ $t('backendDataFlowObservabilityTitle') }}</div>
+      <div class="mt-1 opacity-80">{{ $t('backendDataFlowObservabilityTip') }}</div>
+      <div class="mt-2 rounded-lg border border-info/20 bg-base-100/70 px-3 py-2">
+        <div class="text-[11px] uppercase tracking-[0.12em] opacity-60">{{ $t('backendDataFlowMihomoLogLabel') }}</div>
+        <code class="mt-1 block break-all">{{ mihomoLogPath }}</code>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { BACKEND_KINDS } from '@/config/backendContract'
+import { UBUNTU_PATHS } from '@/config/project'
 import { getBackendKindBadgeClass } from '@/helper/backend'
 import type { Backend, BackendKind } from '@/types'
 import { computed } from 'vue'
@@ -70,6 +79,8 @@ const directHint = computed(() =>
 const serviceHint = computed(() =>
   isUbuntuService.value ? t('backendDataFlowServiceHintUbuntu') : t('backendDataFlowServiceHintCompatibility'),
 )
+
+const mihomoLogPath = UBUNTU_PATHS.mihomoLog
 
 const directItems = computed(() => [
   {

@@ -6,11 +6,11 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.4.0**
+- Текущая версия линии: **v0.4.1**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 - Текущий шаг: **Runtime / Setup / Observability foundation preview**
 
-На релизе `v0.4.0` setup, edit flow и runtime уже показывают не только backend contract preview, но и понятную data flow модель: что UI читает напрямую из Mihomo, а что должно идти через отдельный Ubuntu service.
+На релизе `v0.4.1` setup, редактирование backend и runtime уже показывают не только backend contract preview и data flow модель, но и каноничный путь к логу Mihomo на Ubuntu: `/var/log/mihomo/mihomo.log`.
 
 ## Как работаем
 

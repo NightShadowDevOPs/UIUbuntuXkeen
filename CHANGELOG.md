@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.1
+- added canonical Mihomo log path `/var/log/mihomo/mihomo.log` to Ubuntu project paths and backend contract preview
+- added observability hint block to Setup, Edit Backend and Runtime so the UI shows which log file to inspect on Ubuntu
+- polished Russian wording for host/runtime and backend contract hints
+
 ## v0.4.0
 - added `BackendDataFlowCard` to Setup, Edit Backend and Runtime so the UI now shows what is read directly from Mihomo and what belongs to the Ubuntu service
 - made the hybrid data model visible to the operator instead of leaving it only in docs and transfer notes

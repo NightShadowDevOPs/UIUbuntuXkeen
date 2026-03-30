@@ -1,5 +1,26 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.4.1 — Observability log-path polish
+Дата: **2026-03-30**
+
+Сделано:
+- в `src/config/project.ts` добавлен каноничный путь к логу Mihomo: `/var/log/mihomo/mihomo.log`;
+- в `BackendContractCard` путь к логу Mihomo теперь показывается рядом с Ubuntu path-моделью;
+- в `BackendDataFlowCard` добавлен отдельный observability-блок с подсказкой, какой лог смотреть на Ubuntu;
+- подправлены RU-тексты для раздела «Хост / рантайм» и backend contract preview;
+- обновлены `README.md`, `docs/project-spec.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
+
+Результат:
+- в интерфейсе теперь видно не только модель данных direct Mihomo / Ubuntu service, но и конкретный путь к основному логу Mihomo на Ubuntu;
+- проверять разделы «Настройка», «Редактирование backend» и «Роутер / рантайм» стало проще;
+- groundwork под следующий этап safe config core не ломает текущий рабочий update flow.
+
+Статус:
+- подготовлено, ожидает пользовательской проверки.
+
+Следующий плановый релиз:
+- `v0.5.0` — Safe config core.
+
 ## v0.4.0 — Runtime / Setup / Observability data foundation
 Дата: **2026-03-30**
 

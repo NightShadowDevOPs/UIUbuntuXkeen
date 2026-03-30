@@ -20,5 +20,6 @@ export const UBUNTU_PATHS = {
   stateRoot: '/var/lib/ultra-ui-ubuntu/',
   configRoot: '/var/lib/ultra-ui-ubuntu/config/',
   logsRoot: '/var/log/ultra-ui-ubuntu/',
+  mihomoLog: '/var/log/mihomo/mihomo.log',
   agentEnv: '/etc/ultra-ui-ubuntu/agent.env',
 } as const
