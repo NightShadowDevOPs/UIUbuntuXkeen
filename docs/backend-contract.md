@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — Ubuntu backend contract
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.3.1**
+Текущая версия линии: **v0.3.2**
 
 ## Назначение
 
@@ -11,7 +11,7 @@
 
 ## Текущая модель backend-ов
 
-На линии `v0.3.1` считаем допустимыми два режима backend-а:
+На линии `v0.3.2` считаем допустимыми два режима backend-а:
 
 ### 1. Compatibility bridge
 Используется как переходный режим.
@@ -86,7 +86,7 @@ UI должен уметь ориентироваться не только на
 - `configApply`
 - `configRollback`
 
-## Что сделано в v0.3.0–v0.3.1
+## Что сделано в v0.3.0–v0.3.2
 
 На этом релизе в кодовой базе заложен foundation-слой:
 - central project/release constants вынесены в отдельный config-модуль;
@@ -97,11 +97,13 @@ UI должен уметь ориентироваться не только на
 - add/update backend в setup-store теперь проходят через normalization layer;
 - setup/edit backend получили явный выбор backend mode (`compatibility-bridge` / `ubuntu-service`);
 - для backend mode добавлен рекомендуемый secondary path: пустой для direct/bridge и `/api` для Ubuntu service;
-- setup list теперь визуально показывает режим backend-а badge-ом.
+- setup list теперь визуально показывает режим backend-а badge-ом;
+- в Setup и Edit Backend добавлен backend contract preview: connection preview, probe/runtime endpoint-ы и каноничные Ubuntu paths для режима `ubuntu-service`;
+- runtime workspace начинает переключать видимый смысл между router-oriented и host-oriented режимом по выбранному backend kind.
 
 ## Что ещё не считается завершённым
 
-На `v0.3.1` это **ещё не полноценный Ubuntu backend-service**.
+На `v0.3.2` это **ещё не полноценный Ubuntu backend-service**.
 
 Пока не считаются закрытыми:
 - реальные `/api/status|health|capabilities` для Ubuntu service;
@@ -111,7 +113,7 @@ UI должен уметь ориентироваться не только на
 
 ## Следующий шаг
 
-Следующий крупный этап: **v0.4.0 — Runtime / Setup / Observability foundation**.
+Следующий крупный этап: **v0.4.0 — Runtime / Setup / Observability data foundation**.
 
 На нём нужно:
 - углубить переход от раздела “Роутер” к Host Runtime;

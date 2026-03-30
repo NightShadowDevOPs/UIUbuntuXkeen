@@ -1,4 +1,8 @@
-import { BACKEND_KINDS, UBUNTU_BACKEND_FOUNDATION } from '@/config/backendContract'
+import {
+  BACKEND_KINDS,
+  UBUNTU_BACKEND_ENDPOINTS,
+  UBUNTU_BACKEND_FOUNDATION,
+} from '@/config/backendContract'
 import type { Backend, BackendCapabilities, BackendKind } from '@/types'
 
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '0.0.0.0'])
@@ -49,6 +53,35 @@ export const getBackendKindBadgeClass = (kind: BackendKind | undefined | null) =
   return kind === BACKEND_KINDS.UBUNTU_SERVICE
     ? 'badge badge-success badge-outline'
     : 'badge badge-ghost badge-outline'
+}
+
+export const getBackendRuntimeTitleKey = (kind: BackendKind | undefined | null) => {
+  return kind === BACKEND_KINDS.UBUNTU_SERVICE ? 'hostRuntimeWorkspaceTitle' : 'routerWorkspaceTitle'
+}
+
+export const getBackendRuntimeTipKey = (kind: BackendKind | undefined | null) => {
+  return kind === BACKEND_KINDS.UBUNTU_SERVICE ? 'hostRuntimeWorkspaceTip' : 'routerWorkspaceTip'
+}
+
+export const getBackendInfoTitleKey = (kind: BackendKind | undefined | null) => {
+  return kind === BACKEND_KINDS.UBUNTU_SERVICE ? 'hostRuntimeInfo' : 'routerInfo'
+}
+
+export const getBackendInfoTipKey = (kind: BackendKind | undefined | null) => {
+  return kind === BACKEND_KINDS.UBUNTU_SERVICE ? 'hostRuntimeInfoTip' : 'routerInfoTip'
+}
+
+export const getBackendProbePaths = (kind: BackendKind | undefined | null) => {
+  if (kind === BACKEND_KINDS.UBUNTU_SERVICE) {
+    return [
+      UBUNTU_BACKEND_ENDPOINTS.status,
+      UBUNTU_BACKEND_ENDPOINTS.health,
+      UBUNTU_BACKEND_ENDPOINTS.version,
+      UBUNTU_BACKEND_ENDPOINTS.capabilities,
+    ]
+  }
+
+  return ['/version', '/configs', '/proxies', '/providers/proxies', '/rules', '/connections', '/logs']
 }
 
 export const isUbuntuServiceBackend = (backend?: Partial<Backend> | null) => {

@@ -39,6 +39,7 @@
         <div class="font-semibold">{{ $t('backendModeHelpTitle') }}</div>
         <div>{{ backendModeHelpText }}</div>
       </div>
+      <BackendContractCard :backend="form" :kind="form.kind" />
       <div class="flex flex-col gap-1">
         <label class="text-sm">
           <span>{{ $t('host') }}</span>
@@ -168,6 +169,7 @@
 import ImportSettings from '@/components/common/ImportSettings.vue'
 import TextInput from '@/components/common/TextInput.vue'
 import EditBackendModal from '@/components/settings/EditBackendModal.vue'
+import BackendContractCard from '@/components/settings/BackendContractCard.vue'
 import LanguageSelect from '@/components/settings/LanguageSelect.vue'
 import { BACKEND_KINDS } from '@/config/backendContract'
 import { ROUTE_NAME } from '@/constant'

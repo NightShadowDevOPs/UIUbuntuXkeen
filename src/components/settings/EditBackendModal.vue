@@ -53,6 +53,8 @@
           <div>{{ backendModeHelpText }}</div>
         </div>
 
+        <BackendContractCard v-if="editForm" :backend="editForm" :kind="editForm.kind" />
+
         <div class="flex flex-col gap-1">
           <label class="text-sm">{{ t('host') }}</label>
           <TextInput
@@ -141,6 +143,7 @@
 import { isBackendAvailable } from '@/api'
 import DialogWrapper from '@/components/common/DialogWrapper.vue'
 import TextInput from '@/components/common/TextInput.vue'
+import BackendContractCard from '@/components/settings/BackendContractCard.vue'
 import { BACKEND_KINDS } from '@/config/backendContract'
 import { getRecommendedSecondaryPath, normalizeBackendInput } from '@/helper/backend'
 import { showNotification } from '@/helper/notification'

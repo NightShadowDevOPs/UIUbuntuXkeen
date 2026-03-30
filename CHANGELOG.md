@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.2
+- added `BackendContractCard` for Setup/Edit Backend with connection preview, expected probe paths and canonical Ubuntu paths
+- added runtime-title helpers so the Router/Runtime workspace can present host-oriented wording for `ubuntu-service` backends
+- refreshed project docs, roadmap, release journal and chat-transfer package for the runtime/setup/observability foundation step
+
 ## v0.3.1
 - setup/edit backend: добавлен явный выбор backend mode (`compatibility-bridge` / `ubuntu-service`)
 - добавлены helper-ы для рекомендуемого secondary path и визуальных badge-ов backend mode

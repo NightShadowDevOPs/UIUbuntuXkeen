@@ -3,8 +3,8 @@
     <div class="card gap-3 p-3">
       <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <div class="font-semibold">{{ t('routerWorkspaceTitle') }}</div>
-          <div class="text-sm opacity-70">{{ t('routerWorkspaceTip') }}</div>
+          <div class="font-semibold">{{ t(workspaceTitleKey) }}</div>
+          <div class="text-sm opacity-70">{{ t(workspaceTipKey) }}</div>
         </div>
 
         <div class="flex flex-wrap gap-2">
@@ -41,8 +41,8 @@
           <div class="mt-1 text-sm opacity-70">{{ t(activeSectionMeta.tipKey) }}</div>
         </div>
         <div class="rounded-lg border border-base-content/10 bg-base-100/70 p-3">
-          <div class="font-semibold">{{ t('routerInfo') }}</div>
-          <div class="mt-1 text-sm opacity-70">{{ t('routerInfoTip') }}</div>
+          <div class="font-semibold">{{ t(infoTitleKey) }}</div>
+          <div class="mt-1 text-sm opacity-70">{{ t(infoTipKey) }}</div>
         </div>
       </div>
     </div>
@@ -113,6 +113,12 @@ import ChartsCard from '@/components/overview/ChartsCard.vue'
 import NetcrazeTrafficCard from '@/components/overview/NetcrazeTrafficCard.vue'
 import NetworkCard from '@/components/overview/NetworkCard.vue'
 import { ROUTE_NAME } from '@/constant'
+import {
+  getBackendInfoTipKey,
+  getBackendInfoTitleKey,
+  getBackendRuntimeTipKey,
+  getBackendRuntimeTitleKey,
+} from '@/helper/backend'
 import { getLabelFromBackend } from '@/helper/utils'
 import { i18n } from '@/i18n'
 import { showIPAndConnectionInfo } from '@/store/settings'
@@ -139,6 +145,11 @@ const resolveSectionId = (raw: unknown): RouterSectionId => {
 
 const activeSection = computed<RouterSectionId>(() => resolveSectionId(route.query.section))
 const activeSectionMeta = computed(() => routerSections.find((item) => item.id === activeSection.value) || routerSections[0])
+const activeBackendKind = computed(() => activeBackend.value?.kind)
+const workspaceTitleKey = computed(() => getBackendRuntimeTitleKey(activeBackendKind.value))
+const workspaceTipKey = computed(() => getBackendRuntimeTipKey(activeBackendKind.value))
+const infoTitleKey = computed(() => getBackendInfoTitleKey(activeBackendKind.value))
+const infoTipKey = computed(() => getBackendInfoTipKey(activeBackendKind.value))
 
 const setSection = (id: RouterSectionId) => {
   if (activeSection.value === id) return

@@ -6,11 +6,11 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.3.1**
+- Текущая версия линии: **v0.3.2**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
-- Текущий шаг: **Backend contract foundation**
+- Текущий шаг: **Runtime / Setup / Observability foundation preview**
 
-На релизе `v0.3.1` setup flow получил явную hybrid-модель backend-а: выбор режима `compatibility-bridge` / `ubuntu-service`, рекомендуемый secondary path и подготовку UI к direct Mihomo + Ubuntu service архитектуре.
+На релизе `v0.3.2` setup и edit flow уже показывают preview backend contract: базовый URL, ожидаемые probe/runtime endpoint-ы и каноничные Ubuntu paths для режима `ubuntu-service`. Раздел runtime также начинает динамически менять смысл с router-oriented на host-oriented в зависимости от выбранного backend mode.
 
 ## Как работаем
 

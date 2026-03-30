@@ -1,5 +1,26 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.3.2 — Runtime/setup contract preview
+Дата: **2026-03-30**
+
+Сделано:
+- добавлен `src/components/settings/BackendContractCard.vue`;
+- в `SetupPage` и `EditBackendModal` добавлен backend contract preview: base URL, expected probe/runtime endpoints и каноничные Ubuntu paths;
+- в helper-слой backend-а добавлены runtime/info title helpers и списки probe endpoint-ов для `compatibility-bridge` и `ubuntu-service`;
+- `RouterPage` начал динамически менять видимые workspace/info заголовки в зависимости от backend mode;
+- обновлены `README.md`, `docs/project-spec.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
+
+Результат:
+- hybrid data model и Ubuntu backend contract теперь видны в setup/edit flow прямо в UI;
+- runtime-раздел стал ближе к host-oriented модели без поломки текущего compatibility режима;
+- groundwork под следующий этап observability теперь есть и в коде, и в документации.
+
+Статус:
+- подготовлено, ожидает пользовательской проверки.
+
+Следующий плановый релиз:
+- `v0.4.0` — Runtime / Setup / Observability data foundation.
+
 ## v0.3.1 — Hybrid backend setup polish
 Дата: **2026-03-30**
 
@@ -20,7 +41,7 @@
 - подготовлено, ожидает пользовательской проверки.
 
 Следующий плановый релиз:
-- `v0.4.0` — Runtime / Setup / Observability foundation.
+- `v0.4.0` — Runtime / Setup / Observability data foundation.
 
 ## v0.3.0 — Backend contract foundation
 Дата: **2026-03-30**
@@ -46,7 +67,7 @@
 - подготовлено, ожидает пользовательской проверки.
 
 Следующий плановый релиз:
-- `v0.4.0` — Runtime / Setup / Observability foundation.
+- `v0.4.0` — Runtime / Setup / Observability data foundation.
 
 ## v0.2.10 — Первый подтверждённо рабочий серверный релиз
 Дата: **2026-03-30**
