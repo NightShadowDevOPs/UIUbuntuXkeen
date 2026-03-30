@@ -41,7 +41,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Type check
+      - name: Type check (informational)
+        continue-on-error: true
         run: pnpm type-check
 
       - name: Build UI

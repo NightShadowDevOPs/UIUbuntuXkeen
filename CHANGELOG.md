@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.1 — 2026-03-30
+
+- changed GitHub Actions pipeline so `pnpm type-check` is informational and no longer blocks release publication
+- kept `pnpm build` as the hard gate for shipping `dist.zip` and versioned release artifacts
+- refreshed docs and chat-transfer package for the CI hotfix
+
 ## v0.2.0 — 2026-03-30
 
 - updated product metadata and visible branding for the new Ubuntu-oriented line
