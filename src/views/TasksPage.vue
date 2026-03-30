@@ -1907,7 +1907,7 @@ import { FLAG_CODES } from '@/helper/flagIcons'
 import { activeBackend, backendList } from '@/store/setup'
 import { agentEnabled, agentUrl } from '@/store/agent'
 import { proxyProviderIconMap, proxyProviderPanelUrlMap, proxyProviderSslWarnDaysMap, sslNearExpiryDaysDefault } from '@/store/settings'
-import { agentProvidersSslCacheReady, agentProvidersSslRefreshPending, agentProvidersSslRefreshing, fetchAgentProviders, panelSslCheckedAt, panelSslNotAfterByName, panelSslProbeError, panelSslProbeLoading, probePanelSsl, refreshAgentProviderSslCache } from '@/store/providerHealth'
+import { agentProvidersSslCacheReady, agentProvidersSslRefreshPending, agentProvidersSslRefreshing, fetchAgentProviders, panelSslCheckedAt, panelSslErrorByName, panelSslNotAfterByName, panelSslProbeError, panelSslProbeLoading, panelSslUrlByName, probePanelSsl, refreshAgentProviderSslCache } from '@/store/providerHealth'
 import { proxyProviederList } from '@/store/proxies'
 import { userLimitProfiles } from '@/store/userLimitProfiles'
 import { userLimitSnapshots } from '@/store/userLimitSnapshots'
@@ -2119,6 +2119,8 @@ const clearProviderSslWarnOverride = (name: string) => {
 
 const sslPanelInfo = (name: string, v: any, fromPanel: boolean) => {
   const d = parseDateMaybe(v)
+  const backendProbeLabel = activeBackend.value?.kind === 'ubuntu-service' ? t('providerSslSourceUbuntuService') : t('providerSslSourceCompatibilityBridge')
+  const sourceLabel = fromPanel ? t('providerSslSourcePanelUrl') : t('providerSslSourceProviderUrl')
   if (!d) {
     const pending = agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value || !agentProvidersSslCacheReady.value
     if (pending) {
@@ -2128,19 +2130,23 @@ const sslPanelInfo = (name: string, v: any, fromPanel: boolean) => {
         title: t('providerSslRefreshingTip'),
       }
     }
+    const err = fromPanel ? String((panelSslErrorByName.value || {})[String(name || '').trim()] || '').trim() : ''
+    const url = fromPanel ? String((panelSslUrlByName.value || {})[String(name || '').trim()] || '').trim() : ''
     return {
-      text: '—',
-      cls: '',
-      title: `${(name || '').trim()} • ${String(v || '').trim()}`.trim(),
+      text: err ? t('providerSslError') : '—',
+      cls: err ? 'text-error' : '',
+      title: err
+        ? `${sourceLabel} • ${backendProbeLabel} • ${t('providerSslError')}: ${err}${url ? ` • URL: ${url}` : ''}`
+        : `${sourceLabel} • ${backendProbeLabel}`,
     }
   }
   const days = d.diff(dayjs(), 'day')
   const date = d.format('DD-MM-YYYY HH:mm:ss')
   const warnDays = getProviderWarnDays(name)
   const cls = days < 0 ? 'text-error' : days <= warnDays ? 'text-warning' : 'text-base-content/60'
-  const text = days < 0 ? `${date} (expired)` : `${date} (${days}d)`
+  const text = days < 0 ? `${date} (${t('providerSslStatusExpired')})` : `${date} (${days}${t('daysShort')})`
   const checkedMs = fromPanel ? panelSslCheckedAt.value : providersPanelAt.value
-  const title = `Source: TLS cert of ${fromPanel ? "panel URL" : "proxy-provider URL"} (router-agent) • Checked: ${fmtTs(checkedMs)}`
+  const title = `${sourceLabel} • ${backendProbeLabel} • ${t('checkedAt')}: ${fmtTs(checkedMs)}`
   return { text, cls, title }
 }
 

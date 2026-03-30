@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.4.1**  
+Текущая версия линии: **v0.5.0**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -62,36 +62,48 @@
 
 ## Ближайшая очередь
 
-### v0.5.0 — Safe config core
+> Текущий приоритет пользователя: **провайдеры (SSL/сроки/диагностика), трафик, состояние сервера/раздел «Хост», QoS и шейпинг**. Редактирование `config.yaml` и safe config flow **отложены на потом**.
+
+### v0.5.0 — Провайдеры: SSL / TLS и диагностика
+План:
+- карточки и таблицы провайдеров с нормальной SSL/TLS-диагностикой;
+- дата истечения, сколько дней осталось, источник проверки, URL проверки;
+- ошибки TLS/SSL и подготовка полей issuer / subject / SAN для Ubuntu service;
+- перенос и адаптация проверок сертификатов из старой Xkeen-линии.
+
+### v0.5.1 — Хост: состояние сервера и Mihomo
+План:
+- CPU / RAM / uptime / load / диск / сеть;
+- статус Mihomo и каноничный лог `/var/log/mihomo/mihomo.log`;
+- host-oriented wording вместо роутерных хвостов там, где это уже можно сделать без поломки UI.
+
+### v0.5.2 — Трафик
+План:
+- общий трафик и активность по хостам/клиентам;
+- текущая скорость / usage / читаемые карточки и таблицы;
+- подготовка Ubuntu-oriented модели трафика без жёсткой завязки на роутер.
+
+### v0.6.0 — QoS / шейпинг foundation
+План:
+- профили, приоритеты и признаки применения;
+- состояние правил и groundwork под Ubuntu shaping/qos service;
+- вынос логики из чисто роутерной модели в более универсальную host-модель.
+
+### v0.7.0 — Safe config core
 План:
 - active / draft / baseline / history;
 - validate / apply / rollback;
 - операционный журнал изменений.
 
-### v0.6.0 — Structured editors MVP
+### v0.8.0 — Structured editors MVP
 План:
 - structured editors: DNS / Rules / Proxies;
 - raw YAML как fallback;
 - form-driven сценарий как основной путь работы.
 
-### v0.7.0 — Operational parity I
-План:
-- Proxy Providers;
-- Proxy Groups;
-- Rule Providers;
-- диагностика провайдеров.
-
-### v0.8.0 — Operational parity II
-План:
-- Subscriptions;
-- Users / Traffic;
-- QoS / shaping под Ubuntu;
-- jobs / task status.
-
 ### v0.9.0 — Backup / Restore / Diagnostics
 План:
 - backup/restore;
-- provider SSL diagnostics;
 - capability diagnostics;
 - audit trail foundation.
 

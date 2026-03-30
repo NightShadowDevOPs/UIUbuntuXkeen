@@ -1,5 +1,27 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.5.0 — Провайдеры: SSL / TLS и диагностика
+Дата: **2026-03-30**
+
+Сделано:
+- в старую линию Xkeen уже был встроен полезный контур SSL-проверок провайдеров; в этом релизе он адаптирован под Ubuntu-ветку без ломки текущего update flow;
+- `src/store/providerHealth.ts` теперь сохраняет не только `notAfter`, но и `url`/`error` по каждой probe-проверке панели управления;
+- `src/helper/providerHealth.ts` расширен общим helper-ом SSL/TLS diagnostics для провайдеров с поддержкой panel URL, provider URL, checkedAt, issuer / subject / SAN и ошибок probe;
+- `src/components/proxies/ProxyProvider.vue` теперь показывает отдельный диагностический блок: статус сертификата, источник проверки, время проверки, URL проверки, а также ошибку probe, если сертификат не удалось получить;
+- `src/views/TasksPage.vue` и i18n-строки подправлены под новый язык проекта: не только legacy `router-agent`, но и backend bridge / Ubuntu service;
+- обновлены `README.md`, `docs/project-spec.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
+
+Результат:
+- раздел «Провайдеры» в Ubuntu-линии теперь показывает не только дату истечения SSL, но и более полную картину проверки сертификата;
+- если probe не удалась, UI может показать URL и текст ошибки вместо немого `SSL —`;
+- groundwork под будущий Ubuntu service стал практичнее: UI уже готов принимать более богатые SSL/TLS-поля без переделки карточек провайдеров.
+
+Статус:
+- подготовлено, ожидает пользовательской проверки.
+
+Следующий плановый релиз:
+- `v0.5.1` — Хост: состояние сервера и Mihomo.
+
 ## v0.4.1 — Observability log-path polish
 Дата: **2026-03-30**
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.0
+- adapted the legacy provider SSL/TLS checks from the Xkeen line into the Ubuntu project flow
+- provider cards now show richer SSL/TLS diagnostics: source, checked time, probe URL and probe errors
+- provider panel SSL probe now preserves per-provider URL and error details instead of dropping them
+- updated provider-related wording from router-agent-specific hints toward backend bridge / Ubuntu service language
+- refreshed roadmap, spec, releases and chat-transfer docs for the new operational priority
+
 ## v0.4.1
 - added canonical Mihomo log path `/var/log/mihomo/mihomo.log` to Ubuntu project paths and backend contract preview
 - added observability hint block to Setup, Edit Backend and Runtime so the UI shows which log file to inspect on Ubuntu

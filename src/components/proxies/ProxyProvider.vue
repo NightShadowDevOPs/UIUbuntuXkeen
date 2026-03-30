@@ -141,6 +141,39 @@
             </button>
           </div>
 
+          <div v-if="open" class="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            <div class="rounded-xl border border-base-content/10 bg-base-200/60 p-3">
+              <div class="text-[11px] uppercase tracking-wide opacity-60">{{ $t('providerSslStatus') }}</div>
+              <div class="mt-1 text-sm font-semibold" :class="sslDiagnosticsCard.statusCls">{{ sslDiagnosticsCard.statusLabel }}</div>
+              <div class="mt-1 text-xs opacity-70">{{ sslDiagnosticsCard.expiresLabel }}</div>
+            </div>
+            <div class="rounded-xl border border-base-content/10 bg-base-200/60 p-3">
+              <div class="text-[11px] uppercase tracking-wide opacity-60">{{ $t('providerSslSourceLabel') }}</div>
+              <div class="mt-1 text-sm font-medium">{{ sslDiagnosticsCard.sourceLabel }}</div>
+              <div class="mt-1 text-xs opacity-70">{{ sslDiagnosticsCard.checkedLabel }}</div>
+            </div>
+            <div class="rounded-xl border border-base-content/10 bg-base-200/60 p-3 sm:col-span-2 xl:col-span-1">
+              <div class="text-[11px] uppercase tracking-wide opacity-60">{{ $t('providerSslUrlLabel') }}</div>
+              <div class="mt-1 break-all text-xs font-mono opacity-80">{{ sslDiagnosticsCard.urlLabel }}</div>
+            </div>
+            <div v-if="sslDiagnosticsCard.issuer" class="rounded-xl border border-base-content/10 bg-base-200/60 p-3">
+              <div class="text-[11px] uppercase tracking-wide opacity-60">{{ $t('providerSslIssuer') }}</div>
+              <div class="mt-1 break-words text-xs">{{ sslDiagnosticsCard.issuer }}</div>
+            </div>
+            <div v-if="sslDiagnosticsCard.subject" class="rounded-xl border border-base-content/10 bg-base-200/60 p-3">
+              <div class="text-[11px] uppercase tracking-wide opacity-60">{{ $t('providerSslSubject') }}</div>
+              <div class="mt-1 break-words text-xs">{{ sslDiagnosticsCard.subject }}</div>
+            </div>
+            <div v-if="sslDiagnosticsCard.san.length" class="rounded-xl border border-base-content/10 bg-base-200/60 p-3 sm:col-span-2 xl:col-span-1">
+              <div class="text-[11px] uppercase tracking-wide opacity-60">{{ $t('providerSslSan') }}</div>
+              <div class="mt-1 break-words text-xs">{{ sslDiagnosticsCard.san.join(', ') }}</div>
+            </div>
+            <div v-if="sslDiagnosticsCard.error" class="rounded-xl border border-error/30 bg-error/10 p-3 text-error sm:col-span-2 xl:col-span-3">
+              <div class="text-[11px] uppercase tracking-wide opacity-80">{{ $t('providerSslError') }}</div>
+              <div class="mt-1 break-words text-xs">{{ sslDiagnosticsCard.error }}</div>
+            </div>
+          </div>
+
           <pre
             v-if="subscriptionInfo?.totalLabel === '—' && showRawSub"
             class="mt-2 text-xs opacity-70 whitespace-pre-wrap break-all"
@@ -368,15 +401,16 @@
 
 <script setup lang="ts">
 import { disconnectByIdSilentAPI, proxyProviderHealthCheckAPI, updateProxyProviderAPI } from '@/api'
-import { getProviderHealth } from '@/helper/providerHealth'
+import { getProviderHealth, getProviderSslDiagnostics } from '@/helper/providerHealth'
 import {
   agentProviderByName,
-  agentProvidersAt,
   agentProvidersSslRefreshPending,
   agentProvidersSslRefreshing,
   fetchAgentProviders,
   panelSslCheckedAt,
+  panelSslErrorByName,
   panelSslNotAfterByName,
+  panelSslUrlByName,
 } from '@/store/providerHealth'
 import { useBounceOnVisible } from '@/composables/bouncein'
 import { useRenderProxies } from '@/composables/renderProxies'
@@ -388,6 +422,7 @@ import { fetchProxyProviderByNameOnly, getLatencyByName, getTestUrl, proxyLatenc
 import { activeConnections } from '@/store/connections'
 import { connectionMatchesProviderProxyNames, providerActivityByName, providerLiveStatusByName } from '@/store/providerActivity'
 import { NOT_CONNECTED, ROUTE_NAME } from '@/constant'
+import { activeBackend } from '@/store/setup'
 import {
   proxyProviderCardOpacity,
   proxyProviderIconMap,
@@ -397,6 +432,7 @@ import {
   twoColumnProxyGroup,
 } from '@/store/settings'
 import ProviderIconBadge from '@/components/common/ProviderIconBadge.vue'
+import { BACKEND_KINDS } from '@/config/backendContract'
 import { ArrowPathIcon, ArrowTopRightOnSquareIcon, BoltIcon, ClipboardDocumentIcon, LinkIcon, PresentationChartLineIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { ChevronDownIcon } from '@heroicons/vue/20/solid'
 import dayjs from 'dayjs'
@@ -428,6 +464,8 @@ const providerCardSurfaceStyle = computed(() => {
 
 const router = useRouter()
 const { t } = useI18n()
+const activeBackendKind = computed(() => activeBackend.value?.kind)
+const sslProbeServiceLabel = computed(() => activeBackendKind.value === BACKEND_KINDS.UBUNTU_SERVICE ? t('providerSslSourceUbuntuService') : t('providerSslSourceCompatibilityBridge'))
 
 // Provider list can refresh/reorder; be defensive to avoid blank screens if a provider is
 // temporarily missing (or name mismatched).
@@ -696,102 +734,107 @@ const parseDateMaybe = (v: any): dayjs.Dayjs | null => {
   return null
 }
 
-const sslExpireInfo = computed(() => {
-  const p: any = proxyProvider.value as any
-  const info: any = (proxyProvider.value as any).subscriptionInfo
-
-  const raw =
-    getAnyFromObj(p, [
-      'sslExpire',
-      'ssl_expire',
-      'sslExpiration',
-      'ssl_expiration',
-      'certExpire',
-      'cert_expire',
-      'tlsExpire',
-      'tls_expire',
-      'certificateExpire',
-      'certificate_expire',
-      'certNotAfter',
-    ]) ||
-    getAnyFromObj(info, [
-      'sslExpire',
-      'ssl_expire',
-      'sslExpiration',
-      'ssl_expiration',
-      'certExpire',
-      'cert_expire',
-      'tlsExpire',
-      'tls_expire',
-      'certificateExpire',
-      'certificate_expire',
-      'certNotAfter',
-    ])
-
+const sslDiagnosticsRaw = computed(() => {
   const agentP: any = agentProviderByName.value[props.name]
+  return getProviderSslDiagnostics(proxyProvider.value as any, agentP, {
+    panelProbeNotAfter: (panelSslNotAfterByName.value || {})[props.name] || '',
+    panelProbeError: (panelSslErrorByName.value || {})[props.name] || '',
+    panelProbeCheckedAtMs: panelSslCheckedAt.value,
+    panelProbeUrl: (panelSslUrlByName.value || {})[props.name] || '',
+    panelUrlOverride: panelUrl.value,
+    nearExpiryDays: sslWarnDays.value,
+    sslRefreshing: agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value,
+  })
+})
 
-  const probeNa = (panelSslNotAfterByName.value || {})[props.name] || ''
-
-  const raw2: any = raw || probeNa || agentP?.panelSslNotAfter || agentP?.sslNotAfter
-  const src: string = raw
-    ? 'sub'
-    : probeNa
-      ? 'panel-probe'
-      : agentP?.panelSslNotAfter
-        ? 'panel'
-        : agentP?.sslNotAfter
-          ? 'provider'
-          : 'none'
-
-  const checkedMs = src === 'panel-probe' ? panelSslCheckedAt.value : agentProvidersAt.value
-  const checked = checkedMs ? dayjs(checkedMs).format('DD-MM-YYYY HH:mm:ss') : ''
-
-  const d = parseDateMaybe(raw2)
-  if (!d) {
-    const hasHttpsSource = [panelUrl.value, agentP?.panelUrl, agentP?.url]
-      .map((x) => String(x || '').trim().toLowerCase())
-      .some((x) => x.startsWith('https://') || x.startsWith('wss://'))
-    const sslRefreshing = hasHttpsSource && (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value)
-    const tip = sslRefreshing
+const sslExpireInfo = computed(() => {
+  const d = sslDiagnosticsRaw.value
+  if (!d.notAfter) {
+    const checked = d.checkedAtMs ? dayjs(d.checkedAtMs).format('DD-MM-YYYY HH:mm:ss') : ''
+    const tip = d.isRefreshing
       ? t('providerSslRefreshingTip') + (checked ? ` • ${t('checkedAt')}: ${checked}` : '')
-      : checked
-        ? `SSL: not available (non-https or not retrieved) • Checked: ${checked}`
-        : 'SSL: not available (non-https or not retrieved)'
+      : d.error
+        ? `${t('providerSslError')}: ${d.error}` + (checked ? ` • ${t('checkedAt')}: ${checked}` : '')
+        : checked
+          ? `${t('providerSslStatusUnavailable')} • ${t('checkedAt')}: ${checked}`
+          : t('providerSslStatusUnavailable')
     return {
       dateTime: '—',
       days: Number.NaN,
-      cls: sslRefreshing ? 'text-info' : 'text-base-content/60',
-      label: sslRefreshing ? t('providerSslRefreshing') : '—',
+      cls: d.isRefreshing ? 'text-info' : d.error ? 'text-error' : 'text-base-content/60',
+      label: d.isRefreshing ? t('providerSslRefreshing') : '—',
       tip,
-      isRefreshing: sslRefreshing,
+      isRefreshing: d.isRefreshing,
     }
   }
 
-  const days = d.diff(dayjs(), 'day')
-  const dateTime = d.format('DD-MM-YYYY HH:mm:ss')
-
-  const warnDays = sslWarnDays.value
-  const cls = days < 0 ? 'text-error' : days <= warnDays ? 'text-warning' : 'text-success'
-  const label = days < 0 ? `${dateTime} (expired)` : `${dateTime} (${days}d)`
-
-  const tip = checked
-    ? src === 'panel-probe'
-      ? `Source: TLS cert of panel URL (router-agent) • Checked: ${checked}`
-      : src === 'panel'
-        ? `Source: TLS cert of panel URL (router-agent) • Checked: ${checked}`
-        : src === 'provider'
-          ? `Source: TLS cert of proxy-provider URL (router-agent) • Checked: ${checked}`
-          : `Source: — • Checked: ${checked}`
-    : src === 'panel'
-      ? 'Source: TLS cert of panel URL (router-agent)'
-      : src === 'provider'
-        ? 'Source: TLS cert of proxy-provider URL (router-agent)'
-        : 'Source: —'
-
-  return { dateTime, days, cls, label, tip }
+  const label = (d.days ?? 0) < 0 ? `${d.dateTime} (${t('providerSslStatusExpired')})` : `${d.dateTime} (${d.days}${t('daysShort')})`
+  const cls = (d.days ?? 0) < 0 ? 'text-error' : (d.days ?? 0) <= sslWarnDays.value ? 'text-warning' : 'text-success'
+  const checked = d.checkedAtMs ? dayjs(d.checkedAtMs).format('DD-MM-YYYY HH:mm:ss') : ''
+  const source =
+    d.source === 'subscription'
+      ? t('providerSslSourceSubscription')
+      : d.source === 'panel-probe'
+        ? `${t('providerSslSourcePanelProbe')} • ${sslProbeServiceLabel.value}`
+        : d.source === 'panel'
+          ? `${t('providerSslSourcePanelUrl')} • ${sslProbeServiceLabel.value}`
+          : d.source === 'provider'
+            ? `${t('providerSslSourceProviderUrl')} • ${sslProbeServiceLabel.value}`
+            : t('providerSslSourceUnknown')
+  const tip = checked ? `${source} • ${t('checkedAt')}: ${checked}` : source
+  return { dateTime: d.dateTime, days: d.days, cls, label, tip }
 })
 
-
+const sslDiagnosticsCard = computed(() => {
+  const d = sslDiagnosticsRaw.value
+  const checked = d.checkedAtMs ? dayjs(d.checkedAtMs).format('DD-MM-YYYY HH:mm:ss') : ''
+  const remaining = Number.isFinite(d.days as number) ? ((d.days as number) < 0 ? t('providerSslStatusExpired') : `${d.days}${t('daysShort')}`) : '—'
+  const expiresLabel = d.dateTime
+    ? `${t('providerSslExpiresAt')}: ${d.dateTime} • ${t('providerSslRemaining')}: ${remaining}`
+    : `${t('providerSslExpiresAt')}: —`
+  const checkedLabel = checked ? `${t('providerSslCheckedLabel')}: ${checked}` : `${t('providerSslCheckedLabel')}: —`
+  const sourceLabel =
+    d.source === 'subscription'
+      ? t('providerSslSourceSubscription')
+      : d.source === 'panel-probe'
+        ? `${t('providerSslSourcePanelProbe')} • ${sslProbeServiceLabel.value}`
+        : d.source === 'panel'
+          ? `${t('providerSslSourcePanelUrl')} • ${sslProbeServiceLabel.value}`
+          : d.source === 'provider'
+            ? `${t('providerSslSourceProviderUrl')} • ${sslProbeServiceLabel.value}`
+            : t('providerSslSourceUnknown')
+  const statusLabel =
+    d.status === 'refreshing'
+      ? t('providerSslStatusRefreshing')
+      : d.status === 'unavailable'
+        ? t('providerSslStatusUnavailable')
+        : d.status === 'expired'
+          ? t('providerSslStatusExpired')
+          : d.status === 'warning'
+            ? t('providerSslStatusNearExpiry')
+            : t('providerSslStatusHealthy')
+  const statusCls =
+    d.status === 'refreshing'
+      ? 'text-info'
+      : d.status === 'unavailable'
+        ? d.error
+          ? 'text-error'
+          : 'text-base-content/70'
+        : d.status === 'expired'
+          ? 'text-error'
+          : d.status === 'warning'
+            ? 'text-warning'
+            : 'text-success'
+  return {
+    ...d,
+    statusLabel,
+    statusCls,
+    sourceLabel,
+    checkedLabel,
+    expiresLabel,
+    urlLabel: d.sourceUrl || '—',
+  }
+})
 
 const sslExpireBadge = computed(() => {
   const info = sslExpireInfo.value
@@ -812,7 +855,7 @@ const sslExpireBadge = computed(() => {
         ? 'badge-warning'
         : 'badge-success'
 
-  const text = info.days < 0 ? 'SSL expired' : `SSL ${info.days}d`
+  const text = info.days < 0 ? t('providerSslStatusExpired') : `SSL ${info.days}${t('daysShort')}`
   return { badgeCls, text, tip: info.tip }
 })
 

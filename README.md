@@ -6,11 +6,11 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.4.1**
+- Текущая версия линии: **v0.5.0**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
-- Текущий шаг: **Runtime / Setup / Observability foundation preview**
+- Текущий шаг: **Провайдеры: SSL / TLS и диагностика**
 
-На релизе `v0.4.1` setup, редактирование backend и runtime уже показывают не только backend contract preview и data flow модель, но и каноничный путь к логу Mihomo на Ubuntu: `/var/log/mihomo/mihomo.log`.
+На релизе `v0.5.0` линия уже включает foundation backend contract, hybrid data flow, каноничный лог Mihomo `/var/log/mihomo/mihomo.log` и перенесённую/адаптированную диагностику SSL/TLS для провайдеров с более подробным выводом источника проверки, URL и ошибок.
 
 ## Как работаем
 
