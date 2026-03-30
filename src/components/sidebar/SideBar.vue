@@ -89,7 +89,7 @@
       </template>
       <div class="px-2 pb-2" :class="isSidebarCollapsed ? 'space-y-1' : 'space-y-2'">
         <div class="px-1 text-[11px] font-semibold text-base-content/85" :class="isSidebarCollapsed ? 'text-center' : ''">
-          UI Mihomo/Ultra {{ zashboardVersion }} · Netcraze Ultra/Mihomo
+          UIUbuntuXkeen {{ zashboardVersion }} · Ubuntu/Mihomo
         </div>
 
         <template v-if="!isSidebarCollapsed">

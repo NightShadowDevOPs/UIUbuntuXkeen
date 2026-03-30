@@ -1973,7 +1973,7 @@ watch([agentEnabled, agentUrl], () => {
 // --- Router external-ui-url helper (anti-cache) ---
 const routerUiUrl = computed(() => {
   const v = encodeURIComponent(zashboardVersion.value || '')
-  return `https://github.com/NightShadowDevOPs/UltraUIXkeen/releases/download/rolling/dist.zip?v=${v}`
+  return `https://github.com/NightShadowDevOPs/UIUbuntuXkeen/releases/download/rolling/dist.zip?v=${v}`
 })
 
 const copyRouterUiUrl = async (asYaml: boolean) => {

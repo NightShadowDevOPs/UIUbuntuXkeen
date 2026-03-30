@@ -24,9 +24,9 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       manifest: {
-        name: 'UI Mihomo/Ultra',
-        short_name: 'Mihomo/Ultra UI',
-        description: 'Dashboard for Netcraze Ultra (Mihomo)',
+        name: 'UIUbuntuXkeen',
+        short_name: 'UIUbuntuXkeen',
+        description: 'Ubuntu-oriented UI for Mihomo',
         theme_color: '#000000',
         icons: [
           {

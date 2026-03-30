@@ -117,12 +117,12 @@ const router = createRouter({
   ],
 })
 
-const title = useTitle('UI Mihomo/Ultra')
+const title = useTitle('UIUbuntuXkeen')
 const setTitleByName = (name: string | symbol | undefined) => {
   if (typeof name === 'string' && activeBackend.value) {
-    title.value = `UI Mihomo/Ultra | ${i18n.global.t(name)}`
+    title.value = `UIUbuntuXkeen | ${i18n.global.t(name)}`
   } else {
-    title.value = 'UI Mihomo/Ultra'
+    title.value = 'UIUbuntuXkeen'
   }
 }
 

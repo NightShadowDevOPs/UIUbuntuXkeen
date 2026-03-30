@@ -93,7 +93,7 @@ Edit `/opt/zash-agent/agent.env` and set:
 
 ```sh
 # optional, to include UI dist.zip in the archive
-UI_ZIP_URL="https://github.com/NightShadowDevOPs/UltraUIXkeen/releases/download/rolling/dist.zip"
+UI_ZIP_URL="https://github.com/NightShadowDevOPs/UIUbuntuXkeen/releases/download/rolling/dist.zip"
 
 # local retention (days)
 BACKUP_KEEP_DAYS="30"

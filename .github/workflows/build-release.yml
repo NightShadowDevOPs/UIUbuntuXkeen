@@ -1,0 +1,96 @@
+name: build-release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Read project version
+        id: meta
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Build UI
+        run: pnpm build
+
+      - name: Pack release archives
+        run: |
+          mkdir -p release
+          cd dist
+          zip -qr ../release/dist.zip .
+          cd ..
+          cp release/dist.zip "release/uiubuntuxkeen-dist-v${{ steps.meta.outputs.version }}.zip"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: uiubuntuxkeen-build-${{ steps.meta.outputs.version }}
+          path: release/
+          if-no-files-found: error
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: uiubuntuxkeen-build-${{ needs.build.outputs.version }}
+          path: release
+
+      - name: Publish versioned release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: v${{ needs.build.outputs.version }}
+          name: v${{ needs.build.outputs.version }}
+          allowUpdates: true
+          replacesArtifacts: true
+          artifactErrorsFailBuild: true
+          artifacts: release/uiubuntuxkeen-dist-v${{ needs.build.outputs.version }}.zip
+
+      - name: Publish rolling release for in-UI updates
+        uses: ncipollo/release-action@v1
+        with:
+          tag: rolling
+          name: rolling
+          prerelease: true
+          makeLatest: false
+          allowUpdates: true
+          replacesArtifacts: true
+          artifactErrorsFailBuild: true
+          artifacts: release/dist.zip

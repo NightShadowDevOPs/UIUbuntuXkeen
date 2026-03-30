@@ -11,10 +11,10 @@
           <span class="bg-secondary h-2 w-2 rounded-full"></span>
         </span>
         <a
-          href="https://github.com/NightShadowDevOPs/UltraUIXkeen"
+          href="https://github.com/NightShadowDevOPs/UIUbuntuXkeen"
           target="_blank"
         >
-          <span> UltraUIXkeen </span>
+          <span> UIUbuntuXkeen </span>
           <span class="text-sm font-normal">
             {{ zashboardVersion }}
           </span>

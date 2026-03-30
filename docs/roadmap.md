@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.1.0**
+Текущая версия линии: **v0.2.0**
 
 ## Принцип версионности
 
@@ -27,17 +27,25 @@
 ## Ближайшая очередь
 
 ### v0.2.0 — Ubuntu bootstrap metadata
-План:
-- привести `README.md` и release metadata к новой идентичности проекта;
-- обновить package metadata под Ubuntu-линейку;
-- убрать явные роутерные описания из стартовых документов и entry points;
-- подготовить основу для GitHub Actions проверки сборки.
+Статус: **готово**
+
+Что сделано:
+- обновлены project metadata и видимые branding-точки новой Ubuntu-линии;
+- переключены ссылки проекта и проверка UI-обновлений на новый репозиторий `NightShadowDevOPs/UIUbuntuXkeen`;
+- добавлен GitHub Actions pipeline со сборкой, type-check, artifact upload и публикацией релизов;
+- добавлен rolling release `dist.zip` для встроенного обновления UI через кнопку «Обновить»;
+- очищен верхнеуровневый исторический transfer-файл старой линии.
+
+Результат:
+- после зелёного GitHub Actions уже можно тестировать серверный сценарий обновления UI и доставку сборки;
+- полный Ubuntu-native backend ещё впереди, но цепочка публикации и in-UI update уже готова к проверке.
 
 ### v0.3.0 — Backend contract foundation
 План:
 - зафиксировать модель Ubuntu backend-service;
 - выделить API contract `status / health / version / capabilities`;
-- подготовить фронтенд-адаптер между текущим UI и новым Ubuntu service layer.
+- подготовить фронтенд-адаптер между текущим UI и новым Ubuntu service layer;
+- начать отрыв ключевых экранов от router-oriented терминологии.
 
 ### v0.4.0 — Runtime / Setup / Observability foundation
 План:
