@@ -48,7 +48,10 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        env:
+          CI: true
+          HUSKY: 0
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Type check (informational)
         continue-on-error: true

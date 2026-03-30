@@ -1,5 +1,23 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.2.4 — 2026-03-30
+
+Тип релиза: **hotfix / GitHub Actions install step**
+
+Сделано:
+- шаг `Install dependencies` в GitHub Actions переведён в CI-safe режим: добавлены `CI=true` и `HUSKY=0`;
+- установка зависимостей теперь выполняется через `pnpm install --frozen-lockfile --ignore-scripts`, чтобы lifecycle/prepare-хуки не валили pipeline на стадии установки;
+- сохранён жёсткий контроль lockfile через `--frozen-lockfile`, чтобы hotfix не превращал pipeline в лотерею;
+- обновлены `docs`, transfer-пакет и changelog под hotfix-релиз.
+
+Результат:
+- workflow больше не должен падать на стадии `Install dependencies` из-за Husky/prepare и других install-time скриптов;
+- если после этого pipeline всё ещё упадёт, значит проблема уже не в lifecycle-хуках, а глубже — и следующий лог будет гораздо полезнее;
+- после зелёного GitHub Actions можно тестировать обновление UI на сервере через кнопку **«Обновить»**.
+
+Следующий плановый релиз:
+- `v0.3.0` — Backend contract foundation.
+
 ## v0.2.3 — 2026-03-30
 
 Тип релиза: **hotfix / GitHub Actions metadata step**

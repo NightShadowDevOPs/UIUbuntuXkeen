@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.4 — 2026-03-30
+
+- hardened the GitHub Actions install step for CI by disabling Husky hook execution and other lifecycle scripts during `pnpm install`
+- kept the lockfile gate with `--frozen-lockfile`, so dependency drift is still caught instead of silently papered over
+- refreshed docs and chat-transfer package for the install-step hotfix
+
 ## v0.2.3 — 2026-03-30
 
 - fixed the GitHub Actions `Read project version` step by replacing the brittle inline Node expression with a plain `python3` JSON read from `package.json`

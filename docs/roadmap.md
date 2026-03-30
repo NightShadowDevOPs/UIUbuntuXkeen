@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.2.3**
+Текущая версия линии: **v0.2.4**
 
 ## Принцип версионности
 
@@ -25,6 +25,18 @@
 - зафиксировано правило обязательной актуализации docs в каждом релизе.
 
 ## Ближайшая очередь
+
+### v0.2.4 — CI install lifecycle hotfix
+Статус: **готово**
+
+Что сделано:
+- шаг `Install dependencies` в workflow переведён в CI-safe режим с `CI=true` и `HUSKY=0`;
+- установка зависимостей выполняется через `pnpm install --frozen-lockfile --ignore-scripts`, чтобы install-time hooks не роняли pipeline;
+- обновлены docs и transfer-пакет для hotfix-релиза.
+
+Результат:
+- GitHub Actions не должен больше падать на стадии установки зависимостей из-за Husky/prepare и прочих lifecycle script-ов;
+- после зелёного workflow можно тестировать обновление UI на сервере.
 
 ### v0.2.3 — GitHub Actions version-read hotfix
 Статус: **готово**
