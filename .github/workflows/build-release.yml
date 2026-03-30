@@ -21,15 +21,15 @@ jobs:
       version: ${{ steps.meta.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 9.12.1
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
@@ -57,7 +57,7 @@ jobs:
           cp release/dist.zip "release/uiubuntuxkeen-dist-v${{ steps.meta.outputs.version }}.zip"
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: uiubuntuxkeen-build-${{ steps.meta.outputs.version }}
           path: release/
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: uiubuntuxkeen-build-${{ needs.build.outputs.version }}
           path: release

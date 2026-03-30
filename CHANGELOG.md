@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.2 — 2026-03-30
+
+- upgraded GitHub Actions workflow actions to Node 24-ready versions (`actions/checkout@v5`, `actions/setup-node@v6`, `pnpm/action-setup@v5`, `actions/upload-artifact@v6`, `actions/download-artifact@v7`)
+- kept the project build runtime on Node.js 22 so the app build behavior stays stable while the workflow itself stops nagging about deprecated Node 20 action runtimes
+- refreshed docs and chat-transfer package for the Actions deprecation hotfix
+
 ## v0.2.1 — 2026-03-30
 
 - changed GitHub Actions pipeline so `pnpm type-check` is informational and no longer blocks release publication

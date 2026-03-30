@@ -1,5 +1,22 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.2.2 — 2026-03-30
+
+Тип релиза: **hotfix / GitHub Actions Node 24 readiness**
+
+Сделано:
+- GitHub Actions workflow переведён на Node 24-ready версии actions: `actions/checkout@v5`, `actions/setup-node@v6`, `pnpm/action-setup@v5`, `actions/upload-artifact@v6`, `actions/download-artifact@v7`;
+- runtime сборки самого проекта оставлен на `node-version: 22`, чтобы не смешивать миграцию workflow runtime и миграцию runtime приложения в один релиз;
+- обновлены `docs`, transfer-пакет и changelog под hotfix-релиз.
+
+Результат:
+- предупреждения GitHub вида `Node.js 20 actions are deprecated` для используемых official actions должны уйти;
+- pipeline становится ближе к будущему принудительному переходу GitHub Actions на Node 24 без лишнего сюрприза посреди релиза;
+- после зелёного GitHub Actions можно тестировать обновление UI на сервере через кнопку **«Обновить»**.
+
+Следующий плановый релиз:
+- `v0.3.0` — Backend contract foundation.
+
 ## v0.2.1 — 2026-03-30
 
 Тип релиза: **hotfix / CI pipeline**
