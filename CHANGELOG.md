@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6] - 2026-03-30
+
+### Fixed
+- GitHub Actions now prints the full `pnpm install` log directly into the job output before failing the workflow.
+- Removed reliance on a separate CI log artifact for install-stage diagnostics.
+- Build, packaging and release publication continue to run only after a successful dependency installation.
+
 ## v0.2.5 — 2026-03-30
 
 - added GitHub Actions preflight diagnostics and persistent CI log capture for install, type-check and build stages

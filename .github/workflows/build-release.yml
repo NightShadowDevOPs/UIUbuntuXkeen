@@ -67,23 +67,32 @@ jobs:
           } | tee ci-logs/preflight.log
 
       - name: Install dependencies
+        id: install
+        continue-on-error: true
         shell: bash
         env:
           CI: true
           HUSKY: 0
         run: |
-          set -o pipefail
+          set +e
           mkdir -p ci-logs
-          pnpm install --frozen-lockfile --ignore-scripts --reporter=append-only 2>&1 | tee ci-logs/pnpm-install.log
+          pnpm install --frozen-lockfile --ignore-scripts --reporter=append-only > ci-logs/pnpm-install.log 2>&1
+          status=$?
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+          echo '--- pnpm install log begin ---'
+          cat ci-logs/pnpm-install.log
+          echo '--- pnpm install log end ---'
+          exit 0
 
-      - name: Print install log tail on failure
-        if: ${{ failure() }}
+      - name: Fail job if install failed
+        if: ${{ steps.install.outputs.exit_code != '0' }}
         shell: bash
         run: |
-          echo '--- pnpm-install.log (last 200 lines) ---'
-          tail -n 200 ci-logs/pnpm-install.log || true
+          echo "Install dependencies failed with exit code ${{ steps.install.outputs.exit_code }}"
+          exit 1
 
       - name: Type check (informational)
+        if: ${{ steps.install.outputs.exit_code == '0' }}
         continue-on-error: true
         shell: bash
         run: |
@@ -92,6 +101,7 @@ jobs:
           pnpm type-check 2>&1 | tee ci-logs/type-check.log
 
       - name: Build UI
+        if: ${{ steps.install.outputs.exit_code == '0' }}
         shell: bash
         run: |
           set -o pipefail
@@ -99,13 +109,14 @@ jobs:
           pnpm build 2>&1 | tee ci-logs/build.log
 
       - name: Print build log tail on failure
-        if: ${{ failure() }}
+        if: ${{ failure() && steps.install.outputs.exit_code == '0' }}
         shell: bash
         run: |
           echo '--- build.log (last 200 lines) ---'
           tail -n 200 ci-logs/build.log || true
 
       - name: Pack release archives
+        if: ${{ success() }}
         run: |
           mkdir -p release
           cd dist
@@ -113,15 +124,8 @@ jobs:
           cd ..
           cp release/dist.zip "release/uiubuntuxkeen-dist-v${{ steps.meta.outputs.version }}.zip"
 
-      - name: Upload CI logs
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: uiubuntuxkeen-ci-logs-${{ steps.meta.outputs.version }}
-          path: ci-logs/
-          if-no-files-found: warn
-
       - name: Upload build artifacts
+        if: ${{ success() }}
         uses: actions/upload-artifact@v6
         with:
           name: uiubuntuxkeen-build-${{ steps.meta.outputs.version }}
