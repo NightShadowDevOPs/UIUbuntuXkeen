@@ -47,6 +47,8 @@
       </div>
     </div>
 
+    <BackendDataFlowCard v-if="activeBackend" :backend="activeBackend" :kind="activeBackend.kind" />
+
     <section v-show="activeSection === 'overview'" class="space-y-2">
       <div class="px-1">
         <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('routerSectionOverviewTitle') }}</div>
@@ -112,6 +114,7 @@ import BackendVersion from '@/components/common/BackendVersion.vue'
 import ChartsCard from '@/components/overview/ChartsCard.vue'
 import NetcrazeTrafficCard from '@/components/overview/NetcrazeTrafficCard.vue'
 import NetworkCard from '@/components/overview/NetworkCard.vue'
+import BackendDataFlowCard from '@/components/settings/BackendDataFlowCard.vue'
 import { ROUTE_NAME } from '@/constant'
 import {
   getBackendInfoTipKey,

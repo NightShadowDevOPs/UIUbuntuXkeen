@@ -1,5 +1,26 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.4.0 — Runtime / Setup / Observability data foundation
+Дата: **2026-03-30**
+
+Сделано:
+- добавлен `src/components/settings/BackendDataFlowCard.vue`;
+- в `SetupPage` и `EditBackendModal` добавлена наглядная карточка data flow: что UI читает напрямую из Mihomo, а что должно идти через отдельный Ubuntu service;
+- в `RouterPage` этот же data flow preview вынесен в runtime workspace, чтобы оператор видел архитектурную модель уже на рабочем экране;
+- обновлены RU/EN переводы для hybrid data model и observability foundation;
+- обновлены `README.md`, `docs/project-spec.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
+
+Результат:
+- hybrid data model стала понятной прямо в интерфейсе, а не только в документации;
+- direct Mihomo и Ubuntu service теперь разведены по смыслу на setup/edit/runtime-экранах;
+- groundwork под следующий этап capability-driven observability стал заметно понятнее для реальной проверки пользователем.
+
+Статус:
+- подготовлено, ожидает пользовательской проверки.
+
+Следующий плановый релиз:
+- `v0.5.0` — Safe config core.
+
 ## v0.3.2 — Runtime/setup contract preview
 Дата: **2026-03-30**
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.0
+- added `BackendDataFlowCard` to Setup, Edit Backend and Runtime so the UI now shows what is read directly from Mihomo and what belongs to the Ubuntu service
+- made the hybrid data model visible to the operator instead of leaving it only in docs and transfer notes
+- updated docs, roadmap, release journal and chat-transfer package for the new observability foundation step
+
 ## v0.3.2
 - added `BackendContractCard` for Setup/Edit Backend with connection preview, expected probe paths and canonical Ubuntu paths
 - added runtime-title helpers so the Router/Runtime workspace can present host-oriented wording for `ubuntu-service` backends

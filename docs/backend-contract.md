@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — Ubuntu backend contract
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.3.2**
+Текущая версия линии: **v0.4.0**
 
 ## Назначение
 
@@ -11,7 +11,7 @@
 
 ## Текущая модель backend-ов
 
-На линии `v0.3.2` считаем допустимыми два режима backend-а:
+На линии `v0.4.0` считаем допустимыми два режима backend-а:
 
 ### 1. Compatibility bridge
 Используется как переходный режим.
@@ -86,7 +86,7 @@ UI должен уметь ориентироваться не только на
 - `configApply`
 - `configRollback`
 
-## Что сделано в v0.3.0–v0.3.2
+## Что сделано в v0.3.0–v0.4.0
 
 На этом релизе в кодовой базе заложен foundation-слой:
 - central project/release constants вынесены в отдельный config-модуль;
@@ -103,7 +103,7 @@ UI должен уметь ориентироваться не только на
 
 ## Что ещё не считается завершённым
 
-На `v0.3.2` это **ещё не полноценный Ubuntu backend-service**.
+На `v0.4.0` это **ещё не полноценный Ubuntu backend-service**.
 
 Пока не считаются закрытыми:
 - реальные `/api/status|health|capabilities` для Ubuntu service;
@@ -120,3 +120,12 @@ UI должен уметь ориентироваться не только на
 - подготовить setup flow под Ubuntu service;
 - начать реальную capability-driven observability model;
 - подготовить hybrid data model: direct Mihomo для runtime-данных и Ubuntu service для системных/config-операций.
+
+
+## Что добавлено на UI-уровне в v0.4.0
+
+На экранах Setup, Edit Backend и Runtime теперь есть отдельная карточка data flow. Она показывает оператору две вещи:
+- что разумно и безопасно читать напрямую из Mihomo API;
+- что должно идти только через отдельный Ubuntu service.
+
+Это нужно не для красоты, а чтобы не смешивать в одну кучу direct Mihomo runtime и системные Ubuntu-операции вроде host metrics, systemd/journalctl и safe-config flow.

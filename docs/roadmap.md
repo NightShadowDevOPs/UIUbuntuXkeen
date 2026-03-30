@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.3.2**  
+Текущая версия линии: **v0.4.0**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -53,15 +53,14 @@
 - runtime workspace начал переключать visible wording между router-oriented и host-oriented режимом;
 - groundwork под capability-driven observability стал виден в UI, а не только в docs.
 
-## Ближайшая очередь
-
 ### v0.4.0 — Runtime / Setup / Observability data foundation
-План:
-- начать реальное чтение status/health/capabilities для Ubuntu service;
-- подготовить host metrics / logs / connections foundation;
-- начать capability-driven переключение UI по данным backend-а;
-- оформить hybrid data model: что идёт напрямую в Mihomo, а что — через Ubuntu service;
-- продолжить замену router runtime на host runtime в рабочих экранах.
+Статус: **готово, ожидает серверной проверки**
+- добавлена явная карточка data flow в Setup, Edit Backend и Runtime;
+- UI теперь показывает по-человечески, что читается напрямую из Mihomo, а что должно жить в Ubuntu service;
+- groundwork под hybrid data model стал виден не только в docs, но и в рабочих экранах;
+- подготовлена более понятная операторская логика для следующего этапа capability-driven observability.
+
+## Ближайшая очередь
 
 ### v0.5.0 — Safe config core
 План:
