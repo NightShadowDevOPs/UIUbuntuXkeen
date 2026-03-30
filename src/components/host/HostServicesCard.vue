@@ -70,7 +70,11 @@
 </template>
 
 <script setup lang="ts">
+import { fetchVersionSilentAPI } from '@/api'
+import { agentStatusAPI } from '@/api/agent'
 import { fetchUbuntuSystemServicesAPI, type UbuntuSystemServiceItem } from '@/api/ubuntuService'
+import { isUbuntuServiceBackend } from '@/helper/backend'
+import { activeBackend } from '@/store/setup'
 import { useI18n } from 'vue-i18n'
 import dayjs from 'dayjs'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -78,6 +82,7 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 const { t } = useI18n()
 const loading = ref(false)
 const payload = ref<{ ok: boolean; items: UbuntuSystemServiceItem[]; updatedAtSec?: number; error?: string }>({ ok: false, items: [] })
+const isUbuntuService = computed(() => isUbuntuServiceBackend(activeBackend.value))
 
 const items = computed(() => payload.value.items || [])
 const errorText = computed(() => String(payload.value.error || '').trim())
@@ -87,6 +92,7 @@ const serviceStateBadge = (item: UbuntuSystemServiceItem) => {
   if (state === 'active' || state === 'running') return 'badge-success'
   if (state === 'activating' || state === 'reloading') return 'badge-info'
   if (state === 'failed') return 'badge-error'
+  if (state === 'degraded' || state === 'partial') return 'badge-warning'
   if (state) return 'badge-warning'
   return 'badge-ghost'
 }
@@ -102,10 +108,67 @@ const formatSince = (sec?: number) => {
   return dayjs.unix(value).format('YYYY-MM-DD HH:mm:ss')
 }
 
+const refreshUbuntu = async () => {
+  payload.value = await fetchUbuntuSystemServicesAPI()
+}
+
+const refreshCompatibility = async () => {
+  const [agentPayload, versionPayload] = await Promise.allSettled([
+    agentStatusAPI(),
+    fetchVersionSilentAPI(),
+  ])
+
+  const agent = agentPayload.status === 'fulfilled' ? (agentPayload.value || {}) : { ok: false, error: String(agentPayload.reason || 'agent-offline') }
+  const versionRes = versionPayload.status === 'fulfilled' ? versionPayload.value : null
+  const coreVersion = String(versionRes?.data?.version || agent.mihomoBinVersion || '').trim()
+  const nowSec = Math.floor(Date.now() / 1000)
+
+  const synthetic: UbuntuSystemServiceItem[] = []
+
+  if (agent.ok || agent.version || agent.serverVersion) {
+    synthetic.push({
+      name: 'compatibility-bridge',
+      label: t('backendModeCompatibility'),
+      description: t('backendModeCompatibilityHelp'),
+      activeState: agent.ok ? 'active' : 'degraded',
+      subState: agent.ok ? 'reachable' : 'agent-offline',
+      enabled: true,
+      sinceSec: nowSec,
+      version: String(agent.version || agent.serverVersion || '').trim() || undefined,
+      error: agent.ok ? '' : String(agent.error || ''),
+    })
+  }
+
+  synthetic.push({
+    name: 'mihomo',
+    label: 'Mihomo',
+    description: coreVersion
+      ? t('hostLogsCardTip')
+      : t('hostRuntimeResourcesPending'),
+    activeState: coreVersion ? 'active' : agent.ok ? 'degraded' : 'failed',
+    subState: coreVersion ? 'reachable' : agent.ok ? 'probe-missing' : 'offline',
+    enabled: Boolean(coreVersion),
+    sinceSec: nowSec,
+    version: coreVersion || undefined,
+    error: coreVersion ? '' : (!agent.ok ? String(agent.error || 'mihomo-unreachable') : ''),
+  })
+
+  payload.value = {
+    ok: synthetic.some((item) => String(item.activeState || '').trim() && item.activeState !== 'failed'),
+    items: synthetic,
+    updatedAtSec: nowSec,
+    error: synthetic.length ? '' : String(agent.error || 'services-unavailable'),
+  }
+}
+
 const refresh = async () => {
   loading.value = true
   try {
-    payload.value = await fetchUbuntuSystemServicesAPI()
+    if (isUbuntuService.value) {
+      await refreshUbuntu()
+    } else {
+      await refreshCompatibility()
+    }
   } finally {
     loading.value = false
   }

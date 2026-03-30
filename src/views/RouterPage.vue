@@ -50,58 +50,47 @@
 
     <BackendDataFlowCard v-if="activeBackend" :backend="activeBackend" :kind="activeBackend.kind" />
 
-    <template v-if="isUbuntuService">
-      <section v-show="activeSection === 'overview'" class="space-y-2">
-        <div class="px-1">
-          <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('hostSectionOverviewTitle') }}</div>
-          <div class="text-sm opacity-70">{{ t('hostSectionOverviewTip') }}</div>
-        </div>
+    <section v-show="activeSection === 'overview'" class="space-y-2">
+      <div class="px-1">
+        <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t(isUbuntuService ? 'hostSectionOverviewTitle' : 'routerSectionOverviewTitle') }}</div>
+        <div class="text-sm opacity-70">{{ t(isUbuntuService ? 'hostSectionOverviewTip' : 'routerSectionOverviewTip') }}</div>
+      </div>
 
+      <template v-if="isUbuntuService">
         <HostRuntimeCard />
-
-        <div class="card items-center justify-center gap-2 p-2 sm:flex-row">
-          {{ getLabelFromBackend(activeBackend!) }} :
-          <BackendVersion />
-        </div>
-      </section>
-
-      <section v-show="activeSection === 'services'" class="space-y-2">
-        <div class="px-1">
-          <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('hostSectionServicesTitle') }}</div>
-          <div class="text-sm opacity-70">{{ t('hostSectionServicesTip') }}</div>
-        </div>
-
-        <HostServicesCard />
-      </section>
-
-      <section v-show="activeSection === 'logs'" class="space-y-2">
-        <div class="px-1">
-          <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('hostSectionLogsTitle') }}</div>
-          <div class="text-sm opacity-70">{{ t('hostSectionLogsTip') }}</div>
-        </div>
-
-        <HostLogsCard />
-      </section>
-    </template>
-
-    <template v-else>
-      <section v-show="activeSection === 'overview'" class="space-y-2">
-        <div class="px-1">
-          <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('routerSectionOverviewTitle') }}</div>
-          <div class="text-sm opacity-70">{{ t('routerSectionOverviewTip') }}</div>
-        </div>
-
+      </template>
+      <template v-else>
         <div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
           <AgentCard />
           <SystemCard />
         </div>
+      </template>
 
-        <div class="card items-center justify-center gap-2 p-2 sm:flex-row">
-          {{ getLabelFromBackend(activeBackend!) }} :
-          <BackendVersion />
-        </div>
-      </section>
+      <div class="card items-center justify-center gap-2 p-2 sm:flex-row">
+        {{ getLabelFromBackend(activeBackend!) }} :
+        <BackendVersion />
+      </div>
+    </section>
 
+    <section v-show="activeSection === 'services'" class="space-y-2">
+      <div class="px-1">
+        <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('hostSectionServicesTitle') }}</div>
+        <div class="text-sm opacity-70">{{ t('hostSectionServicesTip') }}</div>
+      </div>
+
+      <HostServicesCard />
+    </section>
+
+    <section v-show="activeSection === 'logs'" class="space-y-2">
+      <div class="px-1">
+        <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('hostSectionLogsTitle') }}</div>
+        <div class="text-sm opacity-70">{{ t('hostSectionLogsTip') }}</div>
+      </div>
+
+      <HostLogsCard />
+    </section>
+
+    <template v-if="!isUbuntuService">
       <section v-show="activeSection === 'traffic'" class="space-y-2">
         <div class="px-1">
           <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('routerSectionTrafficTitle') }}</div>
@@ -176,6 +165,8 @@ const t = i18n.global.t
 
 const legacySections = [
   { id: 'overview', labelKey: 'routerSectionOverviewTitle', tipKey: 'routerSectionOverviewTip' },
+  { id: 'services', labelKey: 'hostSectionServicesTitle', tipKey: 'hostSectionServicesTip' },
+  { id: 'logs', labelKey: 'hostSectionLogsTitle', tipKey: 'hostSectionLogsTip' },
   { id: 'traffic', labelKey: 'routerSectionTrafficTitle', tipKey: 'routerSectionTrafficTip' },
   { id: 'network', labelKey: 'routerSectionNetworkTitle', tipKey: 'routerSectionNetworkTip' },
 ] as const

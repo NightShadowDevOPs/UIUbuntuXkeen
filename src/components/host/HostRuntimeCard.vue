@@ -91,8 +91,12 @@ import {
   type UbuntuSystemResources,
   type UbuntuSystemStatus,
 } from '@/api/ubuntuService'
+import { fetchVersionSilentAPI } from '@/api'
+import { agentStatusAPI } from '@/api/agent'
 import { UBUNTU_PATHS } from '@/config/project'
+import { isUbuntuServiceBackend } from '@/helper/backend'
 import { prettyBytesHelper } from '@/helper/utils'
+import { activeBackend } from '@/store/setup'
 import { useI18n } from 'vue-i18n'
 import dayjs from 'dayjs'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
@@ -102,6 +106,7 @@ const { t } = useI18n()
 const loading = ref(false)
 const status = ref<UbuntuSystemStatus>({ ok: false })
 const resources = ref<UbuntuSystemResources>({ ok: false })
+const isUbuntuService = computed(() => isUbuntuServiceBackend(activeBackend.value))
 
 const prettyBytes = (value: any) => {
   const n = Number(value)
@@ -170,7 +175,7 @@ const infoItems = computed(() => [
   { key: 'hostname', label: t('hostname'), value: status.value.hostname || resources.value.hostname || '—' },
   { key: 'serviceVersion', label: t('agentVersion'), value: status.value.serviceVersion || status.value.version || '—' },
   { key: 'mihomoVersion', label: t('mihomoVersion'), value: status.value.mihomoVersion || '—' },
-  { key: 'serviceUnit', label: t('hostRuntimeServiceUnit'), value: status.value.serviceUnit || 'ultra-ui-ubuntu.service' },
+  { key: 'serviceUnit', label: t('hostRuntimeServiceUnit'), value: status.value.serviceUnit || (isUbuntuService.value ? 'ultra-ui-ubuntu.service' : 'compatibility-bridge') },
   { key: 'platform', label: t('model'), value: resources.value.platform || status.value.platform || '—' },
   { key: 'kernel', label: t('kernel'), value: resources.value.kernel || status.value.kernel || '—' },
   { key: 'arch', label: t('architecture'), value: resources.value.arch || status.value.arch || '—' },
@@ -178,16 +183,80 @@ const infoItems = computed(() => [
   { key: 'serviceStatus', label: t('status'), value: status.value.serviceStatus || '—' },
 ])
 
+const refreshUbuntu = async () => {
+  const [statusPayload, resourcePayload] = await Promise.allSettled([
+    fetchUbuntuSystemStatusAPI(),
+    fetchUbuntuSystemResourcesAPI(),
+  ])
+
+  status.value = statusPayload.status === 'fulfilled' ? statusPayload.value : { ok: false, error: String(statusPayload.reason || 'status-failed') }
+  resources.value = resourcePayload.status === 'fulfilled' ? resourcePayload.value : { ok: false, error: String(resourcePayload.reason || 'resources-failed') }
+}
+
+const refreshCompatibility = async () => {
+  const [agentPayload, versionPayload] = await Promise.allSettled([
+    agentStatusAPI(),
+    fetchVersionSilentAPI(),
+  ])
+
+  const agent = agentPayload.status === 'fulfilled' ? (agentPayload.value || {}) : { ok: false, error: String(agentPayload.reason || 'agent-offline') }
+  const versionRes = versionPayload.status === 'fulfilled' ? versionPayload.value : null
+  const mihomoVersion = String(versionRes?.data?.version || agent.mihomoBinVersion || '').trim()
+  const nowSec = Math.floor(Date.now() / 1000)
+  const resourcesOk = Boolean(agent.ok && (agent.cpuPct !== undefined || agent.memTotal !== undefined || agent.storageTotal !== undefined))
+
+  status.value = {
+    ok: Boolean(agent.ok || mihomoVersion),
+    hostname: agent.hostname,
+    serviceVersion: agent.version || agent.serverVersion,
+    version: agent.serverVersion || agent.version,
+    mihomoVersion: mihomoVersion || undefined,
+    mihomoRunning: Boolean(mihomoVersion),
+    serviceStatus: agent.ok ? 'active' : mihomoVersion ? 'degraded' : 'offline',
+    serviceUnit: 'compatibility-bridge',
+    platform: agent.model,
+    kernel: agent.kernel,
+    arch: agent.arch,
+    updatedAtSec: nowSec,
+    mihomoLogPath: UBUNTU_PATHS.mihomoLog,
+    error: agent.ok || mihomoVersion ? '' : String(agent.error || 'compatibility-bridge-offline'),
+  }
+
+  resources.value = {
+    ok: resourcesOk,
+    hostname: agent.hostname,
+    cpuPct: Number.isFinite(Number(agent.cpuPct)) ? Number(agent.cpuPct) : undefined,
+    load1: agent.load1,
+    load5: agent.load5,
+    load15: agent.load15,
+    memTotalBytes: Number.isFinite(Number(agent.memTotal)) ? Number(agent.memTotal) : undefined,
+    memUsedBytes: Number.isFinite(Number(agent.memUsed)) ? Number(agent.memUsed) : undefined,
+    memAvailableBytes: Number.isFinite(Number(agent.memFree)) ? Number(agent.memFree) : undefined,
+    memUsedPct: Number.isFinite(Number(agent.memUsedPct)) ? Number(agent.memUsedPct) : undefined,
+    diskTotalBytes: Number.isFinite(Number(agent.storageTotal)) ? Number(agent.storageTotal) : undefined,
+    diskUsedBytes: Number.isFinite(Number(agent.storageUsed)) ? Number(agent.storageUsed) : undefined,
+    diskFreeBytes: Number.isFinite(Number(agent.storageFree)) ? Number(agent.storageFree) : undefined,
+    diskUsedPct: Number.isFinite(Number(agent.storageTotal)) && Number(agent.storageTotal) > 0 && Number.isFinite(Number(agent.storageUsed))
+      ? (Number(agent.storageUsed) / Number(agent.storageTotal)) * 100
+      : undefined,
+    diskPath: agent.storagePath,
+    uptimeSec: Number.isFinite(Number(agent.uptimeSec)) ? Number(agent.uptimeSec) : 0,
+    kernel: agent.kernel,
+    arch: agent.arch,
+    platform: agent.model,
+    updatedAtSec: nowSec,
+    error: resourcesOk ? '' : String(agent.error || ''),
+  }
+}
+
 const refreshAll = async () => {
   loading.value = true
   try {
-    const [statusPayload, resourcePayload] = await Promise.allSettled([
-      fetchUbuntuSystemStatusAPI(),
-      fetchUbuntuSystemResourcesAPI(),
-    ])
-
-    status.value = statusPayload.status === 'fulfilled' ? statusPayload.value : { ok: false, error: String(statusPayload.reason || 'status-failed') }
-    resources.value = resourcePayload.status === 'fulfilled' ? resourcePayload.value : { ok: false, error: String(resourcePayload.reason || 'resources-failed') }
+    if (isUbuntuService.value) {
+      await refreshUbuntu()
+    } else {
+      await refreshCompatibility()
+    }
   } finally {
     loading.value = false
   }

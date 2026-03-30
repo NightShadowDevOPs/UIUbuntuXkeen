@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.5.3**  
+Текущая версия линии: **v0.5.4**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -52,12 +52,6 @@
 - обновлены ТЗ, backend contract, roadmap, release journal и transfer docs;
 - roadmap перестроен по реальным operational-блокам, а не по косметическим экранам.
 
-## Текущий приоритет
-
-> Пользователь зафиксировал приоритет: **провайдеры, SSL/сроки, трафик, состояния клиентов, раздел «Хост», ресурсы хоста, GEO-файлы, локальные правила, QoS, shaping**. Safe config flow и structured editors пока отложены.
-
-## Ближайшая очередь
-
 ### v0.5.2 — Провайдеры: foundation Ubuntu service
 Статус: **сделано как UI/runtime foundation**
 - добавлена capability-aware модель для `/api/capabilities`;
@@ -66,15 +60,27 @@
 - ручные действия и блокировки в Tasks/Providers теперь завязаны на capability активного backend-а, а не только на старый `agentEnabled`;
 - заложены состояния `last check`, `next check`, `job status`, `error` для следующего backend-этапа.
 
-### v0.5.3 — Хост: ресурсы сервера и Mihomo
-Статус: **сделано как UI foundation**
-- раздел **«Хост»** перестроен под Ubuntu service контур;
+### v0.5.3 — Хост: foundation под Ubuntu service
+Статус: **сделано как foundation, потребовал hotfix**
+- раздел **«Хост»** был перестроен под Ubuntu service контур;
 - добавлены зоны **Обзор хоста / Сервисы / Логи**;
-- UI читает и нормализует `/api/status`, `/api/system/resources`, `/api/system/services`, `/api/system/logs`;
-- показываются CPU, RAM, uptime, filesystem, состояние Mihomo и список systemd-юнитов;
-- каноничный лог `/var/log/mihomo/mihomo.log` вынесен в отдельную рабочую зону.
+- UI научен нормализовать `/api/status`, `/api/system/resources`, `/api/system/services`, `/api/system/logs`;
+- но секции оказались слишком жёстко привязаны к `ubuntu-service` и в текущем рабочем режиме были практически не видны пользователю.
 
-### v0.5.4 — Трафик и состояния клиентов
+### v0.5.4 — Хост: functional hotfix compatibility fallback
+Статус: **сделано**
+- секции **Сервисы / Логи** стали доступны и в compatibility bridge-режиме;
+- runtime-карточка умеет брать CPU/RAM/storage/uptime через существующий agent/status fallback;
+- логи Mihomo и agent/service теперь читаются через живой fallback, а не только через будущий `/api/system/logs`;
+- groundwork под полный Ubuntu service сохранён, но экран уже даёт практическую пользу.
+
+## Текущий приоритет
+
+> Пользователь зафиксировал приоритет: **провайдеры, SSL/сроки, трафик, состояния клиентов, раздел «Хост», ресурсы хоста, GEO-файлы, локальные правила, QoS, shaping**. Safe config flow и structured editors пока отложены.
+
+## Ближайшая очередь
+
+### v0.5.5 — Трафик и состояния клиентов
 Статус: **следующий шаг**
 - графики трафика;
 - карточки и таблицы клиентов;
@@ -82,60 +88,17 @@
 - usage summary;
 - foundation для topology / traffic relations.
 
-### v0.5.5 — GEO-файлы, локальные правила и top rules
+### v0.5.6 — GEO-файлы, локальные правила и top rules
 План:
 - last GEO update;
 - GEO history;
 - local rules;
 - top rules;
-- summary по client → rule → provider flows.
+- drill-down по rule/provider activity.
 
-### v0.6.0 — QoS / shaping foundation
+### v0.5.7 — QoS и shaping под Ubuntu
 План:
-- API-контракт для qos/shaping;
-- runtime state и профили;
-- jobs и audit trail;
-- UI foundation в разделах **«Хост»** и **«Трафик»**.
-
-### v0.7.0 — Subscriptions / tasks operational parity
-План:
-- адаптация подписок и сервисных задач под Ubuntu service;
-- доведение jobs/status/history до единой модели.
-
-### v0.8.0 — Safe config core
-План:
-- active / draft / baseline / history;
-- validate / apply / rollback;
-- операционный журнал изменений.
-
-### v0.9.0 — Structured editors MVP
-План:
-- structured editors: DNS / Rules / Proxies;
-- raw YAML как fallback;
-- form-driven сценарий как основной путь работы.
-
-### v1.0.0 — Ubuntu MVP complete
-Критерии:
-- работа с Mihomo на Ubuntu;
-- разделы **«Провайдеры»**, **«Хост»**, **«Трафик»** и **«Задачи»** закрывают ключевой operational функционал;
-- есть foundation QoS/shaping и jobs/history;
-- есть safe config flow;
-- UI ощущается как отдельный Ubuntu-продукт, а не как роутерный UI без агента.
-
-## После v1.0.0
-
-### v1.1.x
-- расширенные wizards и шаблоны создания сущностей;
-- углубление subscriptions/policies.
-
-### v1.2.x
-- audit views;
-- automation;
-- housekeeping jobs и retention policy для runtime history.
-
-### v1.3.x
-- multi-instance support.
-
-### v1.4.x+
-- optional desktop wrapper;
-- cluster/fleet scenarios.
+- host shaping profiles;
+- per-client bandwidth/QoS status;
+- диагностика применённых ограничений;
+- сценарии apply/remove/reconcile.

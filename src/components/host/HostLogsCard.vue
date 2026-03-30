@@ -50,7 +50,11 @@
 
 <script setup lang="ts">
 import { fetchUbuntuSystemLogsAPI, type UbuntuSystemLogs } from '@/api/ubuntuService'
+import { agentLogsAPI } from '@/api/agent'
 import { UBUNTU_PATHS } from '@/config/project'
+import { isUbuntuServiceBackend } from '@/helper/backend'
+import { decodeB64Utf8 } from '@/helper/b64'
+import { activeBackend } from '@/store/setup'
 import dayjs from 'dayjs'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -60,6 +64,7 @@ const source = ref<'mihomo' | 'service'>('mihomo')
 const tail = ref(160)
 const loading = ref(false)
 const payload = ref<UbuntuSystemLogs>({ ok: false, text: '' })
+const isUbuntuService = computed(() => isUbuntuServiceBackend(activeBackend.value))
 
 const fallbackPath = computed(() => (source.value === 'mihomo' ? UBUNTU_PATHS.mihomoLog : '/var/log/ultra-ui-ubuntu/service.log'))
 const errorText = computed(() => String(payload.value.error || '').trim())
@@ -69,10 +74,32 @@ const updatedAtText = computed(() => {
   return `${t('lastUpdate')}: ${dayjs.unix(sec).format('YYYY-MM-DD HH:mm:ss')}`
 })
 
+const refreshUbuntu = async () => {
+  payload.value = await fetchUbuntuSystemLogsAPI({ source: source.value, tail: tail.value })
+}
+
+const refreshCompatibility = async () => {
+  const kind = source.value === 'mihomo' ? 'mihomo' : 'agent'
+  const res = await agentLogsAPI({ type: kind, lines: tail.value })
+  payload.value = {
+    ok: Boolean(res.ok),
+    source: source.value,
+    path: res.path || (source.value === 'mihomo' ? UBUNTU_PATHS.mihomoLog : '/var/log/compatibility-bridge.log'),
+    tail: tail.value,
+    text: decodeB64Utf8(res.contentB64),
+    updatedAtSec: Math.floor(Date.now() / 1000),
+    error: res.ok ? '' : String(res.error || 'log-unavailable'),
+  }
+}
+
 const refresh = async () => {
   loading.value = true
   try {
-    payload.value = await fetchUbuntuSystemLogsAPI({ source: source.value, tail: tail.value })
+    if (isUbuntuService.value) {
+      await refreshUbuntu()
+    } else {
+      await refreshCompatibility()
+    }
   } finally {
     loading.value = false
   }
