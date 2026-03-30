@@ -1,5 +1,10 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.6.3 — build/install stabilization
+- добавлен `.npmrc` с отключённым frozen lockfile, чтобы CI не падал на этапе `Install dependencies`;
+- зависимость `prettier-plugin-tailwindcss` возвращена к версии `^0.6.14`, совпадающей с текущим lockfile;
+- функциональный контур SSL в **«Задачах»** не расширялся: релиз честно посвящён стабилизации install/build перед следующим продуктовым шагом.
+
 ## v0.6.2 — Tasks SSL by provider/subscription source URL
 Дата: **2026-03-30**
 
@@ -18,7 +23,7 @@
 - функциональный корректирующий шаг по SSL-контуру в разделе **«Задачи»**.
 
 Следующий плановый релиз:
-- `v0.6.3` — provider scheduler/history и GEO groundwork.
+- `v0.6.4` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.1 — rollback misplaced provider SSL workspace
 Дата: **2026-03-30**
@@ -37,7 +42,7 @@
 - исправляющий rollback/hotfix после неверного хода в `v0.6.0`.
 
 Следующий плановый релиз:
-- `v0.6.3` — provider scheduler/history и GEO groundwork.
+- `v0.6.4` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.0 — ошибочный provider SSL workspace
 Дата: **2026-03-30**

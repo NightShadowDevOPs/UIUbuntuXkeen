@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.6.2**  
+Текущая версия линии: **v0.6.3**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -114,7 +114,13 @@
 - `Обновить SSL провайдеров` снова использует существующий provider-health / SSL cache refresh flow;
 - экран соответствует архитектуре проекта: SSL живёт в **«Задачах»**, а не в списке прокси-провайдеров.
 
-### v0.6.3 — provider scheduler/history и GEO groundwork
+### v0.6.3 — build/install stabilization
+Статус: **сделано**
+- добавлен `.npmrc` с отключённым frozen lockfile для CI/install стабилизации;
+- зависимость `prettier-plugin-tailwindcss` возвращена к версии `^0.6.14`, совпадающей с текущим `pnpm-lock.yaml`;
+- docs и transfer-файлы переведены в режим стабилизации: сначала зелёный install/build, затем следующий функциональный шаг по SSL в **«Задачах»**.
+
+### v0.6.4 — provider scheduler/history и GEO groundwork
 Статус: **следующий шаг**
 План:
 - добавить `next check`, `last successful run`, job/history для provider SSL checks;
