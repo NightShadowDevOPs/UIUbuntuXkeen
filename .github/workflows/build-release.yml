@@ -36,7 +36,16 @@ jobs:
 
       - name: Read project version
         id: meta
-        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(python3 - <<'PYJSON'
+          import json
+          with open('package.json', 'r', encoding='utf-8') as f:
+              print(json.load(f)['version'])
+          PYJSON
+          )
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.2.3 — 2026-03-30
+
+- fixed the GitHub Actions `Read project version` step by replacing the brittle inline Node expression with a plain `python3` JSON read from `package.json`
+- kept the rest of the release pipeline unchanged so the server update path still publishes both versioned and rolling artifacts
+- refreshed docs and chat-transfer package for the CI metadata hotfix
+
 ## v0.2.2 — 2026-03-30
 
 - upgraded GitHub Actions workflow actions to Node 24-ready versions (`actions/checkout@v5`, `actions/setup-node@v6`, `pnpm/action-setup@v5`, `actions/upload-artifact@v6`, `actions/download-artifact@v7`)

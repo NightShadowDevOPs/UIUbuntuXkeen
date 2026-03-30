@@ -1,5 +1,21 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.2.3 — 2026-03-30
+
+Тип релиза: **hotfix / GitHub Actions metadata step**
+
+Сделано:
+- исправлен шаг GitHub Actions **Read project version**: вместо хрупкой inline-команды через `node -p` версия теперь читается через `python3` напрямую из `package.json`;
+- release pipeline сохранён в прежней логике: после успешной сборки публикуются versioned release и rolling `dist.zip`;
+- обновлены `docs`, transfer-пакет и changelog под hotfix-релиз.
+
+Результат:
+- ошибка на шаге **Read project version** больше не должна ронять workflow до установки зависимостей и сборки;
+- после зелёного GitHub Actions снова можно тестировать обновление UI на сервере через кнопку **«Обновить»**.
+
+Следующий плановый релиз:
+- `v0.3.0` — Backend contract foundation.
+
 ## v0.2.2 — 2026-03-30
 
 Тип релиза: **hotfix / GitHub Actions Node 24 readiness**
