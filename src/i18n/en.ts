@@ -1,7 +1,7 @@
 const en = {
   setup: 'Setup',
   overview: 'Overview',
-  router: 'Router',
+  router: 'Host',
   mihomo: 'Mihomo',
     local: 'Local',
 tasks: 'Tasks',

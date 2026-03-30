@@ -3,7 +3,7 @@ import type { LANG_MESSAGE } from './en'
 const ru: LANG_MESSAGE = {
   setup: 'Настройка',
   overview: 'Обзор',
-  router: 'Роутер',
+  router: 'Хост',
   mihomo: 'Mihomo',
     local: 'Локал',
 tasks: 'Задачи',

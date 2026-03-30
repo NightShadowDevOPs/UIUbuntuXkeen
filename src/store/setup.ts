@@ -1,3 +1,4 @@
+import { normalizeBackendInput } from '@/helper/backend'
 import type { Backend } from '@/types'
 import { useStorage } from '@vueuse/core'
 import { isEqual, omit } from 'lodash'
@@ -12,8 +13,9 @@ export const activeBackend = computed(() =>
 )
 
 export const addBackend = (backend: Omit<Backend, 'uuid'>) => {
+  const normalizedBackend = normalizeBackendInput(backend)
   const currentEnd = backendList.value.find((end) => {
-    return isEqual(omit(end, 'uuid'), backend)
+    return isEqual(omit(end, 'uuid'), normalizedBackend)
   })
 
   if (currentEnd) {
@@ -24,17 +26,18 @@ export const addBackend = (backend: Omit<Backend, 'uuid'>) => {
   const id = uuid()
 
   backendList.value.push({
-    ...backend,
+    ...normalizedBackend,
     uuid: id,
   })
   activeUuid.value = id
 }
 
 export const updateBackend = (uuid: string, backend: Omit<Backend, 'uuid'>) => {
+  const normalizedBackend = normalizeBackendInput(backend)
   const index = backendList.value.findIndex((end) => end.uuid === uuid)
   if (index !== -1) {
     backendList.value[index] = {
-      ...backend,
+      ...normalizedBackend,
       uuid,
     }
   }

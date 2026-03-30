@@ -1,4 +1,5 @@
 import { MIN_PROXY_CARD_WIDTH, PROXY_CARD_SIZE } from '@/constant'
+import { normalizeSecondaryPath } from '@/helper/backend'
 import type { Backend } from '@/types'
 import { useMediaQuery } from '@vueuse/core'
 import dayjs from 'dayjs'
@@ -41,7 +42,7 @@ export const exportSettings = () => {
 }
 
 export const getUrlFromBackend = (end: Omit<Backend, 'uuid'>) => {
-  return `${end.protocol}://${end.host}:${end.port}${end.secondaryPath || ''}`
+  return `${end.protocol}://${end.host}:${end.port}${normalizeSecondaryPath(end.secondaryPath)}`
 }
 
 export const getLabelFromBackend = (end: Omit<Backend, 'uuid'>) => {

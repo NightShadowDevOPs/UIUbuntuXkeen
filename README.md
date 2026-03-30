@@ -6,9 +6,11 @@
 
 ## Текущий статус
 
-Текущая версия: **v0.2.2**
+- Текущая версия линии: **v0.3.0**
+- Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
+- Текущий шаг: **Backend contract foundation**
 
-На этом релизе GitHub Actions переведены на Node 24-ready версии actions, при этом runtime сборки проекта оставлен на Node.js 22 для стабильной сборки и публикации rolling-обновления.
+На релизе `v0.3.0` заложена базовая модель Ubuntu backend contract: центральные project/release constants, каноничные Ubuntu paths, типы backend capabilities и groundwork для перехода от compatibility bridge к Ubuntu-native service API.
 
 ## Как работаем
 
@@ -21,18 +23,19 @@
 
 Каноничные документы лежат в `docs/`:
 - `docs/project-spec.md`
+- `docs/backend-contract.md`
 - `docs/roadmap.md`
 - `docs/releases.md`
 - `docs/chat-transfer.md`
 
 ## GitHub Actions и обновление UI
 
-Начиная с `v0.2.2`, GitHub Actions должны:
+GitHub Actions должны:
 - собирать UI на каждом push/PR;
 - публиковать versioned release `vX.Y.Z`;
 - обновлять rolling release `dist.zip` для механизма обновления через кнопку **«Обновить»** внутри UI.
 
-Перед первым серверным тестом проверь, не указывает ли `external-ui-url` ещё на старый репозиторий.
+Для встроенного обновления используется постоянная rolling-ссылка, а версионные архивы остаются для истории и ручной проверки.
 
 ## Базовая идея продукта
 

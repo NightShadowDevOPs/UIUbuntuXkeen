@@ -11,10 +11,10 @@
           <span class="bg-secondary h-2 w-2 rounded-full"></span>
         </span>
         <a
-          href="https://github.com/NightShadowDevOPs/UIUbuntuXkeen"
+          :href="APP_REPO_URL"
           target="_blank"
         >
-          <span> UIUbuntuXkeen </span>
+          <span> {{ APP_DISPLAY_NAME }} </span>
           <span class="text-sm font-normal">
             {{ zashboardVersion }}
           </span>
@@ -249,6 +249,7 @@
 
 <script setup lang="ts">
 import { upgradeUIAPI, zashboardVersion } from '@/api'
+import { APP_DISPLAY_NAME, APP_REPO_URL } from '@/config/project'
 import LanguageSelect from '@/components/settings/LanguageSelect.vue'
 import { useSettings } from '@/composables/settings'
 import { useUiBuild } from '@/composables/uiBuild'

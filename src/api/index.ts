@@ -1,3 +1,4 @@
+import { APP_RELEASES_API_URL } from '@/config/project'
 import { ROUTE_NAME } from '@/constant'
 import { showNotification } from '@/helper/notification'
 import { getUrlFromBackend } from '@/helper/utils'
@@ -380,7 +381,7 @@ async function fetchWithLocalCache<T>(url: string, version: string): Promise<T> 
 
 export const fetchIsUIUpdateAvailable = async () => {
   const { tag_name } = await fetchWithLocalCache<{ tag_name: string }>(
-    'https://api.github.com/repos/NightShadowDevOPs/UIUbuntuXkeen/releases/latest',
+    APP_RELEASES_API_URL,
     zashboardVersion.value,
   )
 

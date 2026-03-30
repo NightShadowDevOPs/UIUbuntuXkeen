@@ -1,3 +1,21 @@
+export type BackendKind = 'compatibility-bridge' | 'ubuntu-service'
+
+export type BackendCapabilities = Partial<{
+  status: boolean
+  health: boolean
+  version: boolean
+  capabilities: boolean
+  metrics: boolean
+  connections: boolean
+  logs: boolean
+  configActive: boolean
+  configDraft: boolean
+  configHistory: boolean
+  configValidate: boolean
+  configApply: boolean
+  configRollback: boolean
+}>
+
 export type Backend = {
   host: string
   port: string
@@ -6,6 +24,9 @@ export type Backend = {
   protocol: string
   uuid: string
   label?: string
+  kind?: BackendKind
+  apiBasePath?: string
+  capabilities?: BackendCapabilities
   disableUpgradeCore?: boolean
 }
 

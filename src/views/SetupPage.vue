@@ -139,6 +139,7 @@ import TextInput from '@/components/common/TextInput.vue'
 import EditBackendModal from '@/components/settings/EditBackendModal.vue'
 import LanguageSelect from '@/components/settings/LanguageSelect.vue'
 import { ROUTE_NAME } from '@/constant'
+import { normalizeBackendInput } from '@/helper/backend'
 import { showNotification } from '@/helper/notification'
 import { getLabelFromBackend, getUrlFromBackend } from '@/helper/utils'
 import router from '@/router'
@@ -190,7 +191,8 @@ const editBackend = (backend: Backend) => {
 }
 
 const handleSubmit = async (form: Omit<Backend, 'uuid'>, quiet = false) => {
-  const { protocol, host, port, password } = form
+  const normalizedForm = normalizeBackendInput(form)
+  const { protocol, host, port, password } = normalizedForm
 
   if (!protocol || !host || !port) {
     alert('Please fill in all the fields.')
@@ -209,7 +211,7 @@ const handleSubmit = async (form: Omit<Backend, 'uuid'>, quiet = false) => {
   }
 
   try {
-    const data = await fetch(`${getUrlFromBackend(form)}/version`, {
+    const data = await fetch(`${getUrlFromBackend(normalizedForm)}/version`, {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${password}`,
@@ -232,7 +234,7 @@ const handleSubmit = async (form: Omit<Backend, 'uuid'>, quiet = false) => {
       return
     }
 
-    addBackend(form)
+    addBackend(normalizedForm)
     router.push({ name: ROUTE_NAME.proxies })
   } catch (e) {
     if (!quiet) {

@@ -29,6 +29,7 @@
 </template>
 
 <script setup lang="ts">
+import { APP_DISPLAY_NAME } from '@/config/project'
 import { ROUTE_ICON_MAP } from '@/constant'
 import { globalSearchOpen } from '@/store/globalSearch'
 import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
@@ -40,7 +41,7 @@ const { t } = useI18n()
 
 const title = computed(() => {
   const n = String(props.routeName || '').trim()
-  return n ? t(n) : 'UIUbuntuXkeen'
+  return n ? t(n) : APP_DISPLAY_NAME
 })
 
 const icon = computed(() => {

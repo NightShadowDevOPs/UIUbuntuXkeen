@@ -1,3 +1,4 @@
+import { APP_DISPLAY_NAME } from '@/config/project'
 import { ROUTE_NAME } from '@/constant'
 import { renderRoutes } from '@/helper'
 import { i18n } from '@/i18n'
@@ -117,12 +118,12 @@ const router = createRouter({
   ],
 })
 
-const title = useTitle('UIUbuntuXkeen')
+const title = useTitle(APP_DISPLAY_NAME)
 const setTitleByName = (name: string | symbol | undefined) => {
   if (typeof name === 'string' && activeBackend.value) {
-    title.value = `UIUbuntuXkeen | ${i18n.global.t(name)}`
+    title.value = `${APP_DISPLAY_NAME} | ${i18n.global.t(name)}`
   } else {
-    title.value = 'UIUbuntuXkeen'
+    title.value = APP_DISPLAY_NAME
   }
 }
 

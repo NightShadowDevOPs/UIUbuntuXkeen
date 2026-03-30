@@ -3,7 +3,7 @@ import type { LANG_MESSAGE } from './en'
 const zh: LANG_MESSAGE = {
   setup: '配置',
   overview: '概览',
-  router: '路由器',
+  router: '主机',
   mihomo: 'Mihomo',
     local: '本地',
 tasks: '任务',
