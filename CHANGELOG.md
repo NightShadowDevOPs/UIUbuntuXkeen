@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.5.5 - 2026-03-30
+- раздел **«Трафик»** перестроен в единый operational workspace вместо разрозненных экранов;
+- добавлены `TrafficRuntimeSummaryCard.vue` и `TrafficClientsStateCard.vue` для живой сводки и таблицы клиентов по IP;
+- состояния клиентов теперь собираются из живых Mihomo connections и compatibility agent traffic probes (`host_traffic_live`, `lan_hosts`);
+- на странице **«Трафик»** собраны live clients, live connections, host traffic и user-traffic;
+- compatibility-режим показывает `NetcrazeTrafficCard` и `HostQosCard` прямо в разделе **«Трафик»**, а не прячет их в других местах интерфейса;
+- обновлены README, roadmap, release journal и transfer docs под новый трафиковый workspace.
+
 ## v0.5.4 - 2026-03-30
 - исправлен архитектурный промах v0.5.3: секции **«Сервисы»** и **«Логи»** больше не прячутся только за `ubuntu-service`;
 - `RouterPage.vue` теперь показывает **Сервисы / Логи** и в compatibility bridge-режиме;
