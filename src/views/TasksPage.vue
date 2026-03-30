@@ -55,7 +55,7 @@
             type="button"
             class="btn btn-sm btn-ghost"
             @click="refreshProviderSslCacheNow"
-            :disabled="providersPanelBusy || providerSslCacheRefreshBusy || !providerHealthActionsAvailable"
+            :disabled="providersPanelBusy || providerSslProbeBusy || !providerHealthActionsAvailable"
           >
             <span v-if="providerSslCacheRefreshBusy" class="loading loading-spinner loading-xs"></span>
             <span v-else>{{ $t('refreshProviderSslCache') }}</span>
@@ -99,7 +99,8 @@
             <div v-else>
               <div class="mt-2 text-[11px] opacity-60">
                 <div>{{ $t('providersPanelColumnsExplain') }}</div>
-                <div class="mt-0.5">{{ $t('sslSource') }} • {{ $t('checkedAt') }}: {{ fmtTs(providersPanelAt) }}</div>
+                <div class="mt-0.5">{{ $t('sslSource') }} • {{ $t('checkedAt') }}: {{ fmtTs(providerSslLastCheckedAtMs) }}</div>
+                <div v-if="providerSslProbeErrorText" class="mt-0.5 text-error">{{ providerSslProbeErrorText }}</div>
                 <div v-if="agentProvidersNextCheckAtMs || agentProvidersJobStatus" class="mt-0.5">{{ $t('providerChecksStateLine', { next: fmtTs(agentProvidersNextCheckAtMs), status: agentProvidersJobStatus || '—' }) }}</div>
               </div>
 
@@ -1918,7 +1919,7 @@ import { FLAG_CODES } from '@/helper/flagIcons'
 import { activeBackend, backendList } from '@/store/setup'
 import { agentEnabled, agentUrl } from '@/store/agent'
 import { proxyProviderIconMap, proxyProviderSubscriptionUrlMap, proxyProviderSslWarnDaysMap, sslNearExpiryDaysDefault } from '@/store/settings'
-import { agentProviderByName, agentProviders, agentProvidersAt, agentProvidersError, agentProvidersJobStatus, agentProvidersNextCheckAtMs, agentProvidersOk, agentProvidersSslCacheReady, agentProvidersSslRefreshPending, agentProvidersSslRefreshing, fetchAgentProviders, providerHealthActionsAvailable, providerHealthAvailable, refreshAgentProviderSslCache } from '@/store/providerHealth'
+import { agentProviderByName, agentProviders, agentProvidersAt, agentProvidersError, agentProvidersJobStatus, agentProvidersNextCheckAtMs, agentProvidersOk, agentProvidersSslCacheReady, agentProvidersSslRefreshPending, agentProvidersSslRefreshing, fetchAgentProviders, panelSslCheckedAt, panelSslErrorByName, panelSslNotAfterByName, panelSslProbeError, panelSslProbeLoading, panelSslUrlByName, probePanelSsl, providerHealthActionsAvailable, providerHealthAvailable, refreshAgentProviderSslCache } from '@/store/providerHealth'
 import { fetchProxyProvidersOnly, proxyProviederList } from '@/store/proxies'
 import { userLimitProfiles } from '@/store/userLimitProfiles'
 import { userLimitSnapshots } from '@/store/userLimitSnapshots'
@@ -2100,7 +2101,9 @@ const providersPanelRenderList = computed(() => {
     return direct || ''
   }
 
-  const readSslNotAfter = (provider: any, agentProvider: any): string => {
+  const readSslNotAfter = (provider: any, agentProvider: any, name: string): string => {
+    const probe = String((panelSslNotAfterByName.value || {})[String(name || '').trim()] || '').trim()
+    if (probe) return probe
     const direct = [
       getAnyFromObj(provider, ['sslNotAfter', 'sslExpire', 'ssl_expire', 'certExpire', 'cert_expire', 'tlsExpire', 'tls_expire', 'certificateExpire', 'certificate_expire', 'certNotAfter', 'notAfter', 'not_after']),
       getAnyFromObj(provider?.subscriptionInfo, ['sslNotAfter', 'sslExpire', 'ssl_expire', 'certExpire', 'cert_expire', 'tlsExpire', 'tls_expire', 'certificateExpire', 'certificate_expire', 'certNotAfter', 'notAfter', 'not_after']),
@@ -2111,7 +2114,9 @@ const providersPanelRenderList = computed(() => {
     return direct || ''
   }
 
-  const readSslError = (provider: any, agentProvider: any): string => {
+  const readSslError = (provider: any, agentProvider: any, name: string): string => {
+    const probe = String((panelSslErrorByName.value || {})[String(name || '').trim()] || '').trim()
+    if (probe) return probe
     const direct = [
       getAnyFromObj(provider, ['sslError', 'tlsError', 'certError', 'error']),
       getAnyFromObj(provider?.subscriptionInfo, ['sslError', 'tlsError', 'certError', 'error']),
@@ -2122,14 +2127,18 @@ const providersPanelRenderList = computed(() => {
     return direct || ''
   }
 
-  const readCheckedAtMs = (provider: any, agentProvider: any): number => {
+  const readCheckedAtMs = (provider: any, agentProvider: any, name: string): number => {
+    const probeRaw = Number(panelSslCheckedAt.value || 0)
+    if (probeRaw > 0 && ((panelSslNotAfterByName.value || {})[String(name || '').trim()] || (panelSslErrorByName.value || {})[String(name || '').trim()] || (panelSslUrlByName.value || {})[String(name || '').trim()])) {
+      return probeRaw
+    }
     const raw = Number(
       getAnyFromObj(provider, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
       getAnyFromObj(provider?.subscriptionInfo, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
       getAnyFromObj(agentProvider, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
       0,
     )
-    return Number.isFinite(raw) && raw > 0 ? raw * 1000 : providersPanelAt.value || 0
+    return Number.isFinite(raw) && raw > 0 ? raw * 1000 : providerSslLastCheckedAtMs.value || 0
   }
 
   return orderedNames.map((name) => {
@@ -2140,9 +2149,9 @@ const providersPanelRenderList = computed(() => {
       url: readSourceUrl(providerMeta, agentMeta, name),
       host: String(agentMeta?.host || '').trim(),
       port: String(agentMeta?.port || '').trim(),
-      sslNotAfter: readSslNotAfter(providerMeta, agentMeta),
-      sslError: readSslError(providerMeta, agentMeta),
-      sslCheckedAtMs: readCheckedAtMs(providerMeta, agentMeta),
+      sslNotAfter: readSslNotAfter(providerMeta, agentMeta, name),
+      sslError: readSslError(providerMeta, agentMeta, name),
+      sslCheckedAtMs: readCheckedAtMs(providerMeta, agentMeta, name),
     }
   })
 })
@@ -2510,11 +2519,18 @@ const loadProvidersPanel = async (force = false) => {
     if (!agentProvidersOk.value && (!Array.isArray(agentProviders.value) || !agentProviders.value.length)) {
       providersPanelError.value = agentProvidersError.value || 'failed'
       providersPanelList.value = []
-      return
+    } else {
+      providersPanelError.value = agentProvidersError.value || ''
+      providersPanelList.value = Array.isArray(agentProviders.value) ? agentProviders.value : []
     }
-    providersPanelError.value = agentProvidersError.value || ''
-    providersPanelList.value = Array.isArray(agentProviders.value) ? agentProviders.value : []
-    providersPanelAt.value = agentProvidersAt.value || Date.now()
+
+    try {
+      await probePanelSsl(force)
+    } catch {
+      // keep provider rows visible even if direct SSL polling failed
+    }
+
+    providersPanelAt.value = Math.max(agentProvidersAt.value || 0, panelSslCheckedAt.value || 0) || Date.now()
   } catch (e: any) {
     providersPanelError.value = e?.message || 'failed'
     providersPanelList.value = []
@@ -2530,17 +2546,16 @@ const refreshProvidersPanel = async (force = false) => {
   } catch {
     // ignore providers-only refresh failure here
   }
-  try {
-    await fetchAgentProviders(force)
-  } catch {
-    // ignore store refresh failure here
-  }
 }
 
 const providerSslCacheRefreshBusy = ref(false)
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
+const providerSslProbeBusy = computed(() => panelSslProbeLoading.value || providerSslCacheRefreshBusy.value)
+const providerSslProbeErrorText = computed(() => panelSslProbeError.value ? friendlyProviderPanelError(panelSslProbeError.value, 'ssl') : '')
+const providerSslLastCheckedAtMs = computed(() => Math.max(providersPanelAt.value || 0, panelSslCheckedAt.value || 0, agentProvidersAt.value || 0))
 
 const providerSslCacheStatusText = computed(() => {
+  if (panelSslProbeLoading.value) return t('providerSslRefreshing')
   if (!providerHealthAvailable.value) return ''
   if (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value) return t('providerSslRefreshing')
   if (!agentProvidersSslCacheReady.value && providersPanelRenderList.value.length > 0) return t('providerSslPending')
@@ -2548,6 +2563,7 @@ const providerSslCacheStatusText = computed(() => {
 })
 
 const providerSslCacheStatusClass = computed(() => {
+  if (panelSslProbeLoading.value) return 'text-info'
   if (!providerHealthAvailable.value) return 'text-base-content/60'
   if (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value) return 'text-info'
   if (!agentProvidersSslCacheReady.value && providersPanelRenderList.value.length > 0) return 'text-warning'
@@ -2558,15 +2574,19 @@ const refreshProviderSslCacheNow = async () => {
   if (!providerHealthActionsAvailable.value || providerSslCacheRefreshBusy.value) return
   providerSslCacheRefreshBusy.value = true
   try {
+    let refreshError = ''
     const res: any = await refreshAgentProviderSslCache()
-    if (!res?.ok) {
-      showNotification({ content: res?.error || 'operationFailed', type: 'alert-error', timeout: 2200 })
-      return
-    }
+    if (!res?.ok) refreshError = String(res?.error || 'failed')
+    await probePanelSsl(true)
     for (let i = 0; i < 6; i += 1) {
       await refreshProvidersPanel(true)
-      if (agentProvidersSslCacheReady.value && !agentProvidersSslRefreshing.value && !agentProvidersSslRefreshPending.value) break
+      if ((panelSslCheckedAt.value > 0 || agentProvidersSslCacheReady.value) && !agentProvidersSslRefreshing.value && !agentProvidersSslRefreshPending.value) break
       await sleep(900)
+    }
+    const hasSslRows = (providersPanelRenderList.value || []).some((it: any) => String(it?.sslNotAfter || '').trim() || String(it?.sslError || '').trim())
+    if (!hasSslRows && refreshError) {
+      showNotification({ content: refreshError || 'operationFailed', type: 'alert-error', timeout: 2200 })
+      return
     }
     showNotification({ content: 'refreshProviderSslCache', type: 'alert-success', timeout: 1600 })
   } catch (e: any) {
@@ -4265,11 +4285,16 @@ const refreshSsl = async () => {
   try {
     const id = startJob('Refresh providers SSL')
     try {
+      let refreshError = ''
       const refreshRes: any = await refreshAgentProviderSslCache()
-      if (!refreshRes?.ok) throw new Error(refreshRes?.error || 'failed')
+      if (!refreshRes?.ok) refreshError = String(refreshRes?.error || 'failed')
+      await probePanelSsl(true)
       await refreshProvidersPanel(true)
       const n = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value.filter((it: any) => String(it?.url || '').trim()).length : 0
-      finishJob(id, { ok: true, meta: { probed: n } })
+      const okRows = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value.filter((it: any) => String(it?.sslNotAfter || '').trim()).length : 0
+      const errorRows = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value.filter((it: any) => String(it?.sslError || '').trim()).length : 0
+      if (!okRows && !errorRows && refreshError) throw new Error(refreshError)
+      finishJob(id, { ok: true, meta: { probed: n, ok: okRows, errors: errorRows } })
       showNotification({ content: 'sslRefreshed', type: 'alert-success', timeout: 1600 })
     } catch (e: any) {
       finishJob(id, { ok: false, error: e?.message || 'failed' })

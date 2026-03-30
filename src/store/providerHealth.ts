@@ -268,7 +268,8 @@ const buildProbeLines = (): string => {
     const n = String(name || '').trim()
     const u = String(url || '').trim()
     if (!n || !u) continue
-    // We probe only https/wss. Other schemes will return empty anyway.
+    // Probe only TLS-capable subscription links.
+    if (!/^(https|wss):\/\//i.test(u)) continue
     lines.push(`${n}\t${u}`)
   }
   return lines.join('\n') + (lines.length ? '\n' : '')
@@ -370,13 +371,13 @@ watch(
   { immediate: true, deep: true },
 )
 
-// When panel URLs change, keep the previous SSL state visible until the user
-// explicitly refreshes it. This avoids false 'agent unavailable' / empty-state
-// regressions when one dead panel makes SSL probing slow.
+// When subscription URLs change, drop the previous SSL probe snapshot so the
+// Tasks table never shows stale certificate dates for a different link.
 watch(
   proxyProviderSubscriptionUrlMap,
   () => {
     panelSslCheckedAt.value = 0
+    panelSslNotAfterByName.value = {}
     panelSslErrorByName.value = {}
     panelSslUrlByName.value = {}
     panelSslProbeError.value = null
