@@ -824,11 +824,11 @@ const remoteIsReady = (remote: string) => configuredCloudRemotes.value.some((it:
 const remoteStatusBadgeClass = (remote: string) => (remoteIsReady(remote) ? 'badge-success' : 'badge-warning')
 const uploadStatusBadgeClass = (ok: boolean) => (ok ? 'badge-success' : 'badge-error')
 
-const uniqueRemoteNames = (item: any) => {
+const uniqueRemoteNames = (item: any): string[] => {
   const names = (Array.isArray(item?.cloudCopies) ? item.cloudCopies : [])
     .map((it: any) => cloudItemRemote(it))
-    .filter(Boolean)
-  return Array.from(new Set(names))
+    .filter((name: string) => Boolean(name))
+  return Array.from(new Set<string>(names))
 }
 
 const selectedCloudArchiveCopies = computed(() => {

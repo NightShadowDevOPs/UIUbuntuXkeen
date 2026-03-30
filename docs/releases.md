@@ -1,3 +1,9 @@
+## v0.2.10 — TypeScript annotation sweep round two
+- исправлены ошибки GitHub build annotations в `src/components/users/UserTrafficStats.vue`, `src/components/sidebar/ProxiesCtrl.tsx`, `src/components/rules/RuleCard.vue`, `src/components/router/HostQosCard.vue` и `src/components/router/AgentCard.vue`;
+- для `UserTrafficStats.vue` добавлены недостающие состояния/вычисления диалога отчётов и обработчики CSV-экспорта;
+- в `HostQosCard.vue` шаблон списка QoS-профилей переведён на безопасный `template v-for`, чтобы убрать конфликт type-checker по `profile`;
+- в `AgentCard.vue` уточнён тип списка cloud remotes, чтобы убрать ошибки `unknown is not assignable to string | undefined`.
+
 ## v0.2.9 — TypeScript build annotations cleanup
 - исправлена ошибка шаблона в `src/components/router/AgentCard.vue`, где `it` использовался вне области `v-for`;
 - исправлен вызов `showNotification` в `src/components/proxies/ProxyProvider.vue` под актуальную сигнатуру helper-а;

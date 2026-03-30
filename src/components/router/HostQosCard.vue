@@ -11,9 +11,11 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2 text-xs opacity-70">
-        <span v-for="profile in profileOrder" :key="`legend-${profile}`" v-if="qos.defaults?.[profile]" class="badge badge-ghost">
-          {{ profileLabel(profile) }}: {{ profileSummary(profile) }}
-        </span>
+        <template v-for="profile in profileOrder" :key="`legend-${profile}`">
+          <span v-if="hasQosDefault(profile)" class="badge badge-ghost">
+            {{ profileLabel(profile) }}: {{ profileSummary(profile) }}
+          </span>
+        </template>
         <span class="badge badge-ghost">{{ $t('hostQosTrackedHosts', { count: rows.length }) }}</span>
         <span class="badge badge-ghost">{{ $t('hostQosAppliedHosts', { count: appliedCount }) }}</span>
         <button type="button" class="btn btn-sm btn-ghost" @click="expanded = !expanded">
@@ -356,6 +358,8 @@ const qosIndicatorBars = (profile?: AgentQosProfile) => {
     active: index < active,
   }))
 }
+
+const hasQosDefault = (profile: AgentQosProfile) => Boolean(qos.value.defaults?.[profile])
 
 const profileSummary = (profile: AgentQosProfile) => {
   const item = qos.value.defaults?.[profile]

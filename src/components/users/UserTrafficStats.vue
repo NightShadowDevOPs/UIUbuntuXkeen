@@ -1789,6 +1789,70 @@ const speed = (bps: number) => `${prettyBytesHelper(bps || 0)}/s`
 const format = (b: number) => formatTraffic(b)
 const buckets = computed(() => userTrafficStoreSize.value)
 
+type ReportGroupBy = 'day' | 'week' | 'month'
+type ReportPreviewRow = { period: string; user: string; dl: number; ul: number }
+
+const reportDialogOpen = ref(false)
+const reportGroupBy = ref<ReportGroupBy>('day')
+const reportUser = ref('')
+const reportSkipEmpty = ref(true)
+
+const reportUsers = computed(() => rows.value.map((row) => row.user).filter(Boolean).sort((a, b) => a.localeCompare(b)))
+
+const reportRangeLabel = computed(() => {
+  const start = dayjs(range.value.start)
+  const end = dayjs(range.value.end)
+  return `${start.format('YYYY-MM-DD HH:mm')} → ${end.format('YYYY-MM-DD HH:mm')}`
+})
+
+const reportPreviewRows = computed<ReportPreviewRow[]>(() => {
+  const grouped = getTrafficGrouped(range.value.start, range.value.end, reportGroupBy.value as TrafficGroupBy)
+  const out: ReportPreviewRow[] = []
+
+  for (const [period, users] of grouped.entries()) {
+    for (const [key, bucket] of users.entries()) {
+      const displayUser = key ? getExactHostLabel(key) : ''
+      const user = displayUser || key || t('unknown')
+      if (reportUser.value && user !== reportUser.value) continue
+      const dl = Number(bucket?.dl || 0)
+      const ul = Number(bucket?.ul || 0)
+      if (reportSkipEmpty.value && dl <= 0 && ul <= 0) continue
+      out.push({ period, user, dl, ul })
+    }
+  }
+
+  return out.sort((a, b) => {
+    const p = a.period.localeCompare(b.period)
+    if (p !== 0) return p
+    return a.user.localeCompare(b.user)
+  })
+})
+
+const reportRowsCount = computed(() => reportPreviewRows.value.length)
+const reportPreviewLimited = computed(() => reportPreviewRows.value.length >= 500)
+
+const csvEscape = (value: string | number) => `"${String(value ?? '').replace(/"/g, '""')}"`
+const downloadCsv = (filename: string, headers: string[], rows: Array<Array<string | number>>) => {
+  const text = [headers.map(csvEscape).join(','), ...rows.map((row) => row.map(csvEscape).join(','))].join('\n')
+  const blob = new Blob([text], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const exportTableCsv = () => {
+  const tableRows = rows.value.map((row) => [row.user, row.keys, row.dl, row.ul, row.dl + row.ul])
+  downloadCsv('user-traffic-table.csv', ['user', 'keys', 'download', 'upload', 'total'], tableRows)
+}
+
+const exportReportCsv = () => {
+  const dataRows = reportPreviewRows.value.map((row) => [row.period, row.user, row.dl, row.ul, row.dl + row.ul])
+  downloadCsv('user-traffic-report.csv', ['period', 'user', 'download', 'upload', 'total'], dataRows)
+}
+
 const bpsToMbps = (bps: number) => {
   const v = ((bps || 0) * 8) / 1_000_000
   if (!Number.isFinite(v) || v <= 0) return '0'

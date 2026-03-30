@@ -326,7 +326,7 @@ export default defineComponent({
       }
       return (
         <div class="flex gap-2 p-2">
-          {hasProviders.value && tabs}
+          {hasProviders.value && activeTabBadge}
           {modeSelect}
           <div class="flex flex-1">{searchInput}</div>
           {upgradeAllIcon}

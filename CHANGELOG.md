@@ -1,3 +1,8 @@
+## v0.2.10
+- fixed remaining TypeScript build annotations in `UserTrafficStats.vue`, `ProxiesCtrl.tsx`, `RuleCard.vue`, `HostQosCard.vue` and `AgentCard.vue`
+- added missing report dialog state/helpers and CSV export handlers in user traffic UI
+- cleaned up typed template usage for QoS legends and cloud backup remote actions
+
 ## v0.2.9
 - fixed TypeScript build errors in `AgentCard.vue`, `ProxyProvider.vue` and Axios request config typing
 - kept CI green path while removing false-positive build annotations for the fixed files

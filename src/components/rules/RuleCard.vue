@@ -122,7 +122,7 @@
         <template v-if="typeof rule.size === 'number' && rule.size > 0">
           <span>
             <span class="text-base-content/50">{{ $t('size') }}:</span>
-            <span class="ml-1 font-mono">{{ prettyBytes(rule.size) }}</span>
+            <span class="ml-1 font-mono">{{ prettyBytesHelper(rule.size) }}</span>
           </span>
         </template>
         <template v-if="ruleSetProviderInfo">
@@ -153,7 +153,7 @@ import { updateRuleProviderAPI } from '@/api'
 import { useBounceOnVisible } from '@/composables/bouncein'
 import { NOT_CONNECTED } from '@/constant'
 import { getColorForLatency } from '@/helper'
-import { fromNow } from '@/helper/utils'
+import { fromNow, prettyBytesHelper } from '@/helper/utils'
 import { useTooltip } from '@/helper/tooltip'
 import { getLatencyByName, getNowProxyNodeName, proxyMap } from '@/store/proxies'
 import { fetchRules, getRuleHitCount, ruleProviderList } from '@/store/rules'
