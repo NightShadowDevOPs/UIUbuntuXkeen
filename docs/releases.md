@@ -1,5 +1,25 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.6.4 — Tasks alignment: 3x-ui subscription URLs
+Дата: **2026-03-30**
+
+Сделано:
+- блок провайдеров в разделе **«Задачи»** приведён к модели со скринов: URL 3x-ui подписок редактируются прямо в таблице;
+- сохранённые вручную URL подписок теперь имеют приоритет для SSL/TLS-опроса в Tasks;
+- карточка провайдера и Tasks используют один и тот же общий storage-map для ссылок подписок;
+- UI-термины переведены с «панелей управления» на **3x-ui подписки / ссылки подписки** там, где речь идёт именно об источнике SSL-проверки.
+
+Результат:
+- раздел **«Задачи»** снова соответствует ожидаемой рабочей модели;
+- SSL/TLS для провайдеров считается по ссылкам их 3x-ui подписок;
+- ручной URL в Tasks больше не теряется за provider metadata и не выглядит как недоделанный read-only блок.
+
+Статус:
+- функциональный корректирующий релиз по Tasks/Providers модели.
+
+Следующий плановый релиз:
+- `v0.6.5` — provider scheduler/history и GEO groundwork.
+
 ## v0.6.3 — build/install stabilization
 - добавлен `.npmrc` с отключённым frozen lockfile, чтобы CI не падал на этапе `Install dependencies`;
 - зависимость `prettier-plugin-tailwindcss` возвращена к версии `^0.6.14`, совпадающей с текущим lockfile;
@@ -23,7 +43,7 @@
 - функциональный корректирующий шаг по SSL-контуру в разделе **«Задачи»**.
 
 Следующий плановый релиз:
-- `v0.6.4` — provider scheduler/history и GEO groundwork.
+- `v0.6.5` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.1 — rollback misplaced provider SSL workspace
 Дата: **2026-03-30**
@@ -42,7 +62,7 @@
 - исправляющий rollback/hotfix после неверного хода в `v0.6.0`.
 
 Следующий плановый релиз:
-- `v0.6.4` — provider scheduler/history и GEO groundwork.
+- `v0.6.5` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.0 — ошибочный provider SSL workspace
 Дата: **2026-03-30**

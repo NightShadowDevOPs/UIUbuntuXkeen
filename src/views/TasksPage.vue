@@ -134,11 +134,18 @@
             </td>
 						<td>
               <div class="flex items-center gap-2">
-                <div class="min-w-[220px] flex-1 break-all text-[11px] font-mono opacity-80">{{ getProviderSourceUrl(p) || '—' }}</div>
+                <input
+                  class="input input-bordered input-xs min-w-[260px] flex-1 font-mono"
+                  :value="getProviderSourceUrlDraft(p.name)"
+                  :placeholder="$t('providerPanelUrlPlaceholder')"
+                  @input="(e) => setProviderSourceUrlDraft(p.name, (e.target as HTMLInputElement)?.value || '')"
+                  @keydown.enter.stop.prevent="saveProviderSourceUrl(p.name)"
+                  @blur="saveProviderSourceUrl(p.name)"
+                />
                 <a
-                  v-if="getProviderSourceUrl(p)"
+                  v-if="getProviderSourceUrlDraft(p.name)"
                   class="btn btn-ghost btn-xs"
-                  :href="getProviderSourceUrl(p)"
+                  :href="getProviderSourceUrlDraft(p.name)"
                   target="_blank"
                   rel="noreferrer"
                 >
@@ -1982,17 +1989,19 @@ const copyRouterUiUrl = async (asYaml: boolean) => {
 
 
 
-// --- Proxy providers: shared management panel URLs (synced via users DB) ---
+// --- Proxy providers: shared 3x-ui subscription URLs (synced via users DB) ---
 const providersPanelBusy = ref(false)
 const providersPanelError = ref('')
 const providersPanelList = ref<Array<{ name: string; url?: string; host?: string; port?: string; sslNotAfter?: string; sslCheckedAtSec?: number; sslError?: string }>>([])
-const providersPanelExpanded = ref<boolean>(false)
+const providersPanelExpanded = ref<boolean>(true)
 const providersPanelAt = ref<number>(0)
+
+const providerSourceUrlDraftMap = ref<Record<string, string>>({})
 
 const PROVIDERS_PANEL_EXPANDED_LS_KEY = 'zash.tasks.providersPanels.expanded'
 try {
   const v = localStorage.getItem(PROVIDERS_PANEL_EXPANDED_LS_KEY)
-  // default: collapsed
+  // default: expanded
   if (v === '0') providersPanelExpanded.value = false
   if (v === '1') providersPanelExpanded.value = true
 } catch {
@@ -2041,7 +2050,9 @@ const providersPanelRenderList = computed(() => {
     agentMetaByName.set(name, it)
   }
 
-  const readSourceUrl = (provider: any, agentProvider: any): string => {
+  const readSourceUrl = (provider: any, agentProvider: any, name: string): string => {
+    const override = String((proxyProviderPanelUrlMap.value || {})[String(name || '').trim()] || '').trim()
+    if (override) return override
     const direct = [
       getAnyFromObj(provider, ['url', 'uri', 'link', 'subscriptionUrl', 'subscription_url', 'sourceUrl', 'source_url', 'downloadUrl', 'download_url', 'subscribe', 'subscription']),
       getAnyFromObj(provider?.subscriptionInfo, ['url', 'uri', 'link', 'subscriptionUrl', 'subscription_url', 'sourceUrl', 'source_url', 'downloadUrl', 'download_url', 'subscribe', 'subscription']),
@@ -2091,7 +2102,7 @@ const providersPanelRenderList = computed(() => {
       const agentMeta = agentMetaByName.get(name) || (agentProviderByName.value || {})[name] || null
       return {
         name,
-        url: readSourceUrl(providerMeta, agentMeta),
+        url: readSourceUrl(providerMeta, agentMeta, name),
         host: String(agentMeta?.host || '').trim(),
         port: String(agentMeta?.port || '').trim(),
         sslNotAfter: readSslNotAfter(providerMeta, agentMeta),
@@ -2147,6 +2158,51 @@ const clearProviderSslWarnOverride = (name: string) => {
 
 const getProviderSourceUrl = (item: { name: string; url?: string }) => {
   return String(item?.url || '').trim()
+}
+
+const syncProviderSourceUrlDrafts = () => {
+  const next: Record<string, string> = {}
+  for (const item of providersPanelRenderList.value || []) {
+    const name = String(item?.name || '').trim()
+    if (!name) continue
+    next[name] = getProviderSourceUrl(item)
+  }
+  providerSourceUrlDraftMap.value = next
+}
+
+watch(
+  providersPanelRenderList,
+  () => {
+    syncProviderSourceUrlDrafts()
+  },
+  { immediate: true },
+)
+
+const getProviderSourceUrlDraft = (name: string) => {
+  const key = String(name || '').trim()
+  return String((providerSourceUrlDraftMap.value || {})[key] || '').trim()
+}
+
+const setProviderSourceUrlDraft = (name: string, raw: string) => {
+  const key = String(name || '').trim()
+  if (!key) return
+  providerSourceUrlDraftMap.value = {
+    ...(providerSourceUrlDraftMap.value || {}),
+    [key]: String(raw || ''),
+  }
+}
+
+const saveProviderSourceUrl = (name: string) => {
+  const key = String(name || '').trim()
+  if (!key) return
+  const raw = getProviderSourceUrlDraft(key)
+  const normalized = raw && !/^(https?|wss):\/\//i.test(raw) ? `https://${raw}` : raw
+  const nextDraft = { ...(providerSourceUrlDraftMap.value || {}), [key]: normalized }
+  providerSourceUrlDraftMap.value = nextDraft
+  const cur = { ...(proxyProviderPanelUrlMap.value || {}) }
+  if (!normalized) delete cur[key]
+  else cur[key] = normalized
+  proxyProviderPanelUrlMap.value = cur
 }
 
 const sslSubscriptionInfo = (item: { name: string; sslNotAfter?: string; sslError?: string; sslCheckedAtMs?: number; url?: string }) => {

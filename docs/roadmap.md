@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.6.3**  
+Текущая версия линии: **v0.6.4**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -120,14 +120,21 @@
 - зависимость `prettier-plugin-tailwindcss` возвращена к версии `^0.6.14`, совпадающей с текущим `pnpm-lock.yaml`;
 - docs и transfer-файлы переведены в режим стабилизации: сначала зелёный install/build, затем следующий функциональный шаг по SSL в **«Задачах»**.
 
-### v0.6.4 — provider scheduler/history и GEO groundwork
+### v0.6.4 — Tasks alignment: 3x-ui subscription URLs
+Статус: **сделано**
+- раздел **«Задачи»** приведён к целевому виду: блок провайдеров открыт по умолчанию и показывает редактируемые ссылки подписок;
+- URL 3x-ui подписок можно задавать прямо в таблице Tasks и в карточке провайдера;
+- SSL/TLS-опрос в Tasks приоритетно идёт по сохранённым URL подписок провайдеров;
+- терминология очищена от ложной модели «панелей управления» там, где речь идёт именно о ссылке подписки.
+
+### v0.6.5 — provider scheduler/history и GEO groundwork
 Статус: **следующий шаг**
 План:
 - добавить `next check`, `last successful run`, job/history для provider SSL checks;
 - вывести GEO last update и GEO history как соседний operational блок;
 - подготовить storage/state контур под scheduler результаты и историю проверок.
 
-### v0.6.4 — QoS и shaping под Ubuntu
+### v0.6.6 — QoS и shaping под Ubuntu
 План:
 - host shaping profiles;
 - per-client bandwidth/QoS status;

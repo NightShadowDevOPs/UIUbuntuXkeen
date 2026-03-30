@@ -120,7 +120,7 @@
             {{ $t('sslExpire') }}: {{ sslExpireInfo.label }}
           </div>
 
-          <!-- Shared management panel URL (synced via router-agent users DB) -->
+          <!-- Shared 3x-ui subscription URL (synced via router-agent users DB) -->
           <div v-if="open" class="mt-2 flex flex-wrap items-center gap-2 text-xs">
             <span class="opacity-70">{{ $t('providerPanelUrl') }}:</span>
             <input
@@ -611,7 +611,7 @@ const displayProxyName = computed(() => {
   return activeProxy.value || bestLatencyProxy.value || ''
 })
 
-// ---- shared provider management panel URL ----
+// ---- shared provider 3x-ui subscription URL ----
 
 const panelUrl = computed(() => {
   const m = proxyProviderPanelUrlMap.value || {}
