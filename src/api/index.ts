@@ -1,0 +1,429 @@
+import { ROUTE_NAME } from '@/constant'
+import { showNotification } from '@/helper/notification'
+import { getUrlFromBackend } from '@/helper/utils'
+import router from '@/router'
+import { autoUpgradeCore, checkUpgradeCore } from '@/store/settings'
+import { activeBackend, activeUuid } from '@/store/setup'
+import type { Backend, Config, DNSQuery, Proxy, ProxyProvider, Rule, RuleProvider } from '@/types'
+import axios, { AxiosError } from 'axios'
+import { debounce } from 'lodash'
+import ReconnectingWebSocket from 'reconnectingwebsocket'
+import { computed, nextTick, ref, watch } from 'vue'
+
+axios.interceptors.request.use((config) => {
+  config.baseURL = getUrlFromBackend(activeBackend.value!)
+  config.headers['Authorization'] = 'Bearer ' + activeBackend.value?.password
+  return config
+})
+
+axios.interceptors.response.use(
+  null,
+  (
+    error: AxiosError<{
+      message: string
+    }>,
+  ) => {
+    if (error.status === 401 && activeUuid.value) {
+      const currentBackendUuid = activeUuid.value
+      activeUuid.value = null
+      router.push({
+        name: ROUTE_NAME.setup,
+        query: { editBackend: currentBackendUuid },
+      })
+      nextTick(() => {
+        showNotification({ content: 'unauthorizedTip' })
+      })
+    } else if (!error.config?.url?.endsWith('/delay')) {
+      const h: any = (error.config as any)?.headers || {}
+      const silent =
+        (error.config as any)?.silent === true ||
+        h['X-Zash-Silent'] ||
+        h['x-zash-silent'] ||
+        h['X-ZASH-SILENT'] ||
+        h?.get?.('X-Zash-Silent') ||
+        h?.get?.('x-zash-silent')
+
+      if (silent) {
+        return Promise.reject(error)
+      }
+
+      const errorMessage = error.response?.data?.message || error.message
+
+      showNotification({
+        key: errorMessage,
+        content: errorMessage,
+        type: 'alert-error',
+      })
+      return Promise.reject(error)
+    }
+
+    return error
+  },
+)
+
+export const version = ref()
+export const isCoreUpdateAvailable = ref(false)
+export const fetchVersionAPI = () => {
+  return axios.get<{ version: string }>('/version')
+}
+
+export const fetchVersionSilentAPI = () => {
+  return axios.get<{ version: string }>('/version', {
+    timeout: 4000,
+    silent: true as any,
+    headers: { 'X-Zash-Silent': '1' } as any,
+  })
+}
+export const isSingBox = computed(() => version.value?.includes('sing-box'))
+export const zashboardVersion = ref(__APP_VERSION__)
+
+watch(
+  activeBackend,
+  async (val) => {
+    if (val) {
+      const { data } = await fetchVersionAPI()
+
+      version.value = data?.version || ''
+      if (isSingBox.value || !checkUpgradeCore.value || activeBackend.value?.disableUpgradeCore)
+        return
+      isCoreUpdateAvailable.value = await fetchBackendUpdateAvailableAPI()
+
+      if (isCoreUpdateAvailable.value && autoUpgradeCore.value) {
+        upgradeCoreAPI('auto')
+      }
+    }
+  },
+  { immediate: true },
+)
+
+export const fetchProxiesAPI = () => {
+  return axios.get<{ proxies: Record<string, Proxy> }>('/proxies')
+}
+
+export const selectProxyAPI = (proxyGroup: string, name: string) => {
+  return axios.put(`/proxies/${encodeURIComponent(proxyGroup)}`, { name })
+}
+
+export const deleteFixedProxyAPI = (proxyGroup: string) => {
+  return axios.delete(`/proxies/${encodeURIComponent(proxyGroup)}`)
+}
+
+export const fetchProxyLatencyAPI = (proxyName: string, url: string, timeout: number) => {
+  return axios.get<{ delay: number }>(`/proxies/${encodeURIComponent(proxyName)}/delay`, {
+    params: {
+      url,
+      timeout,
+    },
+  })
+}
+
+export const fetchProxyGroupLatencyAPI = (proxyName: string, url: string, timeout: number) => {
+  return axios.get<Record<string, number>>(`/group/${encodeURIComponent(proxyName)}/delay`, {
+    params: {
+      url,
+      timeout,
+    },
+  })
+}
+
+export const fetchSmartGroupWeightsAPI = (proxyName: string) => {
+  return axios.get<{
+    message: string
+    weights: Record<string, string>
+  }>(`/group/${encodeURIComponent(proxyName)}/weights`)
+}
+
+export const flushSmartGroupWeightsAPI = () => {
+  return axios.post(`/cache/smart/flush`)
+}
+
+export const fetchProxyProviderAPI = () => {
+  return axios.get<{ providers: Record<string, ProxyProvider> }>('/providers/proxies')
+}
+
+export const updateProxyProviderAPI = (name: string) => {
+  return axios.put(`/providers/proxies/${encodeURIComponent(name)}`)
+}
+
+export const proxyProviderHealthCheckAPI = (name: string) => {
+  return axios.get<Record<string, number>>(
+    `/providers/proxies/${encodeURIComponent(name)}/healthcheck`,
+    {
+      timeout: 15000,
+    },
+  )
+}
+
+export const fetchRulesAPI = () => {
+  return axios.get<{ rules: Rule[] }>('/rules')
+}
+
+export const fetchRuleProvidersAPI = () => {
+  return axios.get<{ providers: Record<string, RuleProvider> }>('/providers/rules')
+}
+
+export const updateRuleProviderAPI = (name: string) => {
+  return axios.put(`/providers/rules/${encodeURIComponent(name)}`)
+}
+
+export const updateRuleProviderSilentAPI = (name: string) => {
+  return axios.put(`/providers/rules/${encodeURIComponent(name)}`, null, {
+    timeout: 15000,
+    silent: true as any,
+    headers: { 'X-Zash-Silent': '1' } as any,
+  })
+}
+
+export const disconnectByIdAPI = (id: string) => {
+  return axios.delete(`/connections/${id}`)
+}
+
+export const disconnectByIdSilentAPI = (id: string) => {
+  return axios.delete(`/connections/${id}`, {
+    silent: true as any,
+    headers: { 'X-Zash-Silent': '1' } as any,
+  })
+}
+
+export const disconnectAllAPI = () => {
+  return axios.delete('/connections')
+}
+
+export const getConfigsAPI = () => {
+  return axios.get<Config>('/configs')
+}
+
+export const getConfigsSilentAPI = () => {
+  return axios.get<Config>('/configs', {
+    timeout: 6000,
+    silent: true as any,
+    headers: { 'X-Zash-Silent': '1' } as any,
+  })
+}
+
+
+export const getConfigsRawAPI = (cfg?: { path?: string }) => {
+  return axios.get<string>('/configs', {
+    params: cfg?.path ? { path: cfg.path } : undefined,
+    // на некоторых сборках это может вернуть YAML/text
+    responseType: 'text',
+    headers: {
+      Accept: 'text/plain, application/x-yaml, application/yaml, */*',
+    } as any,
+  })
+}
+
+
+export const patchConfigsAPI = (configs: Record<string, string | boolean | object | number>) => {
+  return axios.patch('/configs', configs)
+}
+
+export const patchConfigsSilentAPI = (
+  configs: Record<string, string | boolean | object | number>,
+) => {
+  return axios.patch('/configs', configs, {
+    timeout: 8000,
+    silent: true as any,
+    headers: { 'X-Zash-Silent': '1' } as any,
+  })
+}
+
+export const flushFakeIPAPI = () => {
+  return axios.post('/cache/fakeip/flush')
+}
+
+export const flushDNSCacheAPI = () => {
+  return axios.post('/cache/dns/flush')
+}
+
+export const reloadConfigsAPI = (cfg?: { path?: string; payload?: string }) => {
+  return axios.put('/configs?reload=true', {
+    path: cfg?.path ?? '',
+    payload: cfg?.payload ?? '',
+  })
+}
+
+export const upgradeUIAPI = () => {
+  return axios.post('/upgrade/ui')
+}
+
+export const updateGeoDataAPI = () => {
+  return axios.post('/configs/geo')
+}
+
+export const upgradeCoreAPI = (type: 'release' | 'alpha' | 'auto') => {
+  const url = type === 'auto' ? '/upgrade' : `/upgrade?channel=${type}`
+
+  return axios.post(url)
+}
+
+export const restartCoreAPI = () => {
+  return axios.post('/restart')
+}
+
+export const queryDNSAPI = (params: { name: string; type: string }) => {
+  return axios.get<DNSQuery>('/dns/query', {
+    params,
+  })
+}
+
+const createWebSocket = <T>(url: string, searchParams?: Record<string, string>) => {
+  const backend = activeBackend.value!
+  const resurl = new URL(`${getUrlFromBackend(backend).replace('http', 'ws')}/${url}`)
+
+  resurl.searchParams.append('token', backend?.password || '')
+
+  if (searchParams) {
+    Object.entries(searchParams).forEach(([key, value]) => {
+      resurl.searchParams.append(key, value)
+    })
+  }
+
+  const data = ref<T>()
+  const websocket = new ReconnectingWebSocket(resurl.toString())
+
+  const close = () => {
+    websocket.close()
+  }
+
+  const messageHandler = ({ data: message }: { data: string }) => {
+    data.value = JSON.parse(message)
+  }
+
+  websocket.onmessage = url === 'logs' ? messageHandler : debounce(messageHandler, 100)
+
+  return {
+    data,
+    close,
+  }
+}
+
+export const fetchConnectionsAPI = <T>() => {
+  return createWebSocket<T>('connections')
+}
+
+export const fetchLogsAPI = <T>(params: Record<string, string> = {}) => {
+  return createWebSocket<T>('logs', params)
+}
+
+export const fetchMemoryAPI = <T>() => {
+  return createWebSocket<T>('memory')
+}
+
+export const fetchTrafficAPI = <T>() => {
+  return createWebSocket<T>('traffic')
+}
+
+export const isBackendAvailable = async (backend: Backend, timeout: number = 10000) => {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+  try {
+    const res = await fetch(`${getUrlFromBackend(backend)}/version`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${backend.password}`,
+      },
+      signal: controller.signal,
+    })
+
+    return res.ok
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
+const CACHE_DURATION = 1000 * 60 * 60
+
+interface CacheEntry<T> {
+  timestamp: number
+  version: string
+  data: T
+}
+
+async function fetchWithLocalCache<T>(url: string, version: string): Promise<T> {
+  const cacheKey = 'cache/' + url
+  const cacheRaw = localStorage.getItem(cacheKey)
+
+  if (cacheRaw) {
+    try {
+      const cache: CacheEntry<T> = JSON.parse(cacheRaw)
+      const now = Date.now()
+
+      if (now - cache.timestamp < CACHE_DURATION && cache.version === version) {
+        return cache.data
+      } else {
+        localStorage.removeItem(cacheKey)
+      }
+    } catch (e) {
+      console.warn('Failed to parse cache for', url, e)
+    }
+  }
+
+  const response = await fetch(url)
+  if (!response.ok) {
+    throw new Error(`Fetch failed: ${response.status} ${response.statusText}`)
+  }
+
+  const data: T = await response.json()
+  const newCache: CacheEntry<T> = {
+    timestamp: Date.now(),
+    version,
+    data,
+  }
+
+  localStorage.setItem(cacheKey, JSON.stringify(newCache))
+  return data
+}
+
+export const fetchIsUIUpdateAvailable = async () => {
+  const { tag_name } = await fetchWithLocalCache<{ tag_name: string }>(
+    'https://api.github.com/repos/NightShadowDevOPs/UltraUIXkeen/releases/latest',
+    zashboardVersion.value,
+  )
+
+  return Boolean(tag_name && tag_name !== `v${zashboardVersion.value}`)
+}
+
+const check = async (url: string, versionNumber: string) => {
+  const { assets } = await fetchWithLocalCache<{ assets: { name: string }[] }>(url, versionNumber)
+  const alreadyLatest = assets.some(({ name }) => name.includes(versionNumber))
+
+  return !alreadyLatest
+}
+
+export const fetchBackendUpdateAvailableAPI = async () => {
+  const match = /(alpha-smart|alpha|beta|meta)-?(\w+)/.exec(version.value)
+
+  if (!match) {
+    const { tag_name } = await fetchWithLocalCache<{ tag_name: string }>(
+      'https://api.github.com/repos/MetaCubeX/mihomo/releases/latest',
+      version.value,
+    )
+
+    return Boolean(tag_name && !tag_name.endsWith(version.value))
+  }
+
+  const channel = match[1],
+    versionNumber = match[2]
+
+  if (channel === 'meta')
+    return await check(
+      'https://api.github.com/repos/MetaCubeX/mihomo/releases/latest',
+      versionNumber,
+    )
+  if (channel === 'alpha')
+    return await check(
+      'https://api.github.com/repos/MetaCubeX/mihomo/releases/tags/Prerelease-Alpha',
+      versionNumber,
+    )
+  if (channel === 'alpha-smart')
+    return await check(
+      'https://api.github.com/repos/vernesong/mihomo/releases/tags/Prerelease-Alpha',
+      versionNumber,
+    )
+
+  return false
+}
