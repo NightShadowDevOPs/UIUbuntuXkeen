@@ -5,6 +5,7 @@
     @scroll.passive="handleScroll"
   >
     <ProxyProvidersHealthSummary :compact="isProviderToolbarCompact" />
+    <ProxyProviderSslChecksWorkspace v-if="proxiesTabShow === PROXY_TAB_TYPE.PROVIDER" />
 
     <div
       v-if="proxiesTabShow === PROXY_TAB_TYPE.PROVIDER && renderGroups.length === 0"
@@ -51,6 +52,7 @@ import ProxyGroup from '@/components/proxies/ProxyGroup.vue'
 import ProxyGroupForMobile from '@/components/proxies/ProxyGroupForMobile.vue'
 import ProxyProvider from '@/components/proxies/ProxyProvider.vue'
 import ProxyProvidersHealthSummary from '@/components/proxies/ProxyProvidersHealthSummary.vue'
+import ProxyProviderSslChecksWorkspace from '@/components/proxies/ProxyProviderSslChecksWorkspace.vue'
 import { renderGroups } from '@/composables/proxies'
 import { PROXY_TAB_TYPE, ROUTE_NAME } from '@/constant'
 import { cleanupExpiredPendingPageFocus, clearPendingPageFocus, flashNavHighlight, getPendingPageFocusForRoute } from '@/helper/navFocus'

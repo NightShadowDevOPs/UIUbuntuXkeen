@@ -1,5 +1,26 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.6.0 — provider SSL checks MVP
+Дата: **2026-03-30**
+
+Сделано:
+- в разделе **«Прокси-провайдеры»** добавлен `ProxyProviderSslChecksWorkspace.vue`;
+- вынесены реальные действия **«Проверить сейчас»** и **«Обновить SSL-кеш»** вместо спрятанных полумёртвых хвостов старого agent-flow;
+- таблица по провайдерам показывает срок действия сертификата, источник проверки, время последней проверки, URL и TLS/SSL ошибку;
+- провайдеры без HTTPS/WSS URL теперь отдельно помечаются как неподходящие для TLS-проверки, а не попадают в ложный аварийный список;
+- reuse existing compatibility bridge / Ubuntu service runtime без новой фальшивой вкладки.
+
+Результат:
+- SSL у прокси наконец перестал быть обещанием «после красивых экранов» и стал рабочим MVP-блоком;
+- пользователь видит, кого реально можно проверить по TLS, кто скоро истечёт и где backend вернул ошибку;
+- groundwork под scheduler/history и SQLite storage сохранён для следующего backend-шагa.
+
+Статус:
+- functional UI/runtime release; полный scheduler/history всё ещё требует следующего service-этапа.
+
+Следующий плановый релиз:
+- `v0.6.1` — provider scheduler, history и GEO groundwork.
+
 ## v0.5.6 — трафик: hotfix synthetic IP и degraded telemetry
 Дата: **2026-03-30**
 

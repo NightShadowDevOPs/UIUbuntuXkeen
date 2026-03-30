@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.6.0 - 2026-03-30
+- добавлен `ProxyProviderSslChecksWorkspace.vue` — единая operational-панель SSL/TLS по прокси-провайдерам прямо в разделе **Прокси-провайдеры**;
+- в workspace выведены реальные действия **«Проверить сейчас»** и **«Обновить SSL-кеш»** поверх уже существующего compatibility bridge / Ubuntu service capability слоя;
+- сводка и таблица теперь показывают по каждому провайдеру: состояние сертификата, срок действия, источник проверки, время последней проверки, URL и TLS/SSL ошибку;
+- workspace умеет честно показывать провайдеров без HTTPS/WSS URL как отдельный класс, а не маскировать их под «сломанные» сертификаты;
+- обновлены roadmap, release journal, spec, backend-contract и transfer docs под переход к `v0.6.0` как Provider SSL checks MVP.
+
 ## v0.5.6 - 2026-03-30
 - `TrafficClientsStateCard.vue` больше не показывает пугающий `Network Error`, если optional agent endpoint `host_traffic_live` недоступен; вместо этого UI спокойно остаётся в режиме **только Mihomo**;
 - из таблицы состояний клиентов отфильтрованы синтетические/system IP без host evidence (например `198.18.x.x`), чтобы в трафике не появлялись фальшивые ‘клиенты’;

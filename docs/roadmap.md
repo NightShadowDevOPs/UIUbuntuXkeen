@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.5.6**  
+Текущая версия линии: **v0.6.0**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -94,16 +94,22 @@
 - синтетические/system IP без host evidence исключены из таблицы клиентов и summary;
 - экран **«Трафик»** теперь честно деградирует до режима **только Mihomo**, а не делает вид, что всё сломалось.
 
-### v0.5.7 — GEO-файлы, локальные правила и top rules
+### v0.6.0 — Provider SSL checks MVP
+Статус: **сделано**
+- добавлен единый workspace SSL/TLS диагностики в разделе **«Прокси-провайдеры»**;
+- доступны реальные действия **«Проверить сейчас»** и **«Обновить SSL-кеш»**;
+- по каждому провайдеру UI показывает expires/check time/source URL/TLS error;
+- compatibility bridge и `ubuntu-service` capability layer используются как один runtime-контур вместо очередной картонной заглушки.
+
+### v0.6.1 — Provider scheduler, history и GEO groundwork
 Статус: **следующий шаг**
 План:
-- last GEO update;
-- GEO history;
-- local rules;
-- top rules;
-- drill-down по rule/provider activity.
+- авто-проверка SSL по расписанию;
+- `next check`, job/history, last successful run;
+- GEO last update и GEO history как соседний operational блок;
+- groundwork под хранение результатов в SQLite/service state.
 
-### v0.5.8 — QoS и shaping под Ubuntu
+### v0.6.2 — QoS и shaping под Ubuntu
 План:
 - host shaping profiles;
 - per-client bandwidth/QoS status;
