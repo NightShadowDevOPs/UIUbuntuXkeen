@@ -8,14 +8,15 @@
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <button type="button" class="btn btn-sm" @click="setSection('overview')">
-            {{ t('routerSectionOverviewTitle') }}
-          </button>
-          <button type="button" class="btn btn-sm btn-ghost" @click="setSection('traffic')">
-            {{ t('routerSectionTrafficTitle') }}
-          </button>
-          <button type="button" class="btn btn-sm btn-ghost" @click="setSection('network')">
-            {{ t('routerSectionNetworkTitle') }}
+          <button
+            v-for="section in availableSections"
+            :key="`workspace-${section.id}`"
+            type="button"
+            class="btn btn-sm"
+            :class="activeSection === section.id ? '' : 'btn-ghost'"
+            @click="setSection(section.id)"
+          >
+            {{ t(section.labelKey) }}
           </button>
         </div>
       </div>
@@ -23,7 +24,7 @@
       <div class="overflow-x-auto">
         <div class="tabs tabs-boxed inline-flex min-w-max gap-1 bg-base-200/60 p-1">
           <button
-            v-for="section in routerSections"
+            v-for="section in availableSections"
             :key="section.id"
             type="button"
             class="tab whitespace-nowrap border-0"
@@ -49,65 +50,104 @@
 
     <BackendDataFlowCard v-if="activeBackend" :backend="activeBackend" :kind="activeBackend.kind" />
 
-    <section v-show="activeSection === 'overview'" class="space-y-2">
-      <div class="px-1">
-        <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('routerSectionOverviewTitle') }}</div>
-        <div class="text-sm opacity-70">{{ t('routerSectionOverviewTip') }}</div>
-      </div>
-
-      <div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
-        <AgentCard />
-        <SystemCard />
-      </div>
-
-      <div class="card items-center justify-center gap-2 p-2 sm:flex-row">
-        {{ getLabelFromBackend(activeBackend!) }} :
-        <BackendVersion />
-      </div>
-    </section>
-
-    <section v-show="activeSection === 'traffic'" class="space-y-2">
-      <div class="px-1">
-        <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('routerSectionTrafficTitle') }}</div>
-        <div class="text-sm opacity-70">{{ t('routerSectionTrafficTip') }}</div>
-      </div>
-
-      <div class="card gap-2 p-3">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <div class="font-semibold">{{ t('hostQosTitle') }}</div>
-            <div class="text-sm opacity-70">{{ t('hostQosMovedToTrafficTip') }}</div>
-          </div>
-          <button type="button" class="btn btn-sm" @click="goUsersTraffic">
-            {{ t('open') }} · {{ t('traffic') }}
-          </button>
+    <template v-if="isUbuntuService">
+      <section v-show="activeSection === 'overview'" class="space-y-2">
+        <div class="px-1">
+          <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('hostSectionOverviewTitle') }}</div>
+          <div class="text-sm opacity-70">{{ t('hostSectionOverviewTip') }}</div>
         </div>
-      </div>
 
-      <NetcrazeTrafficCard />
-      <ChartsCard title-key="router" />
-    </section>
+        <HostRuntimeCard />
 
-    <section v-show="activeSection === 'network'" class="space-y-2">
-      <div class="px-1">
-        <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('routerSectionNetworkTitle') }}</div>
-        <div class="text-sm opacity-70">{{ t('routerSectionNetworkTip') }}</div>
-      </div>
+        <div class="card items-center justify-center gap-2 p-2 sm:flex-row">
+          {{ getLabelFromBackend(activeBackend!) }} :
+          <BackendVersion />
+        </div>
+      </section>
 
-      <NetworkCard v-if="showIPAndConnectionInfo" />
-      <div v-else class="card gap-2 p-3 text-sm opacity-70">
-        {{ t('routerSectionNetworkDisabled') }}
-      </div>
+      <section v-show="activeSection === 'services'" class="space-y-2">
+        <div class="px-1">
+          <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('hostSectionServicesTitle') }}</div>
+          <div class="text-sm opacity-70">{{ t('hostSectionServicesTip') }}</div>
+        </div>
 
-      <div class="card items-center justify-center gap-2 p-2 sm:flex-row">
-        {{ getLabelFromBackend(activeBackend!) }} :
-        <BackendVersion />
-      </div>
-    </section>
+        <HostServicesCard />
+      </section>
+
+      <section v-show="activeSection === 'logs'" class="space-y-2">
+        <div class="px-1">
+          <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('hostSectionLogsTitle') }}</div>
+          <div class="text-sm opacity-70">{{ t('hostSectionLogsTip') }}</div>
+        </div>
+
+        <HostLogsCard />
+      </section>
+    </template>
+
+    <template v-else>
+      <section v-show="activeSection === 'overview'" class="space-y-2">
+        <div class="px-1">
+          <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('routerSectionOverviewTitle') }}</div>
+          <div class="text-sm opacity-70">{{ t('routerSectionOverviewTip') }}</div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-2 xl:grid-cols-2">
+          <AgentCard />
+          <SystemCard />
+        </div>
+
+        <div class="card items-center justify-center gap-2 p-2 sm:flex-row">
+          {{ getLabelFromBackend(activeBackend!) }} :
+          <BackendVersion />
+        </div>
+      </section>
+
+      <section v-show="activeSection === 'traffic'" class="space-y-2">
+        <div class="px-1">
+          <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('routerSectionTrafficTitle') }}</div>
+          <div class="text-sm opacity-70">{{ t('routerSectionTrafficTip') }}</div>
+        </div>
+
+        <div class="card gap-2 p-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div class="font-semibold">{{ t('hostQosTitle') }}</div>
+              <div class="text-sm opacity-70">{{ t('hostQosMovedToTrafficTip') }}</div>
+            </div>
+            <button type="button" class="btn btn-sm" @click="goUsersTraffic">
+              {{ t('open') }} · {{ t('traffic') }}
+            </button>
+          </div>
+        </div>
+
+        <NetcrazeTrafficCard />
+        <ChartsCard title-key="router" />
+      </section>
+
+      <section v-show="activeSection === 'network'" class="space-y-2">
+        <div class="px-1">
+          <div class="text-xs font-semibold uppercase tracking-[0.12em] opacity-55">{{ t('routerSectionNetworkTitle') }}</div>
+          <div class="text-sm opacity-70">{{ t('routerSectionNetworkTip') }}</div>
+        </div>
+
+        <NetworkCard v-if="showIPAndConnectionInfo" />
+        <div v-else class="card gap-2 p-3 text-sm opacity-70">
+          {{ t('routerSectionNetworkDisabled') }}
+        </div>
+
+        <div class="card items-center justify-center gap-2 p-2 sm:flex-row">
+          {{ getLabelFromBackend(activeBackend!) }} :
+          <BackendVersion />
+        </div>
+      </section>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import HostLogsCard from '@/components/host/HostLogsCard.vue'
+import HostRuntimeCard from '@/components/host/HostRuntimeCard.vue'
+import HostServicesCard from '@/components/host/HostServicesCard.vue'
 import AgentCard from '@/components/router/AgentCard.vue'
 import SystemCard from '@/components/router/SystemCard.vue'
 import BackendVersion from '@/components/common/BackendVersion.vue'
@@ -121,6 +161,7 @@ import {
   getBackendInfoTitleKey,
   getBackendRuntimeTipKey,
   getBackendRuntimeTitleKey,
+  isUbuntuServiceBackend,
 } from '@/helper/backend'
 import { getLabelFromBackend } from '@/helper/utils'
 import { i18n } from '@/i18n'
@@ -133,28 +174,37 @@ const router = useRouter()
 const route = useRoute()
 const t = i18n.global.t
 
-const routerSections = [
+const legacySections = [
   { id: 'overview', labelKey: 'routerSectionOverviewTitle', tipKey: 'routerSectionOverviewTip' },
   { id: 'traffic', labelKey: 'routerSectionTrafficTitle', tipKey: 'routerSectionTrafficTip' },
   { id: 'network', labelKey: 'routerSectionNetworkTitle', tipKey: 'routerSectionNetworkTip' },
 ] as const
 
-type RouterSectionId = (typeof routerSections)[number]['id']
+const ubuntuSections = [
+  { id: 'overview', labelKey: 'hostSectionOverviewTitle', tipKey: 'hostSectionOverviewTip' },
+  { id: 'services', labelKey: 'hostSectionServicesTitle', tipKey: 'hostSectionServicesTip' },
+  { id: 'logs', labelKey: 'hostSectionLogsTitle', tipKey: 'hostSectionLogsTip' },
+] as const
 
-const resolveSectionId = (raw: unknown): RouterSectionId => {
+type SectionMeta = { id: string; labelKey: string; tipKey: string }
+
+const isUbuntuService = computed(() => isUbuntuServiceBackend(activeBackend.value))
+const availableSections = computed<SectionMeta[]>(() => (isUbuntuService.value ? [...ubuntuSections] : [...legacySections]))
+
+const resolveSectionId = (raw: unknown, sections: SectionMeta[]): string => {
   const value = String(raw || '').trim()
-  return (routerSections.find((item) => item.id === value)?.id || 'overview') as RouterSectionId
+  return sections.find((item) => item.id === value)?.id || sections[0]?.id || 'overview'
 }
 
-const activeSection = computed<RouterSectionId>(() => resolveSectionId(route.query.section))
-const activeSectionMeta = computed(() => routerSections.find((item) => item.id === activeSection.value) || routerSections[0])
+const activeSection = computed(() => resolveSectionId(route.query.section, availableSections.value))
+const activeSectionMeta = computed(() => availableSections.value.find((item) => item.id === activeSection.value) || availableSections.value[0])
 const activeBackendKind = computed(() => activeBackend.value?.kind)
 const workspaceTitleKey = computed(() => getBackendRuntimeTitleKey(activeBackendKind.value))
 const workspaceTipKey = computed(() => getBackendRuntimeTipKey(activeBackendKind.value))
 const infoTitleKey = computed(() => getBackendInfoTitleKey(activeBackendKind.value))
 const infoTipKey = computed(() => getBackendInfoTipKey(activeBackendKind.value))
 
-const setSection = (id: RouterSectionId) => {
+const setSection = (id: string) => {
   if (activeSection.value === id) return
   router.replace({
     name: ROUTE_NAME.router,
@@ -170,9 +220,9 @@ const goUsersTraffic = () => {
 }
 
 watch(
-  () => route.query.section,
-  (value) => {
-    const resolved = resolveSectionId(value)
+  [() => route.query.section, isUbuntuService],
+  ([value]) => {
+    const resolved = resolveSectionId(value, availableSections.value)
     if (String(value || '').trim() === resolved) return
     router.replace({
       name: ROUTE_NAME.router,

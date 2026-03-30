@@ -1,5 +1,26 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.5.3 — хост: ресурсы, сервисы и лог Mihomo
+Дата: **2026-03-30**
+
+Сделано:
+- раздел **«Хост»** перестроен под `ubuntu-service` backend и больше не притворяется старой router-страницей;
+- добавлены host-компоненты для runtime/resources, systemd-сервисов и логов;
+- `src/api/ubuntuService.ts` научен нормализовать payload-ы `/api/status`, `/api/system/resources`, `/api/system/services`, `/api/system/logs`;
+- `RouterPage.vue` теперь показывает отдельные зоны **Обзор хоста / Сервисы / Логи** для Ubuntu backend-а, а legacy router workflow сохранён;
+- в UI отдельно подсвечен каноничный лог Mihomo `/var/log/mihomo/mihomo.log`.
+
+Результат:
+- в Ubuntu-линии появился не просто заголовок **«Хост»**, а рабочий UI-контур под реальные backend endpoint-ы;
+- стало проще подключать живой Ubuntu service без повторного перелопачивания страницы;
+- следующий шаг можно брать уже по трафику и состояниям клиентов, а не возвращаться к структуре host-экрана.
+
+Статус:
+- UI foundation готов; для полного эффекта нужны живые backend endpoint-ы и данные с хоста.
+
+Следующий плановый релиз:
+- `v0.5.4` — Трафик и состояния клиентов.
+
 ## v0.5.2 — провайдеры: foundation Ubuntu service в UI runtime
 Дата: **2026-03-30**
 

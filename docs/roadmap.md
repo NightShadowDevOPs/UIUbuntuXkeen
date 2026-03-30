@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.5.2**  
+Текущая версия линии: **v0.5.3**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -67,15 +67,15 @@
 - заложены состояния `last check`, `next check`, `job status`, `error` для следующего backend-этапа.
 
 ### v0.5.3 — Хост: ресурсы сервера и Mihomo
-План:
-- раздел **«Хост»** как operational-экран Ubuntu;
-- CPU / RAM / load / uptime / disk / network;
-- статус Mihomo;
-- каноничный лог `/var/log/mihomo/mihomo.log`;
-- host-oriented wording без router-era хвостов.
+Статус: **сделано как UI foundation**
+- раздел **«Хост»** перестроен под Ubuntu service контур;
+- добавлены зоны **Обзор хоста / Сервисы / Логи**;
+- UI читает и нормализует `/api/status`, `/api/system/resources`, `/api/system/services`, `/api/system/logs`;
+- показываются CPU, RAM, uptime, filesystem, состояние Mihomo и список systemd-юнитов;
+- каноничный лог `/var/log/mihomo/mihomo.log` вынесен в отдельную рабочую зону.
 
 ### v0.5.4 — Трафик и состояния клиентов
-План:
+Статус: **следующий шаг**
 - графики трафика;
 - карточки и таблицы клиентов;
 - routed/vpn/bypass/mihomo state;

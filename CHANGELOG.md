@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.3 - 2026-03-30
+- раздел **«Хост»** переведён на отдельные Ubuntu service-зоны: обзор, сервисы и логи;
+- `src/api/ubuntuService.ts` расширен нормализацией `/api/status`, `/api/system/resources`, `/api/system/services`, `/api/system/logs`;
+- добавлены `src/components/host/HostRuntimeCard.vue`, `HostServicesCard.vue`, `HostLogsCard.vue`;
+- `RouterPage.vue` теперь честно перестраивается под `ubuntu-service`, а legacy router flow не ломается;
+- обновлены README, roadmap, release journal и transfer docs под следующий шаг `v0.5.4`.
+
 ## v0.5.2 - 2026-03-30
 - добавлен capability-aware foundation-слой для provider runtime в режиме `ubuntu-service`;
 - расширены `BackendCapabilities` и Ubuntu backend endpoints под провайдеры, GEO, traffic, QoS, shaping и jobs;

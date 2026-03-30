@@ -6,15 +6,15 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.5.2**
+- Текущая версия линии: **v0.5.3**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
-- Текущий шаг: **провайдеры — foundation Ubuntu service в UI runtime**
+- Текущий шаг: **хост — ресурсы сервера, сервисы и лог Mihomo**
 
-Релиз **v0.5.2** — уже не только про документы. Он добавляет foundation-слой для provider runtime в режиме `ubuntu-service`:
-- capability-aware provider checks / refresh / ssl-cache actions;
-- нормализацию `/api/capabilities` для Ubuntu service;
-- общий provider runtime store вместо жёсткой завязки на старый agent-only сценарий;
-- честные состояния UI, когда capability на backend ещё нет.
+Релиз **v0.5.3** переводит раздел **«Хост»** на более честную Ubuntu-модель:
+- отдельные зоны **Обзор хоста / Сервисы / Логи** для `ubuntu-service` backend-а;
+- нормализацию `/api/status`, `/api/system/resources`, `/api/system/services`, `/api/system/logs`;
+- показ CPU, RAM, storage, uptime, состояния Mihomo и списка systemd-юнитов;
+- чтение каноничного лога `/var/log/mihomo/mihomo.log` без старой agent-only логики.
 
 ## Как работаем
 

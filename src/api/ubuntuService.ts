@@ -163,3 +163,278 @@ export const fetchUbuntuProviderSslCacheStatusAPI = async () => {
   const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheStatus, silentCfg)
   return normalizeUbuntuProviderState(data || {})
 }
+
+const boolish = (value: any): boolean | undefined => {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') {
+    const raw = value.trim().toLowerCase()
+    if (!raw) return undefined
+    if (['1', 'true', 'yes', 'y', 'on', 'enabled', 'active', 'running', 'ready'].includes(raw)) return true
+    if (['0', 'false', 'no', 'n', 'off', 'disabled', 'inactive', 'dead', 'failed'].includes(raw)) return false
+  }
+  return undefined
+}
+
+const firstNonEmpty = (sources: any[], keys: string[]) => {
+  for (const source of sources) {
+    const value = getAnyFromObj(source, keys)
+    if (value !== undefined && value !== null && String(value).trim() !== '') return value
+  }
+  return undefined
+}
+
+const numOrUndef = (value: any) => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+const objectItems = (payload: any, keys: string[]) => {
+  for (const key of keys) {
+    const raw = getAnyFromObj(payload, [key])
+    if (Array.isArray(raw)) return raw
+    if (raw && typeof raw === 'object') {
+      return Object.entries(raw).map(([name, value]) => ({
+        ...(value && typeof value === 'object' ? value : { value }),
+        name,
+      }))
+    }
+  }
+  return [] as any[]
+}
+
+export type UbuntuSystemStatus = {
+  ok: boolean
+  hostname?: string
+  serviceVersion?: string
+  version?: string
+  mihomoVersion?: string
+  mihomoRunning?: boolean
+  serviceStatus?: string
+  serviceUnit?: string
+  platform?: string
+  kernel?: string
+  arch?: string
+  startedAtSec?: number
+  updatedAtSec?: number
+  mihomoLogPath?: string
+  error?: string
+}
+
+export type UbuntuSystemResources = {
+  ok: boolean
+  hostname?: string
+  cpuPct?: number
+  load1?: string
+  load5?: string
+  load15?: string
+  memTotalBytes?: number
+  memUsedBytes?: number
+  memAvailableBytes?: number
+  memUsedPct?: number
+  diskTotalBytes?: number
+  diskUsedBytes?: number
+  diskFreeBytes?: number
+  diskUsedPct?: number
+  diskPath?: string
+  uptimeSec?: number
+  kernel?: string
+  arch?: string
+  platform?: string
+  updatedAtSec?: number
+  error?: string
+}
+
+export type UbuntuSystemServiceItem = {
+  name: string
+  label?: string
+  description?: string
+  activeState?: string
+  subState?: string
+  enabled?: boolean
+  mainPid?: number
+  sinceSec?: number
+  version?: string
+  error?: string
+}
+
+export type UbuntuSystemServices = {
+  ok: boolean
+  items: UbuntuSystemServiceItem[]
+  updatedAtSec?: number
+  error?: string
+}
+
+export type UbuntuSystemLogs = {
+  ok: boolean
+  source?: string
+  path?: string
+  tail?: number
+  lines?: string[]
+  text: string
+  updatedAtSec?: number
+  error?: string
+}
+
+export const normalizeUbuntuSystemStatus = (payload: any): UbuntuSystemStatus => {
+  const hostSources = [payload?.host, payload?.system, payload?.service, payload?.data, payload]
+  const mihomoSources = [payload?.mihomo, payload?.services?.mihomo, payload?.service?.mihomo, payload]
+  const serviceSources = [payload?.service, payload?.services?.service, payload?.services?.ubuntu, payload]
+
+  const ok = boolish(payload?.ok) ?? Boolean(payload?.service || payload?.mihomo || payload?.hostname || payload?.host)
+
+  return {
+    ok,
+    hostname: str(firstNonEmpty(hostSources, ['hostname', 'host', 'nodeName', 'node', 'machine'])),
+    serviceVersion: str(firstNonEmpty(serviceSources, ['version', 'serviceVersion', 'appVersion'])) || str(firstNonEmpty(hostSources, ['serviceVersion', 'appVersion', 'version'])),
+    version: str(firstNonEmpty(hostSources, ['version', 'appVersion'])),
+    mihomoVersion: str(firstNonEmpty(mihomoSources, ['version', 'mihomoVersion', 'coreVersion'])),
+    mihomoRunning: boolish(firstNonEmpty(mihomoSources, ['running', 'active', 'ok', 'healthy', 'alive'])),
+    serviceStatus: str(firstNonEmpty(serviceSources, ['status', 'state', 'activeState', 'active_state'])) || str(firstNonEmpty(mihomoSources, ['status', 'state'])),
+    serviceUnit: str(firstNonEmpty(serviceSources, ['unit', 'serviceUnit', 'name'])) || 'ultra-ui-ubuntu.service',
+    platform: str(firstNonEmpty(hostSources, ['platform', 'prettyName', 'pretty_name', 'os', 'distribution'])),
+    kernel: str(firstNonEmpty(hostSources, ['kernel', 'kernelVersion', 'kernel_version'])),
+    arch: str(firstNonEmpty(hostSources, ['arch', 'architecture'])),
+    startedAtSec: toSec(firstNonEmpty(serviceSources, ['startedAtSec', 'started_at_sec', 'startedAt', 'started_at'])),
+    updatedAtSec: toSec(firstNonEmpty(hostSources, ['updatedAtSec', 'updated_at_sec', 'updatedAt', 'updated_at', 'ts'])),
+    mihomoLogPath: str(firstNonEmpty(mihomoSources, ['logPath', 'log_path', 'path'])) || '/var/log/mihomo/mihomo.log',
+    error: str(payload?.error || payload?.message),
+  }
+}
+
+export const normalizeUbuntuSystemResources = (payload: any): UbuntuSystemResources => {
+  const root = payload?.resources || payload?.data || payload || {}
+  const cpuSources = [root?.cpu, root?.system, root]
+  const memSources = [root?.memory, root?.mem, root?.ram, root]
+  const diskSources = [root?.disk, root?.storage, root?.filesystem, root?.fs, root]
+  const loadSources = [root?.load, root?.cpu, root?.system, root]
+  const hostSources = [root?.system, root?.host, root]
+
+  const memTotalBytes = numOrUndef(firstNonEmpty(memSources, ['totalBytes', 'total_bytes', 'total', 'memTotal', 'mem_total']))
+  const memUsedBytes = numOrUndef(firstNonEmpty(memSources, ['usedBytes', 'used_bytes', 'used', 'memUsed', 'mem_used']))
+  const memAvailableBytes = numOrUndef(firstNonEmpty(memSources, ['availableBytes', 'available_bytes', 'freeBytes', 'free_bytes', 'available', 'free', 'memAvailable', 'mem_available', 'memFree']))
+  const diskTotalBytes = numOrUndef(firstNonEmpty(diskSources, ['totalBytes', 'total_bytes', 'total', 'sizeBytes', 'size_bytes']))
+  const diskUsedBytes = numOrUndef(firstNonEmpty(diskSources, ['usedBytes', 'used_bytes', 'used']))
+  const diskFreeBytes = numOrUndef(firstNonEmpty(diskSources, ['freeBytes', 'free_bytes', 'availableBytes', 'available_bytes', 'free', 'available']))
+
+  return {
+    ok: boolish(root?.ok) ?? Boolean(memTotalBytes || diskTotalBytes || firstNonEmpty(cpuSources, ['cpuPct', 'usagePct', 'percent'])),
+    hostname: str(firstNonEmpty(hostSources, ['hostname', 'host', 'nodeName', 'node'])),
+    cpuPct: numOrUndef(firstNonEmpty(cpuSources, ['cpuPct', 'cpu_percent', 'usagePct', 'usage_pct', 'percent', 'usage'])),
+    load1: str(firstNonEmpty(loadSources, ['load1', 'load_1', 'one', 'avg1'])),
+    load5: str(firstNonEmpty(loadSources, ['load5', 'load_5', 'five', 'avg5'])),
+    load15: str(firstNonEmpty(loadSources, ['load15', 'load_15', 'fifteen', 'avg15'])),
+    memTotalBytes,
+    memUsedBytes,
+    memAvailableBytes,
+    memUsedPct: numOrUndef(firstNonEmpty(memSources, ['usedPct', 'used_pct', 'usagePct', 'usage_pct', 'percent']))
+      ?? (memTotalBytes && memUsedBytes ? (memUsedBytes / memTotalBytes) * 100 : undefined),
+    diskTotalBytes,
+    diskUsedBytes,
+    diskFreeBytes,
+    diskUsedPct: numOrUndef(firstNonEmpty(diskSources, ['usedPct', 'used_pct', 'usagePct', 'usage_pct', 'percent']))
+      ?? (diskTotalBytes && diskUsedBytes ? (diskUsedBytes / diskTotalBytes) * 100 : undefined),
+    diskPath: str(firstNonEmpty(diskSources, ['path', 'mount', 'mountpoint', 'mountPoint'])),
+    uptimeSec: numOrUndef(firstNonEmpty(hostSources, ['uptimeSec', 'uptime_sec', 'uptime'])) || 0,
+    kernel: str(firstNonEmpty(hostSources, ['kernel', 'kernelVersion', 'kernel_version'])),
+    arch: str(firstNonEmpty(hostSources, ['arch', 'architecture'])),
+    platform: str(firstNonEmpty(hostSources, ['platform', 'prettyName', 'pretty_name', 'os', 'distribution'])),
+    updatedAtSec: toSec(firstNonEmpty([root], ['updatedAtSec', 'updated_at_sec', 'updatedAt', 'updated_at', 'ts'])),
+    error: str(root?.error || root?.message),
+  }
+}
+
+const normalizeServiceItem = (item: any): UbuntuSystemServiceItem | null => {
+  const name = str(getAnyFromObj(item, ['name', 'unit', 'service', 'id']))
+  if (!name) return null
+
+  const enabledValue = firstNonEmpty([item], ['enabled', 'isEnabled', 'unitFileState', 'unit_file_state'])
+  const enabledBool = boolish(enabledValue)
+  const unitFileState = String(enabledValue || '').trim().toLowerCase()
+
+  return {
+    name,
+    label: str(getAnyFromObj(item, ['label', 'title', 'displayName', 'display_name'])) || name,
+    description: str(getAnyFromObj(item, ['description', 'desc', 'summary'])),
+    activeState: str(getAnyFromObj(item, ['activeState', 'active_state', 'status', 'state'])),
+    subState: str(getAnyFromObj(item, ['subState', 'sub_state'])),
+    enabled: enabledBool ?? (unitFileState ? ['enabled', 'static', 'linked'].includes(unitFileState) : undefined),
+    mainPid: numOrUndef(getAnyFromObj(item, ['mainPid', 'main_pid', 'pid'])),
+    sinceSec: toSec(getAnyFromObj(item, ['sinceSec', 'since_sec', 'startedAtSec', 'started_at_sec', 'startedAt', 'started_at'])),
+    version: str(getAnyFromObj(item, ['version', 'serviceVersion', 'appVersion'])),
+    error: str(getAnyFromObj(item, ['error', 'message', 'statusText', 'status_text'])),
+  }
+}
+
+export const normalizeUbuntuSystemServices = (payload: any): UbuntuSystemServices => {
+  const rawItems = [
+    ...pickList(payload),
+    ...objectItems(payload, ['services', 'units']),
+  ]
+
+  const unique = new Map<string, UbuntuSystemServiceItem>()
+  for (const item of rawItems) {
+    const normalized = normalizeServiceItem(item)
+    if (!normalized) continue
+    unique.set(normalized.name, normalized)
+  }
+
+  const items = Array.from(unique.values()).sort((a, b) => {
+    const ap = /mihomo/i.test(a.name) ? 0 : /ultra-ui|ubuntu/i.test(a.name) ? 1 : 2
+    const bp = /mihomo/i.test(b.name) ? 0 : /ultra-ui|ubuntu/i.test(b.name) ? 1 : 2
+    if (ap !== bp) return ap - bp
+    return a.name.localeCompare(b.name)
+  })
+
+  return {
+    ok: boolish(payload?.ok) ?? Boolean(items.length),
+    items,
+    updatedAtSec: toSec(firstNonEmpty([payload], ['updatedAtSec', 'updated_at_sec', 'updatedAt', 'updated_at', 'ts'])),
+    error: str(payload?.error || payload?.message),
+  }
+}
+
+export const normalizeUbuntuSystemLogs = (payload: any, fallback: { source?: string; tail?: number } = {}): UbuntuSystemLogs => {
+  const linesRaw = pickList(payload)
+  const lines = linesRaw.length
+    ? linesRaw.map((item) => (typeof item === 'string' ? item : str(getAnyFromObj(item, ['line', 'text', 'message', 'payload'])))).filter(Boolean)
+    : []
+  const text = str(payload?.text || payload?.log || payload?.content || payload?.data?.text) || lines.join('\n')
+
+  return {
+    ok: boolish(payload?.ok) ?? Boolean(text),
+    source: str(payload?.source) || fallback.source || 'mihomo',
+    path: str(payload?.path || payload?.file || payload?.logPath || payload?.log_path),
+    tail: num(payload?.tail ?? fallback.tail, 0) || undefined,
+    lines,
+    text,
+    updatedAtSec: toSec(firstNonEmpty([payload], ['updatedAtSec', 'updated_at_sec', 'updatedAt', 'updated_at', 'ts'])),
+    error: str(payload?.error || payload?.message),
+  }
+}
+
+export const fetchUbuntuSystemStatusAPI = async () => {
+  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.status, silentCfg)
+  return normalizeUbuntuSystemStatus(data || {})
+}
+
+export const fetchUbuntuSystemResourcesAPI = async () => {
+  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.resources, silentCfg)
+  return normalizeUbuntuSystemResources(data || {})
+}
+
+export const fetchUbuntuSystemServicesAPI = async () => {
+  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.services, silentCfg)
+  return normalizeUbuntuSystemServices(data || {})
+}
+
+export const fetchUbuntuSystemLogsAPI = async (args?: { source?: 'mihomo' | 'service'; tail?: number }) => {
+  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.logs, {
+    ...silentCfg,
+    params: {
+      source: args?.source || 'mihomo',
+      tail: args?.tail || 160,
+    },
+  })
+  return normalizeUbuntuSystemLogs(data || {}, args)
+}
