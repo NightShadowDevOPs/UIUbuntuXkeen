@@ -6,11 +6,11 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.3.0**
+- Текущая версия линии: **v0.3.1**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 - Текущий шаг: **Backend contract foundation**
 
-На релизе `v0.3.0` заложена базовая модель Ubuntu backend contract: центральные project/release constants, каноничные Ubuntu paths, типы backend capabilities и groundwork для перехода от compatibility bridge к Ubuntu-native service API.
+На релизе `v0.3.1` setup flow получил явную hybrid-модель backend-а: выбор режима `compatibility-bridge` / `ubuntu-service`, рекомендуемый secondary path и подготовку UI к direct Mihomo + Ubuntu service архитектуре.
 
 ## Как работаем
 

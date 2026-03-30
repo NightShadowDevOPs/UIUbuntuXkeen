@@ -1,5 +1,27 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.3.1 — Hybrid backend setup polish
+Дата: **2026-03-30**
+
+Сделано:
+- в `SetupPage` добавлен явный выбор backend mode: `compatibility-bridge` / `ubuntu-service`;
+- в `EditBackendModal` добавлен такой же выбор backend mode для уже сохранённых backend entries;
+- добавлен helper рекомендуемого secondary path: пустой путь для direct/bridge и `/api` для Ubuntu service;
+- в списке backend-ов на экране Setup добавлены badge-ы режима direct / ubuntu-service;
+- `exportSettings()` теперь отдаёт архив настроек с Ubuntu-oriented именем `ui-ubuntu-xkeen-settings`;
+- обновлены `README.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`, `CHANGELOG.md`.
+
+Результат:
+- setup flow уже явно разделяет direct Mihomo backend и будущий Ubuntu service backend;
+- groundwork под hybrid-модель стал виден прямо в UI, а не только в документах;
+- механизм rolling update не менялся и должен проверяться как обычный следующий релиз.
+
+Статус:
+- подготовлено, ожидает пользовательской проверки.
+
+Следующий плановый релиз:
+- `v0.4.0` — Runtime / Setup / Observability foundation.
+
 ## v0.3.0 — Backend contract foundation
 Дата: **2026-03-30**
 

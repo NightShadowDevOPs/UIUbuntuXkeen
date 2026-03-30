@@ -36,7 +36,7 @@ export const exportSettings = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = 'mihomo-ultra-ui-settings'
+  a.download = 'ui-ubuntu-xkeen-settings'
   a.click()
   URL.revokeObjectURL(url)
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.3.1
+- setup/edit backend: добавлен явный выбор backend mode (`compatibility-bridge` / `ubuntu-service`)
+- добавлены helper-ы для рекомендуемого secondary path и визуальных badge-ов backend mode
+- список backend-ов в Setup теперь показывает режим direct/ubuntu-service
+- export settings filename переведён на `ui-ubuntu-xkeen-settings`
+- обновлены `README.md`, `docs/backend-contract.md`, `docs/roadmap.md`, `docs/releases.md`, `docs/chat-transfer.md`, `TRANSFER_CHAT`
+
 ## v0.3.0
 - added `src/config/project.ts` with unified project, repo and rolling-release constants
 - added `src/config/backendContract.ts` with Ubuntu backend contract foundation

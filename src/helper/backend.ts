@@ -1,4 +1,4 @@
-import { BACKEND_KINDS } from '@/config/backendContract'
+import { BACKEND_KINDS, UBUNTU_BACKEND_FOUNDATION } from '@/config/backendContract'
 import type { Backend, BackendCapabilities, BackendKind } from '@/types'
 
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '::1', '0.0.0.0'])
@@ -35,6 +35,30 @@ export const normalizeBackendInput = <T extends Omit<Backend, 'uuid'>>(backend: 
     ...backend,
     secondaryPath: normalizeSecondaryPath(backend.secondaryPath),
     kind,
+  }
+}
+
+
+export const getRecommendedSecondaryPath = (kind: BackendKind | undefined | null) => {
+  return kind === BACKEND_KINDS.UBUNTU_SERVICE
+    ? UBUNTU_BACKEND_FOUNDATION.endpoints.status.replace(/\/status$/, '')
+    : ''
+}
+
+export const getBackendKindBadgeClass = (kind: BackendKind | undefined | null) => {
+  return kind === BACKEND_KINDS.UBUNTU_SERVICE
+    ? 'badge badge-success badge-outline'
+    : 'badge badge-ghost badge-outline'
+}
+
+export const isUbuntuServiceBackend = (backend?: Partial<Backend> | null) => {
+  return detectBackendKind(backend) === BACKEND_KINDS.UBUNTU_SERVICE
+}
+
+export const applyRecommendedSecondaryPath = <T extends { secondaryPath?: string; kind?: BackendKind }>(backend: T): T => {
+  return {
+    ...backend,
+    secondaryPath: getRecommendedSecondaryPath(backend.kind),
   }
 }
 

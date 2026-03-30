@@ -25,6 +25,22 @@
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-sm">
+          <span>{{ $t('backendMode') }}</span>
+        </label>
+        <select
+          class="select select-sm w-full"
+          v-model="form.kind"
+        >
+          <option :value="BACKEND_KINDS.COMPATIBILITY_BRIDGE">{{ $t('backendModeCompatibility') }}</option>
+          <option :value="BACKEND_KINDS.UBUNTU_SERVICE">{{ $t('backendModeUbuntuService') }}</option>
+        </select>
+      </div>
+      <div class="rounded-2xl border border-base-300/70 bg-base-100/70 px-3 py-2 text-xs leading-5 opacity-85">
+        <div class="font-semibold">{{ $t('backendModeHelpTitle') }}</div>
+        <div>{{ backendModeHelpText }}</div>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="text-sm">
           <span>{{ $t('host') }}</span>
         </label>
         <TextInput
@@ -57,6 +73,19 @@
           class="w-full"
           v-model="form.secondaryPath"
         />
+        <div class="flex items-center justify-between gap-3 text-xs opacity-75">
+          <span>
+            {{ $t('backendModeRecommendedPath') }}:
+            <code>{{ recommendedSecondaryPath || '—' }}</code>
+          </span>
+          <button
+            type="button"
+            class="btn btn-ghost btn-xs"
+            @click="applyRecommendedPath()"
+          >
+            {{ $t('backendModeUseRecommendedPath') }}
+          </button>
+        </div>
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-sm">
@@ -99,10 +128,13 @@
               <ChevronUpDownIcon class="h-4 w-4 cursor-grab" />
             </button>
             <button
-              class="btn btn-sm flex-1"
+              class="btn btn-sm flex-1 justify-between"
               @click="selectBackend(element.uuid)"
             >
-              {{ getLabelFromBackend(element) }}
+              <span class="truncate">{{ getLabelFromBackend(element) }}</span>
+              <span :class="getBackendKindBadgeClass(element.kind)">
+                {{ element.kind === BACKEND_KINDS.UBUNTU_SERVICE ? $t('backendModeShortUbuntu') : $t('backendModeShortDirect') }}
+              </span>
             </button>
             <button
               class="btn btn-circle btn-ghost btn-sm"
@@ -125,7 +157,6 @@
       </div>
     </div>
 
-    <!-- 编辑Backend Modal -->
     <EditBackendModal
       v-model="showEditModal"
       :default-backend-uuid="editingBackendUuid"
@@ -138,8 +169,13 @@ import ImportSettings from '@/components/common/ImportSettings.vue'
 import TextInput from '@/components/common/TextInput.vue'
 import EditBackendModal from '@/components/settings/EditBackendModal.vue'
 import LanguageSelect from '@/components/settings/LanguageSelect.vue'
+import { BACKEND_KINDS } from '@/config/backendContract'
 import { ROUTE_NAME } from '@/constant'
-import { normalizeBackendInput } from '@/helper/backend'
+import {
+  getBackendKindBadgeClass,
+  getRecommendedSecondaryPath,
+  normalizeBackendInput,
+} from '@/helper/backend'
 import { showNotification } from '@/helper/notification'
 import { getLabelFromBackend, getUrlFromBackend } from '@/helper/utils'
 import router from '@/router'
@@ -151,29 +187,42 @@ import {
   QuestionMarkCircleIcon,
   TrashIcon,
 } from '@heroicons/vue/24/outline'
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Draggable from 'vuedraggable'
 
-const form = reactive({
+const { t } = useI18n()
+
+const form = reactive<Omit<Backend, 'uuid'>>({
   protocol: 'http',
   host: '127.0.0.1',
   port: '9090',
   secondaryPath: '',
   password: '',
   label: '',
+  kind: BACKEND_KINDS.COMPATIBILITY_BRIDGE,
 })
 
 const showEditModal = ref(false)
 const editingBackendUuid = ref<string>('')
 
-// 监听路由参数，自动打开编辑模态框
+const recommendedSecondaryPath = computed(() => getRecommendedSecondaryPath(form.kind))
+const backendModeHelpText = computed(() =>
+  form.kind === BACKEND_KINDS.UBUNTU_SERVICE
+    ? t('backendModeUbuntuServiceHelp')
+    : t('backendModeCompatibilityHelp'),
+)
+
+const applyRecommendedPath = () => {
+  form.secondaryPath = recommendedSecondaryPath.value
+}
+
 watch(
   () => router.currentRoute.value.query.editBackend,
   (backendUuid) => {
     if (backendUuid && typeof backendUuid === 'string') {
       editingBackendUuid.value = backendUuid
       showEditModal.value = true
-      // 清除路由参数以避免重复触发
       router.replace({ query: {} })
     }
   },
@@ -258,6 +307,7 @@ if (query.has('hostname')) {
     port: query.get('port') as string,
     password: query.get('secret') || '',
     label: query.get('label') || '',
+    kind: (query.get('kind') as Backend['kind']) || BACKEND_KINDS.COMPATIBILITY_BRIDGE,
     disableUpgradeCore:
       query.get('disableUpgradeCore') === '1' || query.get('disableUpgradeCore') === 'core',
   })
