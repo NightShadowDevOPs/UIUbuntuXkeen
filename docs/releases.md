@@ -1,17 +1,18 @@
-## v0.6.9 — Tasks provider list visibility and effective SSL source probing
+## v0.6.10 — Tasks provider SSL cache flow (no blocking batch probe)
 
 Что сделано:
-- список провайдеров в разделе **«Задачи»** больше не исчезает целиком, если backend provider checks вернули ошибку; предупреждение показывается отдельно, а таблица остаётся доступной;
-- direct SSL/TLS probe теперь берёт effective URL 3x-ui подписок не только из сохранённой карты, но и из текущих proxy providers, `subscriptionInfo` и backend provider metadata;
-- заголовки и мета-подписи в таблице приведены к каноничной модели **«3x-ui подписка / ссылка подписки»**.
+- из раздела **«Задачи»** убран долгий direct `ssl_probe_batch`, который мог зависать на каждом URL подписки и в итоге завершаться `failed`;
+- кнопки обновления SSL теперь работают через штатную связку `ssl_cache_refresh` → повторное чтение `mihomo_providers`;
+- таблица провайдеров в Tasks теперь читает **`panelSslNotAfter`** из agent provider cache и показывает результат именно кэшированной проверки URL 3x-ui подписок.
 
 Что проверять:
-- в **«Задачах»** список провайдеров виден даже если backend checks временно вернули ошибку;
-- кнопка **«Обновить SSL провайдеров»** умеет отрабатывать по URL, пришедшим не только из ручного overrides map, но и из provider metadata;
-- под таблицей и в мета-тексте больше нет старой двусмысленной panel URL терминологии.
+- после нажатия **«Обновить SSL провайдеров»** экран не висит минуту на `SSL обновляется...`;
+- по строкам провайдеров появляются даты из `panelSslNotAfter`, если agent cache успел их посчитать;
+- при ошибке provider list warning может остаться, но сама таблица не пропадает.
 
 Следующий шаг:
-- `v0.6.10` — scheduler/history для SSL-проверок и GEO groundwork.
+- разбор и, при необходимости, ускорение самого `ssl_cache_refresh` на стороне agent/service.
+
 
 # UIUbuntuXkeen — журнал релизов
 

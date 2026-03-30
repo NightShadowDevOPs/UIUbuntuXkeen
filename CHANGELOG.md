@@ -1,9 +1,10 @@
 # Changelog
 
-## v0.6.9 - 2026-03-30
-- раздел **«Задачи»** больше не прячет всю таблицу провайдеров из-за backend/provider-check ошибки: warning показывается отдельно, а список провайдеров и URL 3x-ui подписок остаётся доступным для работы;
-- direct SSL/TLS probe теперь собирает effective subscription URL не только из сохранённой карты `proxyProviderSubscriptionUrlMap`, но и из текущего списка proxy providers / `subscriptionInfo` / provider-health metadata;
-- в таблице Tasks заголовок и мета-подписи приведены к каноничной модели **«3x-ui подписка / ссылка подписки»**, а не к старой терминологии panel URL.
+## v0.6.10 - 2026-03-30
+- в разделе **«Задачи»** убран долгий direct `ssl_probe_batch`, из-за которого UI мог висеть 30–60 секунд и отлипать без результата/с `failed`;
+- кнопки **«Обновить SSL провайдеров»** и **«Обновить SSL-кеш»** теперь опираются на штатный agent flow: `ssl_cache_refresh` + повторное чтение `mihomo_providers`;
+- таблица провайдеров в Tasks теперь читает **`panelSslNotAfter`** из ответа agent provider cache, то есть использует именно результат кэшированной проверки URL 3x-ui подписок;
+- оставлен best-effort fallback по локальному списку провайдеров, но без блокирующего SSL batch-probe из браузера.
 
 ## v0.6.8 - 2026-03-30
 - в разделе **«Задачи»** наконец подключён реальный SSL/TLS-опрос по сохранённым URL 3x-ui подписок провайдеров: `refreshProvidersSsl` и `refreshProviderSslCache` теперь не только дёргают backend refresh, но и запускают прямой probe по subscription URL через compatibility bridge, если он доступен;

@@ -1,4 +1,4 @@
-import { agentMihomoProvidersAPI, agentProviderSslCacheRefreshAPI, agentSslProbeBatchAPI } from '@/api/agent'
+import { agentMihomoProvidersAPI, agentProviderSslCacheRefreshAPI } from '@/api/agent'
 import { fetchUbuntuProviderChecksAPI, fetchUbuntuProviderSslCacheStatusAPI, refreshUbuntuProviderSslCacheAPI, refreshUbuntuProvidersAPI, runUbuntuProviderChecksAPI } from '@/api/ubuntuService'
 import { normalizeProxyProtoKey } from '@/helper/proxyProto'
 import { useStorage } from '@vueuse/core'
@@ -262,71 +262,6 @@ export const refreshAgentProviderSslCache = async () => {
   return res
 }
 
-const readProviderProbeUrl = (provider: any, agentProvider: any, name: string): string => {
-  const key = String(name || '').trim()
-  const override = String((proxyProviderSubscriptionUrlMap.value || {})[key] || '').trim()
-  if (override) return override
-
-  const candidates = [provider, provider?.subscriptionInfo, agentProvider]
-  for (const item of candidates) {
-    const url = String(
-      item?.url ??
-      item?.uri ??
-      item?.link ??
-      item?.subscriptionUrl ??
-      item?.subscription_url ??
-      item?.sourceUrl ??
-      item?.source_url ??
-      item?.downloadUrl ??
-      item?.download_url ??
-      item?.subscribe ??
-      item?.subscription ??
-      item?.panelUrl ??
-      item?.panel_url ??
-      '',
-    ).trim()
-    if (url) return url
-  }
-
-  return ''
-}
-
-const buildProbeLines = (): string => {
-  const names: string[] = []
-  const seen = new Set<string>()
-  const pushName = (raw: any) => {
-    const name = String(raw || '').trim()
-    if (!name || seen.has(name) || name === 'default') return
-    seen.add(name)
-    names.push(name)
-  }
-
-  for (const provider of proxyProviederList.value || []) pushName((provider as any)?.name)
-  for (const name of Object.keys(proxyProviderSubscriptionUrlMap.value || {})) pushName(name)
-  for (const provider of agentProviders.value || []) pushName((provider as any)?.name)
-
-  const providerMetaByName = new Map<string, any>()
-  for (const provider of proxyProviederList.value || []) {
-    const name = String((provider as any)?.name || '').trim()
-    if (name) providerMetaByName.set(name, provider)
-  }
-
-  const agentMetaByName = new Map<string, any>()
-  for (const provider of agentProviders.value || []) {
-    const name = String((provider as any)?.name || '').trim()
-    if (name) agentMetaByName.set(name, provider)
-  }
-
-  const lines: string[] = []
-  for (const name of names) {
-    const url = readProviderProbeUrl(providerMetaByName.get(name), agentMetaByName.get(name), name)
-    if (!/^(https|wss):\/\//i.test(url)) continue
-    lines.push(`${name}	${url}`)
-  }
-
-  return lines.join('\n') + (lines.length ? '\n' : '')
-}
-
 export const probePanelSsl = async (force = false) => {
   if (providerHealthUsesUbuntuService.value) {
     if (panelSslProbeLoading.value) return
@@ -366,52 +301,14 @@ export const probePanelSsl = async (force = false) => {
     panelSslProbeError.value = null
     return
   }
-  if (panelSslProbeLoading.value) return
 
-  // basic TTL: avoid spamming openssl probes
-  const ttlMs = 60_000
-  if (!force && panelSslCheckedAt.value && Date.now() - panelSslCheckedAt.value < ttlMs) return
-
-  const payload = buildProbeLines()
-  if (!payload) {
-    panelSslNotAfterByName.value = {}
-    panelSslErrorByName.value = {}
-    panelSslUrlByName.value = {}
-    panelSslCheckedAt.value = Date.now()
-    panelSslProbeError.value = null
-    return
-  }
-
-  panelSslProbeLoading.value = true
+  // For compatibility/agent mode, provider SSL should come from the agent cache
+  // refreshed via ssl_cache_refresh + mihomo_providers, not from a long blocking
+  // direct probe request from the Tasks page.
+  panelSslProbeLoading.value = false
   panelSslProbeError.value = null
-  try {
-    const res: any = await agentSslProbeBatchAPI(payload)
-    if (!res?.ok) {
-      panelSslProbeError.value = res?.error || 'failed'
-      return
-    }
-    const out: Record<string, string> = {}
-    const outErrors: Record<string, string> = {}
-    const outUrls: Record<string, string> = {}
-    for (const it of (res?.items || []) as any[]) {
-      const name = String(it?.name || '').trim()
-      if (!name) continue
-      const na = String(it?.sslNotAfter || '').trim()
-      const err = String(it?.error || '').trim()
-      const url = String(it?.url || '').trim()
-      if (na) out[name] = na
-      if (err) outErrors[name] = err
-      if (url) outUrls[name] = url
-    }
-    panelSslNotAfterByName.value = out
-    panelSslErrorByName.value = outErrors
-    panelSslUrlByName.value = outUrls
-    panelSslCheckedAt.value = typeof res?.checkedAtSec === 'number' && res.checkedAtSec > 0 ? res.checkedAtSec * 1000 : Date.now()
-  } catch (e: any) {
-    panelSslProbeError.value = e?.message || 'failed'
-  } finally {
-    panelSslProbeLoading.value = false
-  }
+  panelSslCheckedAt.value = Date.now()
+  return
 }
 
 // best-effort: refresh when agent toggled
