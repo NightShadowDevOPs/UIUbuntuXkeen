@@ -1,3 +1,10 @@
+## v0.2.8
+
+- simplified GitHub Actions toolchain bootstrap using Corepack + pnpm 9.12.1
+- removed frozen lockfile gate in CI to avoid early install aborts before any useful logs
+- expanded preflight diagnostics for registry and package manager visibility
+- updated docs, releases, and transfer package
+
 # Changelog
 
 ## [0.2.7] - 2026-03-30

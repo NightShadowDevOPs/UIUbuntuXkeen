@@ -177,3 +177,6 @@
 ### v1.4.x+
 - optional desktop wrapper;
 - cluster/fleet scenarios.
+
+
+- Довести CI до первого зелёного статуса и только после этого переходить к server-side тесту обновления.

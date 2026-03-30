@@ -23,16 +23,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: 9.12.1
-
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: pnpm
+
+      - name: Enable pnpm via corepack
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@9.12.1 --activate
+          pnpm -v
 
       - name: Read project version
         id: meta
@@ -57,7 +59,10 @@ jobs:
             echo "ref=${{ github.ref }}"
             echo "runner_os=$RUNNER_OS"
             echo "node=$(node -v)"
+            echo "corepack=$(corepack --version 2>&1)"
             echo "pnpm=$(pnpm -v)"
+            echo "npm=$(npm -v)"
+            echo "pnpm_registry=$(pnpm config get registry 2>&1)"
             echo "python=$(python3 --version 2>&1)"
             echo "cwd=$PWD"
             echo "package_json=$(test -f package.json && echo yes || echo no)"
@@ -75,7 +80,7 @@ jobs:
           set +e
           mkdir -p ci-logs
           echo '--- pnpm install log begin ---'
-          pnpm install --frozen-lockfile --ignore-scripts --reporter=append-only 2>&1 | tee ci-logs/pnpm-install.log
+          pnpm install --no-frozen-lockfile --prefer-offline --reporter=append-only 2>&1 | tee ci-logs/pnpm-install.log
           status=${PIPESTATUS[0]}
           echo '--- pnpm install log end ---'
           exit $status

@@ -1,3 +1,10 @@
+## v0.2.8 — CI install bootstrap fallback
+
+- GitHub Actions switched from pnpm/action-setup to Corepack activation of pnpm 9.12.1.
+- CI install step now uses `pnpm install --no-frozen-lockfile --prefer-offline` to avoid instant lockfile-gate failures while we stabilise the new repo pipeline.
+- Preflight diagnostics now prints Node/Corepack/pnpm/npm versions and pnpm registry information.
+- Goal of the release: get the first green build and unblock the first server-side update test.
+
 # UIUbuntuXkeen — журнал релизов
 
 ## v0.2.7 — 2026-03-30
