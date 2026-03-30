@@ -2008,6 +2008,11 @@ const providersPanelList = ref<Array<{ name: string; url?: string; host?: string
 const providersPanelExpanded = ref<boolean>(true)
 const providersPanelAt = ref<number>(0)
 
+const providerSslCacheRefreshBusy = ref(false)
+const providerSslProbeBusy = computed(() => panelSslProbeLoading.value || providerSslCacheRefreshBusy.value)
+const providerSslProbeErrorText = computed(() => panelSslProbeError.value ? friendlyProviderPanelError(panelSslProbeError.value, 'ssl') : '')
+const providerSslLastCheckedAtMs = computed(() => Math.max(providersPanelAt.value || 0, panelSslCheckedAt.value || 0, agentProvidersAt.value || 0))
+
 const providerSourceUrlDraftMap = ref<Record<string, string>>({})
 
 const PROVIDERS_PANEL_EXPANDED_LS_KEY = 'zash.tasks.providersPanels.expanded'
@@ -2547,12 +2552,6 @@ const refreshProvidersPanel = async (force = false) => {
     // ignore providers-only refresh failure here
   }
 }
-
-const providerSslCacheRefreshBusy = ref(false)
-const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
-const providerSslProbeBusy = computed(() => panelSslProbeLoading.value || providerSslCacheRefreshBusy.value)
-const providerSslProbeErrorText = computed(() => panelSslProbeError.value ? friendlyProviderPanelError(panelSslProbeError.value, 'ssl') : '')
-const providerSslLastCheckedAtMs = computed(() => Math.max(providersPanelAt.value || 0, panelSslCheckedAt.value || 0, agentProvidersAt.value || 0))
 
 const providerSslCacheStatusText = computed(() => {
   if (panelSslProbeLoading.value) return t('providerSslRefreshing')

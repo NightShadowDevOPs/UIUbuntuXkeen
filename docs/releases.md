@@ -1,6 +1,6 @@
 # UIUbuntuXkeen — журнал релизов
 
-## v0.6.7 — Tasks real SSL polling by subscription URLs
+## v0.6.8 — Tasks real SSL polling by subscription URLs
 Дата: **2026-03-30**
 
 Сделано:

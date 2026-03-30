@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.6.7 - 2026-03-30
+## v0.6.8 - 2026-03-30
 - в разделе **«Задачи»** наконец подключён реальный SSL/TLS-опрос по сохранённым URL 3x-ui подписок провайдеров: `refreshProvidersSsl` и `refreshProviderSslCache` теперь не только дёргают backend refresh, но и запускают прямой probe по subscription URL через compatibility bridge, если он доступен;
 - таблица провайдеров в Tasks теперь подмешивает результаты `probePanelSsl()` как приоритетный источник `sslNotAfter` / `sslError` / `checkedAt`, поэтому список начинает показывать реальные даты сертификатов и ошибки по самим ссылкам подписок, а не только backend хвосты;
 - stale SSL-данные теперь корректно сбрасываются при изменении URL подписки, а direct probe фильтрует только TLS-capable `https://` / `wss://` ссылки;
