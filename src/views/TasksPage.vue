@@ -79,10 +79,10 @@
         </div>
         <div class="text-[11px] opacity-60">{{ $t('sslWarnThresholdTip') }}</div>
 
-        <div v-if="!providerHealthAvailable" class="text-sm opacity-70">
+        <div v-if="!providerHealthAvailable" class="mb-2 text-xs text-warning">
           {{ $t('providerHealthBackendUnavailable') }}
         </div>
-        <div v-else-if="providersPanelBusy" class="text-sm opacity-70">…</div>
+        <div v-if="providersPanelBusy" class="text-sm opacity-70">…</div>
 		  <div v-else>
 			<div v-if="providersPanelError" class="text-xs text-error" :title="providersPanelError">{{ friendlyProviderPanelError(providersPanelError, 'providers') }}</div>
 			<div v-else>
@@ -1906,9 +1906,9 @@ import { countryCodeToFlagEmoji, normalizeProviderIcon } from '@/helper/provider
 import { FLAG_CODES } from '@/helper/flagIcons'
 import { activeBackend, backendList } from '@/store/setup'
 import { agentEnabled, agentUrl } from '@/store/agent'
-import { proxyProviderIconMap, proxyProviderPanelUrlMap, proxyProviderSslWarnDaysMap, sslNearExpiryDaysDefault } from '@/store/settings'
+import { proxyProviderIconMap, proxyProviderPanelUrlMap as proxyProviderSubscriptionUrlMap, proxyProviderSslWarnDaysMap, sslNearExpiryDaysDefault } from '@/store/settings'
 import { agentProviderByName, agentProviders, agentProvidersAt, agentProvidersError, agentProvidersJobStatus, agentProvidersNextCheckAtMs, agentProvidersOk, agentProvidersSslCacheReady, agentProvidersSslRefreshPending, agentProvidersSslRefreshing, fetchAgentProviders, providerHealthActionsAvailable, providerHealthAvailable, refreshAgentProviderSslCache } from '@/store/providerHealth'
-import { proxyProviederList } from '@/store/proxies'
+import { fetchProxyProvidersOnly, proxyProviederList } from '@/store/proxies'
 import { userLimitProfiles } from '@/store/userLimitProfiles'
 import { userLimitSnapshots } from '@/store/userLimitSnapshots'
 import { autoDisconnectLimitedUsers, hardBlockLimitedUsers, managedLanDisallowedCidrs, userLimits, type UserLimit } from '@/store/userLimits'
@@ -2050,13 +2050,26 @@ const providersPanelRenderList = computed(() => {
     agentMetaByName.set(name, it)
   }
 
+  for (const name of Object.keys(proxyProviderSubscriptionUrlMap.value || {})) {
+    const normalized = String(name || '').trim()
+    if (normalized) names.add(normalized)
+  }
+  for (const name of Object.keys(proxyProviderIconMap.value || {})) {
+    const normalized = String(name || '').trim()
+    if (normalized) names.add(normalized)
+  }
+  for (const name of Object.keys(proxyProviderSslWarnDaysMap.value || {})) {
+    const normalized = String(name || '').trim()
+    if (normalized) names.add(normalized)
+  }
+
   const readSourceUrl = (provider: any, agentProvider: any, name: string): string => {
-    const override = String((proxyProviderPanelUrlMap.value || {})[String(name || '').trim()] || '').trim()
+    const override = String((proxyProviderSubscriptionUrlMap.value || {})[String(name || '').trim()] || '').trim()
     if (override) return override
     const direct = [
-      getAnyFromObj(provider, ['url', 'uri', 'link', 'subscriptionUrl', 'subscription_url', 'sourceUrl', 'source_url', 'downloadUrl', 'download_url', 'subscribe', 'subscription']),
-      getAnyFromObj(provider?.subscriptionInfo, ['url', 'uri', 'link', 'subscriptionUrl', 'subscription_url', 'sourceUrl', 'source_url', 'downloadUrl', 'download_url', 'subscribe', 'subscription']),
-      getAnyFromObj(agentProvider, ['url', 'providerUrl', 'provider_url', 'sourceUrl', 'source_url']),
+      getAnyFromObj(provider, ['url', 'uri', 'link', 'subscriptionUrl', 'subscription_url', 'sourceUrl', 'source_url', 'downloadUrl', 'download_url', 'subscribe', 'subscription', 'panelUrl', 'panel_url']),
+      getAnyFromObj(provider?.subscriptionInfo, ['url', 'uri', 'link', 'subscriptionUrl', 'subscription_url', 'sourceUrl', 'source_url', 'downloadUrl', 'download_url', 'subscribe', 'subscription', 'panelUrl', 'panel_url']),
+      getAnyFromObj(agentProvider, ['url', 'providerUrl', 'provider_url', 'sourceUrl', 'source_url', 'subscriptionUrl', 'subscription_url', 'downloadUrl', 'download_url', 'panelUrl', 'panel_url']),
     ]
       .map((v) => String(v || '').trim())
       .find(Boolean)
@@ -2199,17 +2212,21 @@ const saveProviderSourceUrl = (name: string) => {
   const normalized = raw && !/^(https?|wss):\/\//i.test(raw) ? `https://${raw}` : raw
   const nextDraft = { ...(providerSourceUrlDraftMap.value || {}), [key]: normalized }
   providerSourceUrlDraftMap.value = nextDraft
-  const cur = { ...(proxyProviderPanelUrlMap.value || {}) }
+  const cur = { ...(proxyProviderSubscriptionUrlMap.value || {}) }
   if (!normalized) delete cur[key]
   else cur[key] = normalized
-  proxyProviderPanelUrlMap.value = cur
+  proxyProviderSubscriptionUrlMap.value = cur
 }
 
 const sslSubscriptionInfo = (item: { name: string; sslNotAfter?: string; sslError?: string; sslCheckedAtMs?: number; url?: string }) => {
   const d = parseDateMaybe(item?.sslNotAfter)
-  const backendProbeLabel = activeBackend.value?.kind === 'ubuntu-service' ? t('providerSslSourceUbuntuService') : t('providerSslSourceCompatibilityBridge')
+  const backendProbeLabel = !providerHealthAvailable.value
+    ? t('providerHealthBackendUnavailable')
+    : activeBackend.value?.kind === 'ubuntu-service'
+      ? t('providerSslSourceUbuntuService')
+      : t('providerSslSourceCompatibilityBridge')
   if (!d) {
-    const pending = agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value || !agentProvidersSslCacheReady.value
+    const pending = providerHealthAvailable.value && (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value || !agentProvidersSslCacheReady.value)
     if (pending && getProviderSourceUrl(item)) {
       return {
         text: t('providerSslRefreshing'),
@@ -2408,9 +2425,16 @@ const friendlyProviderPanelError = (err: any, kind: 'providers' | 'ssl' = 'provi
 }
 
 const loadProvidersPanel = async (force = false) => {
+  try {
+    await fetchProxyProvidersOnly()
+  } catch {
+    // keep Tasks usable even if providers API is temporarily unavailable
+  }
+
   if (!providerHealthAvailable.value) {
     providersPanelList.value = []
     providersPanelError.value = ''
+    providersPanelAt.value = Date.now()
     return
   }
   if (providersPanelBusy.value) return
@@ -2437,6 +2461,11 @@ const loadProvidersPanel = async (force = false) => {
 const refreshProvidersPanel = async (force = false) => {
   await loadProvidersPanel(force)
   try {
+    await fetchProxyProvidersOnly()
+  } catch {
+    // ignore providers-only refresh failure here
+  }
+  try {
     await fetchAgentProviders(force)
   } catch {
     // ignore store refresh failure here
@@ -2447,12 +2476,14 @@ const providerSslCacheRefreshBusy = ref(false)
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
 
 const providerSslCacheStatusText = computed(() => {
+  if (!providerHealthAvailable.value) return ''
   if (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value) return t('providerSslRefreshing')
   if (!agentProvidersSslCacheReady.value && providersPanelRenderList.value.length > 0) return t('providerSslPending')
   return ''
 })
 
 const providerSslCacheStatusClass = computed(() => {
+  if (!providerHealthAvailable.value) return 'text-base-content/60'
   if (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value) return 'text-info'
   if (!agentProvidersSslCacheReady.value && providersPanelRenderList.value.length > 0) return 'text-warning'
   return 'text-base-content/60'
@@ -3372,8 +3403,8 @@ const extractUsersDbPayloadView = (v: any) => {
       ? v.providerPanelUrls
       : v?.proxyProviderPanelUrls && typeof v.proxyProviderPanelUrls === 'object'
         ? v.proxyProviderPanelUrls
-        : v?.proxyProviderPanelUrlMap && typeof v.proxyProviderPanelUrlMap === 'object'
-          ? v.proxyProviderPanelUrlMap
+        : v?.proxyProviderSubscriptionUrlMap && typeof v.proxyProviderSubscriptionUrlMap === 'object'
+          ? v.proxyProviderSubscriptionUrlMap
           : {}
 
   const providerIcons =

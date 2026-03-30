@@ -1,5 +1,25 @@
 # UIUbuntuXkeen — журнал релизов
 
+## v0.6.5 — Tasks providers list and form audit
+Дата: **2026-03-30**
+
+Сделано:
+- в разделе **«Задачи»** список провайдеров теперь собирается не только из provider-health backend, но и из текущего proxy providers store и сохранённых URL подписок/иконок/SSL override-настроек;
+- `TasksPage.vue` теперь делает best-effort refresh через `fetchProxyProvidersOnly()`, поэтому таблица провайдеров не пропадает целиком, если health/checks endpoint временно не ответил;
+- чтение URL источника расширено под `subscriptionUrl`, `downloadUrl`, `sourceUrl`, `panelUrl` и совместимые варианты полей;
+- `docs/project-spec.md` дополнен явным описанием структуры раздела **«Задачи»**: что за блоки, за что отвечают кнопки и какой operational-контур считается правильным.
+
+Результат:
+- список провайдеров в Tasks появляется стабильнее и не зависит от одного узкого backend-ответа;
+- SSL/TLS-проверки по-прежнему привязаны к URL 3x-ui подписок провайдеров;
+- форма **«Задачи»** формально зафиксирована как каноничный экран со всеми основными разделами и действиями.
+
+Статус:
+- корректирующий релиз по списку провайдеров и аудиту формы Tasks.
+
+Следующий плановый релиз:
+- `v0.6.6` — полировка Tasks под эталонные скрины и история/scheduler для SSL-проверок.
+
 ## v0.6.4 — Tasks alignment: 3x-ui subscription URLs
 Дата: **2026-03-30**
 
@@ -18,7 +38,7 @@
 - функциональный корректирующий релиз по Tasks/Providers модели.
 
 Следующий плановый релиз:
-- `v0.6.5` — provider scheduler/history и GEO groundwork.
+- `v0.6.6` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.3 — build/install stabilization
 - добавлен `.npmrc` с отключённым frozen lockfile, чтобы CI не падал на этапе `Install dependencies`;
@@ -43,7 +63,7 @@
 - функциональный корректирующий шаг по SSL-контуру в разделе **«Задачи»**.
 
 Следующий плановый релиз:
-- `v0.6.5` — provider scheduler/history и GEO groundwork.
+- `v0.6.6` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.1 — rollback misplaced provider SSL workspace
 Дата: **2026-03-30**
@@ -62,7 +82,7 @@
 - исправляющий rollback/hotfix после неверного хода в `v0.6.0`.
 
 Следующий плановый релиз:
-- `v0.6.5` — provider scheduler/history и GEO groundwork.
+- `v0.6.6` — provider scheduler/history и GEO groundwork.
 
 ## v0.6.0 — ошибочный provider SSL workspace
 Дата: **2026-03-30**

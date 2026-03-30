@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — план работ по релизам
 
 Актуально на: **2026-03-30**  
-Текущая версия линии: **v0.6.4**  
+Текущая версия линии: **v0.6.5**  
 Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 
 ## Принцип версионности
@@ -74,6 +74,12 @@
 - логи Mihomo и agent/service теперь читаются через живой fallback, а не только через будущий `/api/system/logs`;
 - groundwork под полный Ubuntu service сохранён, но экран уже даёт практическую пользу.
 
+### v0.6.5 — Tasks providers list and form audit
+Статус: **сделано**
+- список провайдеров в Tasks больше не зависит только от provider-health/checks backend ответа;
+- Tasks теперь best-effort подтягивает proxy providers store и использует сохранённые URL подписок/иконки/SSL override-настройки как дополнительные источники списка;
+- docs зафиксировали каноничную структуру раздела **«Задачи»**: быстрые действия, провайдеры, live logs, актуальность данных, диагностика, upstream, users DB, история операций.
+
 ## Текущий приоритет
 
 > Пользователь зафиксировал приоритет: **провайдеры, SSL/сроки, трафик, состояния клиентов, раздел «Хост», ресурсы хоста, GEO-файлы, локальные правила, QoS, shaping**. Safe config flow и structured editors пока отложены.
@@ -127,14 +133,14 @@
 - SSL/TLS-опрос в Tasks приоритетно идёт по сохранённым URL подписок провайдеров;
 - терминология очищена от ложной модели «панелей управления» там, где речь идёт именно о ссылке подписки.
 
-### v0.6.5 — provider scheduler/history и GEO groundwork
+### v0.6.6 — provider scheduler/history и GEO groundwork
 Статус: **следующий шаг**
 План:
 - добавить `next check`, `last successful run`, job/history для provider SSL checks;
 - вывести GEO last update и GEO history как соседний operational блок;
 - подготовить storage/state контур под scheduler результаты и историю проверок.
 
-### v0.6.6 — QoS и shaping под Ubuntu
+### v0.6.7 — QoS и shaping под Ubuntu
 План:
 - host shaping profiles;
 - per-client bandwidth/QoS status;
