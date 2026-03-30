@@ -2569,22 +2569,39 @@ const refreshProviderSslCacheNow = async () => {
   providerSslCacheRefreshBusy.value = true
   try {
     let refreshError = ''
-    const res: any = await refreshAgentProviderSslCache()
-    if (!res?.ok) refreshError = String(res?.error || 'failed')
+    try {
+      const res: any = await refreshAgentProviderSslCache()
+      if (!res?.ok) refreshError = String(res?.error || 'failed')
+    } catch (e: any) {
+      refreshError = String(e?.message || 'failed')
+    }
+
     for (let i = 0; i < 12; i += 1) {
       await refreshProvidersPanel(true)
-      const hasCachedRows = (providersPanelRenderList.value || []).some((it: any) => String(it?.sslNotAfter || '').trim())
+      const hasCachedRows = (providersPanelRenderList.value || []).some((it: any) => String(it?.sslNotAfter || '').trim() || String(it?.sslError || '').trim())
       if ((!agentProvidersSslRefreshing.value && !agentProvidersSslRefreshPending.value) || hasCachedRows) break
       await sleep(1000)
     }
-    const hasSslRows = (providersPanelRenderList.value || []).some((it: any) => String(it?.sslNotAfter || '').trim() || String(it?.sslError || '').trim())
-    panelSslProbeError.value = !hasSslRows && refreshError ? refreshError : null
-    if (!hasSslRows && refreshError) {
-      showNotification({ content: refreshError || 'operationFailed', type: 'alert-error', timeout: 2200 })
+
+    const rows = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value : []
+    const hasUrls = rows.some((it: any) => String(it?.url || '').trim())
+    const hasSslRows = rows.some((it: any) => String(it?.sslNotAfter || '').trim() || String(it?.sslError || '').trim())
+    const stillPending = agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value
+
+    if (!hasUrls) {
+      panelSslProbeError.value = providersPanelError.value || refreshError || 'no-providers'
+      showNotification({ content: panelSslProbeError.value || 'operationFailed', type: 'alert-error', timeout: 2200 })
       return
     }
-    showNotification({ content: 'refreshProviderSslCache', type: 'alert-success', timeout: 1600 })
+
+    // The compatibility bridge may not expose a dedicated refresh endpoint. In that
+    // case mihomo_providers still queues the async cache rebuild, so keep the UI in
+    // a pending state instead of showing a false hard failure.
+    panelSslProbeError.value = stillPending || hasSslRows ? null : (providersPanelError.value || '')
+
+    showNotification({ content: stillPending && !hasSslRows ? 'refreshProviderSslCache' : 'refreshProviderSslCache', type: 'alert-success', timeout: 1600 })
   } catch (e: any) {
+    panelSslProbeError.value = String(e?.message || 'failed')
     showNotification({ content: e?.message || 'operationFailed', type: 'alert-error', timeout: 2200 })
   } finally {
     providerSslCacheRefreshBusy.value = false
@@ -4281,24 +4298,44 @@ const refreshSsl = async () => {
     const id = startJob('Refresh providers SSL')
     try {
       let refreshError = ''
-      const refreshRes: any = await refreshAgentProviderSslCache()
-      if (!refreshRes?.ok) refreshError = String(refreshRes?.error || 'failed')
+      try {
+        const refreshRes: any = await refreshAgentProviderSslCache()
+        if (!refreshRes?.ok) refreshError = String(refreshRes?.error || 'failed')
+      } catch (e: any) {
+        refreshError = String(e?.message || 'failed')
+      }
+
       for (let i = 0; i < 12; i += 1) {
         await refreshProvidersPanel(true)
-        const hasCachedRows = Array.isArray(providersPanelRenderList.value) && providersPanelRenderList.value.some((it: any) => String(it?.sslNotAfter || '').trim())
+        const hasCachedRows = Array.isArray(providersPanelRenderList.value) && providersPanelRenderList.value.some((it: any) => String(it?.sslNotAfter || '').trim() || String(it?.sslError || '').trim())
         if ((!agentProvidersSslRefreshing.value && !agentProvidersSslRefreshPending.value) || hasCachedRows) break
         await sleep(1000)
       }
-      const n = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value.filter((it: any) => String(it?.url || '').trim()).length : 0
-      const okRows = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value.filter((it: any) => String(it?.sslNotAfter || '').trim()).length : 0
-      const errorRows = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value.filter((it: any) => String(it?.sslError || '').trim()).length : 0
-      panelSslProbeError.value = !okRows && !errorRows && refreshError ? refreshError : null
-      if (!okRows && !errorRows && refreshError) throw new Error(refreshError)
-      finishJob(id, { ok: true, meta: { probed: n, ok: okRows, errors: errorRows } })
+
+      const rows = Array.isArray(providersPanelRenderList.value) ? providersPanelRenderList.value : []
+      const n = rows.filter((it: any) => String(it?.url || '').trim()).length
+      const okRows = rows.filter((it: any) => String(it?.sslNotAfter || '').trim()).length
+      const errorRows = rows.filter((it: any) => String(it?.sslError || '').trim()).length
+      const stillPending = agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value
+      const noProviders = !rows.length || !n
+
+      if (noProviders) {
+        panelSslProbeError.value = providersPanelError.value || refreshError || 'no-providers'
+        throw new Error(panelSslProbeError.value)
+      }
+
+      // A missing dedicated refresh command is not fatal if the provider list is
+      // readable and the agent has queued the async SSL cache rebuild.
+      panelSslProbeError.value = stillPending || okRows || errorRows ? null : (providersPanelError.value || '')
+
+      finishJob(id, {
+        ok: true,
+        meta: { probed: n, ok: okRows, errors: errorRows, pending: stillPending ? 1 : 0 },
+      })
       showNotification({ content: 'sslRefreshed', type: 'alert-success', timeout: 1600 })
     } catch (e: any) {
       finishJob(id, { ok: false, error: e?.message || 'failed' })
-      showNotification({ content: 'operationFailed', type: 'alert-error', timeout: 2200 })
+      showNotification({ content: e?.message || 'operationFailed', type: 'alert-error', timeout: 2200 })
     }
   } finally {
     busy.value = false

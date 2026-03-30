@@ -154,8 +154,11 @@ export const fetchAgentProviders = async (force = false) => {
 
       const agentRes = await agentMihomoProvidersAPI(force)
       const agentRows = Array.isArray((agentRes as any)?.providers) ? ((agentRes as any)?.providers as any[]) : []
-      agentProvidersOk.value = Boolean((agentRes as any)?.ok || agentRows.length)
-      agentProvidersError.value = agentRows.length ? backendError : (agentRes as any)?.error || backendError || null
+      const agentFallbackOk = Boolean((agentRes as any)?.ok || agentRows.length)
+      agentProvidersOk.value = agentFallbackOk
+      // If the compatibility bridge returned a usable list, keep the panel working
+      // and avoid a misleading "failed to get providers" warning above a visible table.
+      agentProvidersError.value = agentFallbackOk ? null : (agentRes as any)?.error || backendError || null
       agentProviders.value = agentRows.length ? agentRows : force ? [] : (agentProviders.value || [])
       agentProvidersSslCacheReady.value = Boolean((agentRes as any)?.sslCacheReady)
       agentProvidersSslCacheFresh.value = Boolean((agentRes as any)?.sslCacheFresh)
