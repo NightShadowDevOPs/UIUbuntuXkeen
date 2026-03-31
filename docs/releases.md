@@ -1,3 +1,18 @@
+## v0.6.16 — cleanup wave 1: host-only workspace and hidden legacy nav
+Дата: **2026-03-31**
+
+Сделано:
+- `HomePage.vue` больше не пытается автоматически поднимать router legacy при открытии UI;
+- `RouterPage.vue` очищен до роли **«Хост»**: оставлены только `Обзор / Сервисы / Логи`;
+- `TrafficPage.vue` больше не смешивает host/runtime экран с роутерными QoS и Netcraze карточками;
+- `Tasks`, `Users`, `Policies` скрыты из основного меню и помечены как legacy-аудит, а не как штатный серверный контур;
+- docs обновлены под cleanup-first стратегию.
+
+Результат:
+- основной UI перестал смешивать Ubuntu-проект с роутерным продуктом;
+- пользователь в главной навигации видит только те разделы, которые соответствуют текущей серверной линии;
+- legacy-экраны сохранены для дальнейшего поэлементного аудита, но больше не притворяются нормальным operational UI.
+
 ## v0.6.12 — Tasks SSL cache fallback and agent bridge recovery
 
 - если `ssl_cache_refresh` недоступен, UI Tasks теперь делает fallback к `mihomo_providers` вместо немого `Network Error`;
@@ -241,16 +256,15 @@
 - `v0.5.4` — функциональный hotfix compatibility fallback.
 
 ## v0.5.2
-## v0.6.14 — router-side SSL cache restore and URL parsing hardening
+## v0.6.13 — direct SSL probe by saved provider subscription URLs
 Дата: **2026-03-31**
 
 Сделано:
-- из раздела **«Задачи»** снова убран blocking direct `ssl_probe_batch`; кнопки SSL работают через штатную связку `ssl_cache_refresh` → `mihomo_providers`;
-- URL 3x-ui подписок продолжают храниться в общем users DB (`providerPanelUrls`) и использоваться router-agent'ом как единый серверный источник panel SSL;
-- в router-agent усилен разбор HTTPS/WSS URL для TLS certificate checks: корректнее обрабатываются query-string, fragment, userinfo и нестандартные варианты `host:port`.
+- Tasks больше не берёт URL для SSL-проверки из backend/provider metadata;
+- direct probe снова выполняется по адресам 3x-ui подписок, введённым в списке провайдеров и сохранённым в users DB;
+- `ssl_probe_batch` стал источником результата для таблицы провайдеров в Tasks.
 
 Результат:
-- UI больше не должен зависать/падать из-за длинной серии прямых browser probe;
-- проверка сертификатов читается из общего server-side cache и одинаково работает на разных устройствах;
-- меньше ложных `probe-failed`, когда subscription URL содержит не только простой `https://host/path`.
+- можно тестировать сертификаты прямо по URL из списка провайдеров;
+- неправильные URL из конфига больше не ломают SSL-проверку в Tasks.
 

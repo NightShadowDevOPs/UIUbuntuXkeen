@@ -34,12 +34,8 @@
     <section v-show="activeTab === 'clients'" class="space-y-2">
       <TrafficClientsStateCard ref="clientsStateCard" />
 
-      <template v-if="showCompatibilityTrafficCards">
-        <NetcrazeTrafficCard />
-        <HostQosCard />
-      </template>
-      <div v-else class="card gap-2 p-3 text-sm opacity-70">
-        {{ $t('trafficWorkspaceUbuntuServiceTip') }}
+      <div class="card gap-2 p-3 text-sm opacity-70">
+        {{ $t('trafficWorkspaceHostOnlyTip') }}
       </div>
     </section>
 
@@ -82,15 +78,10 @@
 import ConnectionCardList from '@/components/connections/ConnectionCardList.vue'
 import ConnectionDetails from '@/components/connections/ConnectionDetails.vue'
 import ConnectionTable from '@/components/connections/ConnectionTable.vue'
-import HostQosCard from '@/components/router/HostQosCard.vue'
 import TrafficClientsStateCard from '@/components/traffic/TrafficClientsStateCard.vue'
 import TrafficRuntimeSummaryCard from '@/components/traffic/TrafficRuntimeSummaryCard.vue'
 import UserTrafficStats from '@/components/users/UserTrafficStats.vue'
-import NetcrazeTrafficCard from '@/components/overview/NetcrazeTrafficCard.vue'
 import { ROUTE_NAME, CONNECTION_TAB_TYPE } from '@/constant'
-import { isUbuntuServiceBackend } from '@/helper/backend'
-import { agentEnabled } from '@/store/agent'
-import { activeBackend } from '@/store/setup'
 import { connectionTabShow } from '@/store/connections'
 import { useConnectionCard } from '@/store/settings'
 import { computed, ref } from 'vue'
@@ -108,7 +99,6 @@ const goConnections = () => {
   router.push({ name: ROUTE_NAME.connections })
 }
 
-const showCompatibilityTrafficCards = computed(() => !isUbuntuServiceBackend(activeBackend.value) && agentEnabled.value)
 const trafficClientItems = computed(() => clientsStateCard.value?.rows?.value || [])
 const trafficAgentLive = computed(() => !!clientsStateCard.value?.agentLive?.value)
 const trafficLastAgentUpdateAt = computed(() => Number(clientsStateCard.value?.lastAgentUpdateAt?.value || 0))

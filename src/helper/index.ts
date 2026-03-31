@@ -142,9 +142,6 @@ export const renderRoutes = computed(() => {
     ROUTE_NAME.subscriptions,
     ROUTE_NAME.rules,
     ROUTE_NAME.mihomo,
-    ROUTE_NAME.tasks,
-    ROUTE_NAME.users,
-    ROUTE_NAME.policies,
     ROUTE_NAME.settings,
   ]
 })
@@ -174,9 +171,6 @@ export const navSections = computed(() => {
     {
       key: 'navSectionManagement',
       routes: [
-        ROUTE_NAME.tasks,
-        ROUTE_NAME.users,
-        ROUTE_NAME.policies,
         ROUTE_NAME.settings,
       ],
     },

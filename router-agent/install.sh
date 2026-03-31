@@ -271,39 +271,6 @@ run_with_timeout_sh() {
   return $rc
 }
 
-tls_target_from_url() {
-  raw_url="$1"
-  [ -n "$raw_url" ] || return 0
-
-  url="$(printf '%s' "$raw_url" | sed -E "s/^[\"']?//; s/[\"']?$//")"
-  scheme="${url%%://*}"
-  case "$scheme" in
-    https|wss) ;;
-    *) return 0 ;;
-  esac
-
-  rest="${url#*://}"
-  rest="$(printf '%s' "$rest" | sed -E 's#^[^/@]+@##; s#[/?#].*$##')"
-  [ -n "$rest" ] || return 0
-
-  host=""
-  port="443"
-  if printf '%s' "$rest" | grep -q '^\['; then
-    host="$(printf '%s' "$rest" | sed -E 's/^\[([^]]+)\].*/\1/')"
-    port_part="$(printf '%s' "$rest" | sed -nE 's/^\[[^]]+\]:(.*)$/\1/p')"
-    [ -n "$port_part" ] && port="$port_part"
-  else
-    host="$(printf '%s' "$rest" | cut -d: -f1)"
-    if printf '%s' "$rest" | grep -q ':'; then
-      port_part="$(printf '%s' "$rest" | awk -F: '{print $NF}')"
-      [ -n "$port_part" ] && port="$port_part"
-    fi
-  fi
-
-  [ -n "$host" ] || return 0
-  printf '%s	%s' "$host" "$port"
-}
-
 ssl_not_after() {
   host="$1"; port="$2"
   [ -n "$host" ] || return 0
@@ -957,10 +924,25 @@ ssl_cache_refresh_sync() {
     fi
 
     if [ -n "$url" ]; then
-      target="$(tls_target_from_url "$url")"
-      if [ -n "$target" ]; then
-        host="${target%%$tab*}"
-        port="${target#*$tab}"
+      scheme="${url%%://*}"
+      rest="${url#*://}"
+      hostport="${rest%%/*}"
+
+      host="$hostport"
+      port="443"
+      if echo "$hostport" | grep -q '^\['; then
+        host="$(echo "$hostport" | sed -E 's/^\[([^\]]+)\].*/\1/')"
+        port_part="$(echo "$hostport" | sed -nE 's/^\[[^\]]+\]:(.*)$/\1/p')"
+        [ -n "$port_part" ] && port="$port_part"
+      else
+        host="$(printf '%s' "$hostport" | cut -d: -f1)"
+        if echo "$hostport" | grep -q ':'; then
+          port_part="$(printf '%s' "$hostport" | awk -F: '{print $NF}')"
+          [ -n "$port_part" ] && port="$port_part"
+        fi
+      fi
+
+      if [ "$scheme" = "https" ] || [ "$scheme" = "wss" ]; then
         not_after="$(ssl_not_after "$host" "$port")"
       fi
     fi
@@ -968,10 +950,25 @@ ssl_cache_refresh_sync() {
 
     panel_url="$(panel_url_for_provider "$pname" "$panel_map")"
     if [ -n "$panel_url" ]; then
-      ptarget="$(tls_target_from_url "$panel_url")"
-      if [ -n "$ptarget" ]; then
-        p_host="${ptarget%%$tab*}"
-        p_port="${ptarget#*$tab}"
+      pscheme="${panel_url%%://*}"
+      prest="${panel_url#*://}"
+      phostport="${prest%%/*}"
+
+      p_host="$phostport"
+      p_port="443"
+      if echo "$phostport" | grep -q '^\['; then
+        p_host="$(echo "$phostport" | sed -E 's/^\[([^\]]+)\].*/\1/')"
+        pport_part="$(echo "$phostport" | sed -nE 's/^\[[^\]]+\]:(.*)$/\1/p')"
+        [ -n "$pport_part" ] && p_port="$pport_part"
+      else
+        p_host="$(printf '%s' "$phostport" | cut -d: -f1)"
+        if echo "$phostport" | grep -q ':'; then
+          pport_part="$(printf '%s' "$phostport" | awk -F: '{print $NF}')"
+          [ -n "$pport_part" ] && p_port="$pport_part"
+        fi
+      fi
+
+      if [ "$pscheme" = "https" ] || [ "$pscheme" = "wss" ]; then
         panel_na="$(ssl_not_after "$p_host" "$p_port")"
       fi
     fi
@@ -1269,11 +1266,20 @@ mihomo_providers_json() {
     port=""
 
     if [ -n "$url" ]; then
-      target="$(tls_target_from_url "$url")"
-      if [ -n "$target" ]; then
-        host="${target%%$tab*}"
-        if [ "$target" != "$host" ]; then
-          port="${target#*$tab}"
+      rest="${url#*://}"
+      hostport="${rest%%/*}"
+
+      host="$hostport"
+      port="443"
+      if echo "$hostport" | grep -q '^\['; then
+        host="$(echo "$hostport" | sed -E 's/^\[([^\]]+)\].*/\1/')"
+        port_part="$(echo "$hostport" | sed -nE 's/^\[[^\]]+\]:(.*)$/\1/p')"
+        [ -n "$port_part" ] && port="$port_part"
+      else
+        host="$(printf '%s' "$hostport" | cut -d: -f1)"
+        if echo "$hostport" | grep -q ':'; then
+          port_part="$(printf '%s' "$hostport" | awk -F: '{print $NF}')"
+          [ -n "$port_part" ] && port="$port_part"
         fi
       fi
     fi
@@ -1340,15 +1346,28 @@ ssl_probe_batch_json() {
     [ -n "$name" ] || continue
     [ -n "$url" ] || continue
 
-    target="$(tls_target_from_url "$url")"
+    scheme="${url%%://*}"
+    rest="${url#*://}"
+    hostport="${rest%%/*}"
 
     host=""
     port="443"
+
+    if echo "$hostport" | grep -q '^\['; then
+      host="$(echo "$hostport" | sed -E 's/^\[([^\]]+)\].*/\1/')"
+      port_part="$(echo "$hostport" | sed -nE 's/^\[[^\]]+\]:(.*)$/\1/p')"
+      [ -n "$port_part" ] && port="$port_part"
+    else
+      host="$(printf '%s' "$hostport" | cut -d: -f1)"
+      if echo "$hostport" | grep -q ':'; then
+        port_part="$(printf '%s' "$hostport" | awk -F: '{print $NF}')"
+        [ -n "$port_part" ] && port="$port_part"
+      fi
+    fi
+
     na=""
     err=""
-    if [ -n "$target" ]; then
-      host="${target%%$tab*}"
-      port="${target#*$tab}"
+    if [ "$scheme" = "https" ] || [ "$scheme" = "wss" ]; then
       na="$(ssl_not_after "$host" "$port")"
       [ -n "$na" ] || err="probe-failed"
     else

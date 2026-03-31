@@ -1,5 +1,6 @@
 <template>
   <div class="flex h-full flex-col gap-2 overflow-x-hidden overflow-y-auto p-2">
+    <div class="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-base-content/80">{{ $t('legacyWorkspacePoliciesNotice') }}</div>
     <div class="card gap-2 p-3">
       <div class="flex items-center justify-between gap-2">
         <div class="font-semibold">{{ $t('limitProfiles') }}</div>

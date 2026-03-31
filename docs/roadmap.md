@@ -172,4 +172,19 @@
 
 - v0.6.12 — стабилизация Tasks SSL refresh: убраны ложные failed/network-error сценарии, если agent list читается и кэш перестраивается асинхронно.
 
-- v0.6.14 — возврат Tasks SSL к router-side cache (`ssl_cache_refresh` + `mihomo_providers`), хранение URL подписок в users-db сохранено; усилен разбор URL для TLS certificate checks.
+- v0.6.13 — Tasks SSL переведён на прямой probe по сохранённым URL подписок провайдеров; backend/config URL больше не являются источником для этого блока.
+
+
+### v0.6.16 — cleanup wave 1
+Статус: **сделано**
+- Home очищен от автоматического router bootstrap;
+- Хост приведён к чистому host/runtime экрану;
+- Traffic очищен от роутерных compatibility-карточек;
+- Tasks / Users / Policies убраны из основного меню и оставлены для legacy-аудита.
+
+### v0.6.17 — page-by-page legacy teardown
+Статус: **следующий шаг**
+План:
+- разобрать `TasksPage` по блокам и решить для каждого: оставить / скрыть / вынести / удалить;
+- отдельно пересобрать `SubscriptionsPage` под канонический server publish path;
+- начать зачистку `UsersPage` и `PoliciesPage` как legacy-аудит экранов.

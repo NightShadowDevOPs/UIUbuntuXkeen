@@ -2059,6 +2059,11 @@ usersDbChanged: 'Changed',
   mihomoRulesPoliciesTip: 'Jump into policies and adjacent control screens when routing is no longer only about plain rules.',
   mihomoRulesTasksTitle: 'Service tasks',
   mihomoRulesTasksTip: 'Cockpit and service operations that affect users DB, labels and other data tied to Mihomo behavior.',
+  hostWorkspaceCleanupNotice: 'The Host workspace was cleaned up: router-era cards were removed and only the Ubuntu host/runtime flow remains.',
+  trafficWorkspaceHostOnlyTip: 'This page now stays focused on host/runtime traffic. Router QoS and compatibility cards were removed from the main Ubuntu flow.',
+  legacyWorkspaceTasksNotice: 'This page is hidden from the main navigation for now and kept only for legacy audit. Do not treat it as part of the normal Ubuntu/server workflow.',
+  legacyWorkspaceUsersNotice: 'This page is currently kept only for legacy audit and hidden from the main navigation until the server-side redesign is ready.',
+  legacyWorkspacePoliciesNotice: 'This page is currently kept only for legacy audit and hidden from the main navigation until the server-side redesign is ready.',
 }
 
 export type LANG_MESSAGE = typeof en
