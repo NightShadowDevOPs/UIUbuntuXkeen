@@ -913,19 +913,29 @@ export const agentProviderSslCacheRefreshAPI = async (): Promise<{
 // Batch probe TLS certificate expiry (notAfter) for a list of HTTPS/WSS URLs.
 // Input format (text/plain): each line "<name>\t<url>".
 // Returns: { ok, checkedAtSec, items: [{ name, url, sslNotAfter, error }] }
-export const agentSslProbeBatchAPI = async (lines: string): Promise<any> => {
+export const agentSslProbeBatchAPI = async (lines: string, timeoutMs = 45000): Promise<any> => {
   const base = getAgentBaseUrl()
   if (!base) return { ok: false, error: 'agent-disabled' }
 
   const url = `${base}/cgi-bin/api.sh?cmd=ssl_probe_batch`
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'text/plain',
-    },
-    body: lines || '',
-  })
-  return await res.json()
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+  const timer = controller ? window.setTimeout(() => controller.abort(), Math.max(5000, timeoutMs || 45000)) : 0
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: lines || '',
+      signal: controller?.signal,
+    })
+    return await res.json()
+  } catch (e: any) {
+    if (e?.name === 'AbortError') return { ok: false, error: 'timeout' }
+    return { ok: false, error: e?.message || 'failed' }
+  } finally {
+    if (timer) window.clearTimeout(timer)
+  }
 }
 
 // --- Shared users DB (Source IP mapping) ---

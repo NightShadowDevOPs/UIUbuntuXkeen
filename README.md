@@ -16,3 +16,8 @@
 - direct `ssl_probe_batch` больше не запускается из UI и не подвешивает экран на длинных таймаутах;
 - обновление SSL теперь идёт через штатный agent cache flow: `ssl_cache_refresh` + повторное чтение `mihomo_providers`;
 - таблица Tasks читает `panelSslNotAfter` из agent provider cache и показывает результат проверки URL 3x-ui подписок.
+
+
+### v0.6.13
+- Tasks SSL снова использует прямую проверку по сохранённым URL 3x-ui подписок провайдеров.
+- URL из backend/provider metadata не используются как authoritative source для этой таблицы.

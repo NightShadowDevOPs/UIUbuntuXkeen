@@ -241,3 +241,15 @@
 - `v0.5.4` — функциональный hotfix compatibility fallback.
 
 ## v0.5.2
+## v0.6.13 — direct SSL probe by saved provider subscription URLs
+Дата: **2026-03-31**
+
+Сделано:
+- Tasks больше не берёт URL для SSL-проверки из backend/provider metadata;
+- direct probe снова выполняется по адресам 3x-ui подписок, введённым в списке провайдеров и сохранённым в users DB;
+- `ssl_probe_batch` стал источником результата для таблицы провайдеров в Tasks.
+
+Результат:
+- можно тестировать сертификаты прямо по URL из списка провайдеров;
+- неправильные URL из конфига больше не ломают SSL-проверку в Tasks.
+

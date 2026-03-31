@@ -171,3 +171,5 @@
 - сценарии apply/remove/reconcile.
 
 - v0.6.12 — стабилизация Tasks SSL refresh: убраны ложные failed/network-error сценарии, если agent list читается и кэш перестраивается асинхронно.
+
+- v0.6.13 — Tasks SSL переведён на прямой probe по сохранённым URL подписок провайдеров; backend/config URL больше не являются источником для этого блока.

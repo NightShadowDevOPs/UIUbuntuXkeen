@@ -2093,57 +2093,26 @@ const providersPanelRenderList = computed(() => {
     agentMetaByName.set(name, it)
   }
 
-  const readSourceUrl = (provider: any, agentProvider: any, name: string): string => {
-    const override = String((proxyProviderSubscriptionUrlMap.value || {})[String(name || '').trim()] || '').trim()
-    if (override) return override
-    const direct = [
-      getAnyFromObj(provider, ['url', 'uri', 'link', 'subscriptionUrl', 'subscription_url', 'sourceUrl', 'source_url', 'downloadUrl', 'download_url', 'subscribe', 'subscription', 'panelUrl', 'panel_url']),
-      getAnyFromObj(provider?.subscriptionInfo, ['url', 'uri', 'link', 'subscriptionUrl', 'subscription_url', 'sourceUrl', 'source_url', 'downloadUrl', 'download_url', 'subscribe', 'subscription', 'panelUrl', 'panel_url']),
-      getAnyFromObj(agentProvider, ['url', 'providerUrl', 'provider_url', 'sourceUrl', 'source_url', 'subscriptionUrl', 'subscription_url', 'downloadUrl', 'download_url', 'panelUrl', 'panel_url']),
-    ]
-      .map((v) => String(v || '').trim())
-      .find(Boolean)
-    return direct || ''
+  const readSourceUrl = (_provider: any, _agentProvider: any, name: string): string => {
+    const saved = String((proxyProviderSubscriptionUrlMap.value || {})[String(name || '').trim()] || '').trim()
+    if (saved) return saved
+    return String((panelSslUrlByName.value || {})[String(name || '').trim()] || '').trim()
   }
 
-  const readSslNotAfter = (provider: any, agentProvider: any, name: string): string => {
-    const probe = String((panelSslNotAfterByName.value || {})[String(name || '').trim()] || '').trim()
-    if (probe) return probe
-    const direct = [
-      getAnyFromObj(provider, ['sslNotAfter', 'panelSslNotAfter', 'sslExpire', 'ssl_expire', 'certExpire', 'cert_expire', 'tlsExpire', 'tls_expire', 'certificateExpire', 'certificate_expire', 'certNotAfter', 'notAfter', 'not_after']),
-      getAnyFromObj(provider?.subscriptionInfo, ['sslNotAfter', 'panelSslNotAfter', 'sslExpire', 'ssl_expire', 'certExpire', 'cert_expire', 'tlsExpire', 'tls_expire', 'certificateExpire', 'certificate_expire', 'certNotAfter', 'notAfter', 'not_after']),
-      getAnyFromObj(agentProvider, ['panelSslNotAfter', 'sslNotAfter', 'notAfter', 'not_after', 'expiresAt', 'expires_at']),
-    ]
-      .map((v) => String(v || '').trim())
-      .find(Boolean)
-    return direct || ''
+  const readSslNotAfter = (_provider: any, _agentProvider: any, name: string): string => {
+    return String((panelSslNotAfterByName.value || {})[String(name || '').trim()] || '').trim()
   }
 
-  const readSslError = (provider: any, agentProvider: any, name: string): string => {
-    const probe = String((panelSslErrorByName.value || {})[String(name || '').trim()] || '').trim()
-    if (probe) return probe
-    const direct = [
-      getAnyFromObj(provider, ['sslError', 'tlsError', 'certError', 'error']),
-      getAnyFromObj(provider?.subscriptionInfo, ['sslError', 'tlsError', 'certError', 'error']),
-      getAnyFromObj(agentProvider, ['panelSslError', 'sslError', 'tlsError', 'certError', 'error']),
-    ]
-      .map((v) => String(v || '').trim())
-      .find(Boolean)
-    return direct || ''
+  const readSslError = (_provider: any, _agentProvider: any, name: string): string => {
+    return String((panelSslErrorByName.value || {})[String(name || '').trim()] || '').trim()
   }
 
-  const readCheckedAtMs = (provider: any, agentProvider: any, name: string): number => {
+  const readCheckedAtMs = (_provider: any, _agentProvider: any, name: string): number => {
     const probeRaw = Number(panelSslCheckedAt.value || 0)
     if (probeRaw > 0 && ((panelSslNotAfterByName.value || {})[String(name || '').trim()] || (panelSslErrorByName.value || {})[String(name || '').trim()] || (panelSslUrlByName.value || {})[String(name || '').trim()])) {
       return probeRaw
     }
-    const raw = Number(
-      getAnyFromObj(provider, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
-      getAnyFromObj(provider?.subscriptionInfo, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
-      getAnyFromObj(agentProvider, ['panelSslCheckedAtSec', 'sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec']) ||
-      0,
-    )
-    return Number.isFinite(raw) && raw > 0 ? raw * 1000 : providerSslLastCheckedAtMs.value || 0
+    return 0
   }
 
   return orderedNames.map((name) => {
@@ -2543,13 +2512,25 @@ const refreshProvidersPanel = async (force = false) => {
   await loadProvidersPanel(force)
   try {
     await fetchProxyProvidersOnly()
+    if ((proxyProviederList.value || []).length > 0) {
+      providersPanelError.value = ''
+    }
   } catch {
     // ignore providers-only refresh failure here
   }
 }
 
+const hasDirectProviderSslSnapshot = computed(() => {
+  return Boolean(
+    panelSslCheckedAt.value ||
+    Object.keys(panelSslNotAfterByName.value || {}).length ||
+    Object.keys(panelSslErrorByName.value || {}).length,
+  )
+})
+
 const providerSslCacheStatusText = computed(() => {
   if (panelSslProbeLoading.value) return t('providerSslRefreshing')
+  if (hasDirectProviderSslSnapshot.value) return ''
   if (!providerHealthAvailable.value) return ''
   if (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value) return t('providerSslRefreshing')
   if (!agentProvidersSslCacheReady.value && providersPanelRenderList.value.length > 0) return t('providerSslPending')
@@ -2558,6 +2539,7 @@ const providerSslCacheStatusText = computed(() => {
 
 const providerSslCacheStatusClass = computed(() => {
   if (panelSslProbeLoading.value) return 'text-info'
+  if (hasDirectProviderSslSnapshot.value) return 'text-base-content/60'
   if (!providerHealthAvailable.value) return 'text-base-content/60'
   if (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value) return 'text-info'
   if (!agentProvidersSslCacheReady.value && providersPanelRenderList.value.length > 0) return 'text-warning'

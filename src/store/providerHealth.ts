@@ -1,4 +1,4 @@
-import { agentMihomoProvidersAPI, agentProviderSslCacheRefreshAPI } from '@/api/agent'
+import { agentMihomoProvidersAPI, agentProviderSslCacheRefreshAPI, agentSslProbeBatchAPI } from '@/api/agent'
 import { fetchUbuntuProviderChecksAPI, fetchUbuntuProviderSslCacheStatusAPI, refreshUbuntuProviderSslCacheAPI, refreshUbuntuProvidersAPI, runUbuntuProviderChecksAPI } from '@/api/ubuntuService'
 import { normalizeProxyProtoKey } from '@/helper/proxyProto'
 import { useStorage } from '@vueuse/core'
@@ -240,9 +240,101 @@ export const fetchAgentProviders = async (force = false) => {
   }
 }
 
+
+const normalizeSavedProviderSubscriptionUrl = (raw: any): string => {
+  const url = String(raw || '').trim()
+  if (!url) return ''
+  const normalized = /^(https?|wss):\/\//i.test(url) ? url : `https://${url}`
+  return /^(https|wss):\/\//i.test(normalized) ? normalized : ''
+}
+
+const collectSavedProviderSubscriptionTargets = () => {
+  const ordered: { name: string; url: string }[] = []
+  const seen = new Set<string>()
+  const pushTarget = (rawName: any) => {
+    const name = String(rawName || '').trim()
+    if (!name || seen.has(name)) return
+    const url = normalizeSavedProviderSubscriptionUrl((proxyProviderSubscriptionUrlMap.value || {})[name])
+    if (!url) return
+    seen.add(name)
+    ordered.push({ name, url })
+  }
+
+  for (const provider of (proxyProviederList.value || []) as any[]) {
+    const name = String(provider?.name || '').trim()
+    if (!name || name === 'default' || provider?.vehicleType === 'Compatible') continue
+    pushTarget(name)
+  }
+
+  for (const name of Object.keys(proxyProviderSubscriptionUrlMap.value || {})) pushTarget(name)
+  return ordered
+}
+
+export const refreshSavedProviderSubscriptionSsl = async () => {
+  const targets = collectSavedProviderSubscriptionTargets()
+  panelSslCheckedAt.value = Date.now()
+  panelSslNotAfterByName.value = {}
+  panelSslErrorByName.value = {}
+  panelSslUrlByName.value = Object.fromEntries(targets.map((target) => [target.name, target.url]))
+
+  if (!targets.length) {
+    panelSslProbeError.value = 'no-providers'
+    return { ok: false, error: 'no-providers', checkedAtSec: Math.floor(Date.now() / 1000), items: [] as any[] }
+  }
+
+  if (!agentEnabled.value) {
+    panelSslProbeError.value = 'agent-disabled'
+    return { ok: false, error: 'agent-disabled', checkedAtSec: Math.floor(Date.now() / 1000), items: [] as any[] }
+  }
+
+  panelSslProbeLoading.value = true
+  panelSslProbeError.value = null
+  try {
+        const lines = targets.map((target) => `${target.name}\t${target.url}`).join('\n')
+const res: any = await agentSslProbeBatchAPI(lines)
+    const items = Array.isArray(res?.items) ? res.items : []
+    const nextNotAfter: Record<string, string> = {}
+    const nextErrors: Record<string, string> = {}
+    const nextUrls: Record<string, string> = Object.fromEntries(targets.map((target) => [target.name, target.url]))
+
+    for (const item of items) {
+      const name = String(item?.name || '').trim()
+      if (!name) continue
+      const url = normalizeSavedProviderSubscriptionUrl(item?.url)
+      if (url) nextUrls[name] = url
+      const notAfter = String(item?.sslNotAfter || '').trim()
+      const err = String(item?.error || '').trim()
+      if (notAfter) nextNotAfter[name] = notAfter
+      if (err) nextErrors[name] = err
+    }
+
+    panelSslCheckedAt.value = Number(res?.checkedAtSec) > 0 ? Number(res.checkedAtSec) * 1000 : Date.now()
+    panelSslNotAfterByName.value = nextNotAfter
+    panelSslErrorByName.value = nextErrors
+    panelSslUrlByName.value = nextUrls
+
+    const hasAnyResult = Object.keys(nextNotAfter).length > 0 || Object.keys(nextErrors).length > 0
+    panelSslProbeError.value = res?.ok || hasAnyResult ? null : String(res?.error || 'probe-failed')
+
+    return {
+      ok: Boolean(res?.ok || hasAnyResult),
+      checkedAtSec: Number(res?.checkedAtSec) || Math.floor(Date.now() / 1000),
+      items,
+      fallback: 'saved-provider-subscription-urls',
+      error: panelSslProbeError.value || undefined,
+    }
+  } catch (e: any) {
+    panelSslProbeError.value = e?.message || 'failed'
+    return { ok: false, error: panelSslProbeError.value, checkedAtSec: Math.floor(Date.now() / 1000), items: [] as any[] }
+  } finally {
+    panelSslProbeLoading.value = false
+  }
+}
+
 const providerHealthUsesUbuntuService = computed(() => isUbuntuProviderServiceMode.value && providerHealthAvailable.value)
 
 export const refreshAgentProviderSslCache = async () => {
+
   if (providerHealthUsesUbuntuService.value) {
     let res: any = { ok: false, error: 'capability-missing' }
 
@@ -281,6 +373,24 @@ export const refreshAgentProviderSslCache = async () => {
 
   if (isUbuntuProviderServiceMode.value && !agentEnabled.value) return { ok: false, error: 'capability-missing' }
   if (!agentEnabled.value) return { ok: false, error: 'agent-disabled' }
+
+  const savedTargets = collectSavedProviderSubscriptionTargets()
+  if (savedTargets.length > 0) {
+    const directRes = await refreshSavedProviderSubscriptionSsl()
+    try {
+      await fetchAgentProviders(true)
+    } catch {
+      // ignore provider list refresh failure; direct SSL results are already on screen
+    }
+    agentProvidersSslCacheReady.value = Boolean(directRes?.ok)
+    agentProvidersSslCacheFresh.value = Boolean(directRes?.ok)
+    agentProvidersSslRefreshing.value = false
+    agentProvidersSslRefreshPending.value = false
+    agentProvidersSslCacheAgeSec.value = 0
+    agentProvidersSslCacheNextRefreshAtMs.value = 0
+    agentProvidersAt.value = panelSslCheckedAt.value || Date.now()
+    return directRes
+  }
 
   let res: any = await agentProviderSslCacheRefreshAPI()
   if (!res?.ok) {
@@ -354,12 +464,7 @@ export const probePanelSsl = async (force = false) => {
     return
   }
 
-  // For compatibility/agent mode, provider SSL should come from the agent cache
-  // refreshed via ssl_cache_refresh + mihomo_providers, not from a long blocking
-  // direct probe request from the Tasks page.
-  panelSslProbeLoading.value = false
-  panelSslProbeError.value = null
-  panelSslCheckedAt.value = Date.now()
+  await refreshSavedProviderSubscriptionSsl()
   return
 }
 
