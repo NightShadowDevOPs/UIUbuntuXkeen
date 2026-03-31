@@ -1,0 +1,331 @@
+import { UBUNTU_BACKEND_ENDPOINTS } from '@/config/backendContract';
+import { getAnyFromObj } from '@/helper/providerHealth';
+import axios from 'axios';
+import dayjs from 'dayjs';
+const silentCfg = {
+    timeout: 10000,
+    silent: true,
+    headers: {
+        'X-Zash-Silent': '1',
+        Accept: 'application/json',
+    },
+};
+const str = (value) => String(value || '').trim();
+const num = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+};
+const toSec = (value) => {
+    if (value === null || value === undefined || value === '')
+        return 0;
+    if (typeof value === 'number' && Number.isFinite(value))
+        return value > 10_000_000_000 ? Math.trunc(value / 1000) : Math.trunc(value);
+    if (typeof value === 'string') {
+        const raw = value.trim();
+        if (!raw)
+            return 0;
+        if (/^[0-9]{10,13}$/.test(raw))
+            return toSec(Number(raw));
+        const d = dayjs(raw);
+        return d.isValid() ? d.unix() : 0;
+    }
+    return 0;
+};
+const pickList = (payload) => {
+    if (Array.isArray(payload))
+        return payload;
+    const candidates = [
+        payload?.items,
+        payload?.providers,
+        payload?.checks,
+        payload?.results,
+        payload?.data?.items,
+        payload?.data?.providers,
+        payload?.data,
+    ];
+    for (const candidate of candidates) {
+        if (Array.isArray(candidate))
+            return candidate;
+    }
+    return [];
+};
+const normalizeJob = (payload) => {
+    const raw = payload?.job || payload?.lastJob || payload?.currentJob || payload?.refreshJob || payload?.checkJob || null;
+    if (!raw || typeof raw !== 'object')
+        return null;
+    return {
+        id: str(getAnyFromObj(raw, ['id', 'jobId', 'job_id', 'uuid'])),
+        status: str(getAnyFromObj(raw, ['status', 'state'])),
+        error: str(getAnyFromObj(raw, ['error', 'errorText', 'error_text', 'message'])),
+        startedAtSec: toSec(getAnyFromObj(raw, ['startedAtSec', 'started_at_sec', 'startedAt', 'started_at', 'createdAt'])),
+        finishedAtSec: toSec(getAnyFromObj(raw, ['finishedAtSec', 'finished_at_sec', 'finishedAt', 'finished_at', 'completedAt'])),
+        updatedAtSec: toSec(getAnyFromObj(raw, ['updatedAtSec', 'updated_at_sec', 'updatedAt', 'updated_at'])),
+    };
+};
+export const normalizeUbuntuProviderState = (payload) => {
+    const list = pickList(payload);
+    const providers = list
+        .map((item) => {
+        const name = str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'provider', 'id']));
+        if (!name)
+            return null;
+        return {
+            ...item,
+            name,
+            url: str(getAnyFromObj(item, ['url', 'providerUrl', 'provider_url'])) || str(item?.url),
+            host: str(getAnyFromObj(item, ['host'])),
+            port: str(getAnyFromObj(item, ['port'])),
+            sslNotAfter: getAnyFromObj(item, ['sslNotAfter', 'notAfter', 'not_after', 'expiresAt', 'expires_at', 'expireAt']),
+            sslCheckedAtSec: toSec(getAnyFromObj(item, ['sslCheckedAtSec', 'checkedAtSec', 'checked_at_sec', 'checkedAt', 'checked_at'])),
+            sslIssuer: str(getAnyFromObj(item, ['sslIssuer', 'issuer'])),
+            sslSubject: str(getAnyFromObj(item, ['sslSubject', 'subject'])),
+            sslSan: getAnyFromObj(item, ['sslSan', 'san', 'subjectAltName']),
+            sslError: str(getAnyFromObj(item, ['sslError', 'error', 'errorText', 'error_text'])),
+            panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'uiUrl', 'ui_url'])),
+            panelSslNotAfter: getAnyFromObj(item, ['panelSslNotAfter', 'panel_not_after', 'panelExpiresAt', 'panel_expires_at']),
+            panelSslCheckedAtSec: toSec(getAnyFromObj(item, ['panelSslCheckedAtSec', 'panel_checked_at_sec', 'panelCheckedAtSec'])),
+            panelSslIssuer: str(getAnyFromObj(item, ['panelSslIssuer', 'panel_issuer'])),
+            panelSslSubject: str(getAnyFromObj(item, ['panelSslSubject', 'panel_subject'])),
+            panelSslSan: getAnyFromObj(item, ['panelSslSan', 'panel_san']),
+            panelSslError: str(getAnyFromObj(item, ['panelSslError', 'panel_error'])),
+            nextCheckAtSec: toSec(getAnyFromObj(item, ['nextCheckAtSec', 'next_check_at_sec', 'nextCheckAt', 'next_check_at'])),
+            jobStatus: str(getAnyFromObj(item, ['jobStatus', 'job_status', 'status'])),
+        };
+    })
+        .filter(Boolean);
+    const cache = payload?.sslCache || payload?.cache || payload?.data?.sslCache || {};
+    const directRefreshing = payload?.refreshing ?? payload?.sslRefreshing ?? payload?.sslRefreshPending;
+    const cacheRefreshing = cache?.refreshing ?? cache?.sslRefreshing ?? cache?.pending;
+    return {
+        ok: Boolean(payload?.ok ?? providers.length),
+        checkedAtSec: toSec(getAnyFromObj(payload, ['checkedAtSec', 'checked_at_sec', 'checkedAt', 'checked_at'])),
+        nextCheckAtSec: toSec(getAnyFromObj(payload, ['nextCheckAtSec', 'next_check_at_sec', 'nextCheckAt', 'next_check_at'])),
+        sslCacheReady: Boolean(payload?.sslCacheReady ?? cache?.ready ?? cache?.sslCacheReady),
+        sslCacheFresh: Boolean(payload?.sslCacheFresh ?? cache?.fresh ?? cache?.sslCacheFresh),
+        sslRefreshing: Boolean(directRefreshing ?? cacheRefreshing),
+        sslRefreshPending: Boolean(payload?.sslRefreshPending ?? cache?.pending),
+        sslCacheAgeSec: num(payload?.sslCacheAgeSec ?? cache?.ageSec ?? cache?.sslCacheAgeSec, -1),
+        sslCacheNextRefreshAtSec: toSec(payload?.sslCacheNextRefreshAtSec ?? cache?.nextRefreshAtSec ?? cache?.next_refresh_at_sec),
+        providers,
+        job: normalizeJob(payload),
+        error: str(payload?.error || payload?.message),
+    };
+};
+export const fetchUbuntuProviderChecksAPI = async () => {
+    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providerChecks, silentCfg);
+    return normalizeUbuntuProviderState(data || {});
+};
+export const runUbuntuProviderChecksAPI = async () => {
+    const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerChecksRun, null, {
+        ...silentCfg,
+        timeout: 15000,
+    });
+    return normalizeUbuntuProviderState(data || {});
+};
+export const refreshUbuntuProvidersAPI = async () => {
+    const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerRefresh, null, {
+        ...silentCfg,
+        timeout: 15000,
+    });
+    return normalizeUbuntuProviderState(data || {});
+};
+export const refreshUbuntuProviderSslCacheAPI = async () => {
+    const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheRefresh, null, {
+        ...silentCfg,
+        timeout: 15000,
+    });
+    return normalizeUbuntuProviderState(data || {});
+};
+export const fetchUbuntuProviderSslCacheStatusAPI = async () => {
+    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheStatus, silentCfg);
+    return normalizeUbuntuProviderState(data || {});
+};
+const boolish = (value) => {
+    if (typeof value === 'boolean')
+        return value;
+    if (typeof value === 'number')
+        return value !== 0;
+    if (typeof value === 'string') {
+        const raw = value.trim().toLowerCase();
+        if (!raw)
+            return undefined;
+        if (['1', 'true', 'yes', 'y', 'on', 'enabled', 'active', 'running', 'ready'].includes(raw))
+            return true;
+        if (['0', 'false', 'no', 'n', 'off', 'disabled', 'inactive', 'dead', 'failed'].includes(raw))
+            return false;
+    }
+    return undefined;
+};
+const firstNonEmpty = (sources, keys) => {
+    for (const source of sources) {
+        const value = getAnyFromObj(source, keys);
+        if (value !== undefined && value !== null && String(value).trim() !== '')
+            return value;
+    }
+    return undefined;
+};
+const numOrUndef = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+};
+const objectItems = (payload, keys) => {
+    for (const key of keys) {
+        const raw = getAnyFromObj(payload, [key]);
+        if (Array.isArray(raw))
+            return raw;
+        if (raw && typeof raw === 'object') {
+            return Object.entries(raw).map(([name, value]) => ({
+                ...(value && typeof value === 'object' ? value : { value }),
+                name,
+            }));
+        }
+    }
+    return [];
+};
+export const normalizeUbuntuSystemStatus = (payload) => {
+    const hostSources = [payload?.host, payload?.system, payload?.service, payload?.data, payload];
+    const mihomoSources = [payload?.mihomo, payload?.services?.mihomo, payload?.service?.mihomo, payload];
+    const serviceSources = [payload?.service, payload?.services?.service, payload?.services?.ubuntu, payload];
+    const ok = boolish(payload?.ok) ?? Boolean(payload?.service || payload?.mihomo || payload?.hostname || payload?.host);
+    return {
+        ok,
+        hostname: str(firstNonEmpty(hostSources, ['hostname', 'host', 'nodeName', 'node', 'machine'])),
+        serviceVersion: str(firstNonEmpty(serviceSources, ['version', 'serviceVersion', 'appVersion'])) || str(firstNonEmpty(hostSources, ['serviceVersion', 'appVersion', 'version'])),
+        version: str(firstNonEmpty(hostSources, ['version', 'appVersion'])),
+        mihomoVersion: str(firstNonEmpty(mihomoSources, ['version', 'mihomoVersion', 'coreVersion'])),
+        mihomoRunning: boolish(firstNonEmpty(mihomoSources, ['running', 'active', 'ok', 'healthy', 'alive'])),
+        serviceStatus: str(firstNonEmpty(serviceSources, ['status', 'state', 'activeState', 'active_state'])) || str(firstNonEmpty(mihomoSources, ['status', 'state'])),
+        serviceUnit: str(firstNonEmpty(serviceSources, ['unit', 'serviceUnit', 'name'])) || 'ultra-ui-ubuntu.service',
+        platform: str(firstNonEmpty(hostSources, ['platform', 'prettyName', 'pretty_name', 'os', 'distribution'])),
+        kernel: str(firstNonEmpty(hostSources, ['kernel', 'kernelVersion', 'kernel_version'])),
+        arch: str(firstNonEmpty(hostSources, ['arch', 'architecture'])),
+        startedAtSec: toSec(firstNonEmpty(serviceSources, ['startedAtSec', 'started_at_sec', 'startedAt', 'started_at'])),
+        updatedAtSec: toSec(firstNonEmpty(hostSources, ['updatedAtSec', 'updated_at_sec', 'updatedAt', 'updated_at', 'ts'])),
+        mihomoLogPath: str(firstNonEmpty(mihomoSources, ['logPath', 'log_path', 'path'])) || '/var/log/mihomo/mihomo.log',
+        error: str(payload?.error || payload?.message),
+    };
+};
+export const normalizeUbuntuSystemResources = (payload) => {
+    const root = payload?.resources || payload?.data || payload || {};
+    const cpuSources = [root?.cpu, root?.system, root];
+    const memSources = [root?.memory, root?.mem, root?.ram, root];
+    const diskSources = [root?.disk, root?.storage, root?.filesystem, root?.fs, root];
+    const loadSources = [root?.load, root?.cpu, root?.system, root];
+    const hostSources = [root?.system, root?.host, root];
+    const memTotalBytes = numOrUndef(firstNonEmpty(memSources, ['totalBytes', 'total_bytes', 'total', 'memTotal', 'mem_total']));
+    const memUsedBytes = numOrUndef(firstNonEmpty(memSources, ['usedBytes', 'used_bytes', 'used', 'memUsed', 'mem_used']));
+    const memAvailableBytes = numOrUndef(firstNonEmpty(memSources, ['availableBytes', 'available_bytes', 'freeBytes', 'free_bytes', 'available', 'free', 'memAvailable', 'mem_available', 'memFree']));
+    const diskTotalBytes = numOrUndef(firstNonEmpty(diskSources, ['totalBytes', 'total_bytes', 'total', 'sizeBytes', 'size_bytes']));
+    const diskUsedBytes = numOrUndef(firstNonEmpty(diskSources, ['usedBytes', 'used_bytes', 'used']));
+    const diskFreeBytes = numOrUndef(firstNonEmpty(diskSources, ['freeBytes', 'free_bytes', 'availableBytes', 'available_bytes', 'free', 'available']));
+    return {
+        ok: boolish(root?.ok) ?? Boolean(memTotalBytes || diskTotalBytes || firstNonEmpty(cpuSources, ['cpuPct', 'usagePct', 'percent'])),
+        hostname: str(firstNonEmpty(hostSources, ['hostname', 'host', 'nodeName', 'node'])),
+        cpuPct: numOrUndef(firstNonEmpty(cpuSources, ['cpuPct', 'cpu_percent', 'usagePct', 'usage_pct', 'percent', 'usage'])),
+        load1: str(firstNonEmpty(loadSources, ['load1', 'load_1', 'one', 'avg1'])),
+        load5: str(firstNonEmpty(loadSources, ['load5', 'load_5', 'five', 'avg5'])),
+        load15: str(firstNonEmpty(loadSources, ['load15', 'load_15', 'fifteen', 'avg15'])),
+        memTotalBytes,
+        memUsedBytes,
+        memAvailableBytes,
+        memUsedPct: numOrUndef(firstNonEmpty(memSources, ['usedPct', 'used_pct', 'usagePct', 'usage_pct', 'percent']))
+            ?? (memTotalBytes && memUsedBytes ? (memUsedBytes / memTotalBytes) * 100 : undefined),
+        diskTotalBytes,
+        diskUsedBytes,
+        diskFreeBytes,
+        diskUsedPct: numOrUndef(firstNonEmpty(diskSources, ['usedPct', 'used_pct', 'usagePct', 'usage_pct', 'percent']))
+            ?? (diskTotalBytes && diskUsedBytes ? (diskUsedBytes / diskTotalBytes) * 100 : undefined),
+        diskPath: str(firstNonEmpty(diskSources, ['path', 'mount', 'mountpoint', 'mountPoint'])),
+        uptimeSec: numOrUndef(firstNonEmpty(hostSources, ['uptimeSec', 'uptime_sec', 'uptime'])) || 0,
+        kernel: str(firstNonEmpty(hostSources, ['kernel', 'kernelVersion', 'kernel_version'])),
+        arch: str(firstNonEmpty(hostSources, ['arch', 'architecture'])),
+        platform: str(firstNonEmpty(hostSources, ['platform', 'prettyName', 'pretty_name', 'os', 'distribution'])),
+        updatedAtSec: toSec(firstNonEmpty([root], ['updatedAtSec', 'updated_at_sec', 'updatedAt', 'updated_at', 'ts'])),
+        error: str(root?.error || root?.message),
+    };
+};
+const normalizeServiceItem = (item) => {
+    const name = str(getAnyFromObj(item, ['name', 'unit', 'service', 'id']));
+    if (!name)
+        return null;
+    const enabledValue = firstNonEmpty([item], ['enabled', 'isEnabled', 'unitFileState', 'unit_file_state']);
+    const enabledBool = boolish(enabledValue);
+    const unitFileState = String(enabledValue || '').trim().toLowerCase();
+    return {
+        name,
+        label: str(getAnyFromObj(item, ['label', 'title', 'displayName', 'display_name'])) || name,
+        description: str(getAnyFromObj(item, ['description', 'desc', 'summary'])),
+        activeState: str(getAnyFromObj(item, ['activeState', 'active_state', 'status', 'state'])),
+        subState: str(getAnyFromObj(item, ['subState', 'sub_state'])),
+        enabled: enabledBool ?? (unitFileState ? ['enabled', 'static', 'linked'].includes(unitFileState) : undefined),
+        mainPid: numOrUndef(getAnyFromObj(item, ['mainPid', 'main_pid', 'pid'])),
+        sinceSec: toSec(getAnyFromObj(item, ['sinceSec', 'since_sec', 'startedAtSec', 'started_at_sec', 'startedAt', 'started_at'])),
+        version: str(getAnyFromObj(item, ['version', 'serviceVersion', 'appVersion'])),
+        error: str(getAnyFromObj(item, ['error', 'message', 'statusText', 'status_text'])),
+    };
+};
+export const normalizeUbuntuSystemServices = (payload) => {
+    const rawItems = [
+        ...pickList(payload),
+        ...objectItems(payload, ['services', 'units']),
+    ];
+    const unique = new Map();
+    for (const item of rawItems) {
+        const normalized = normalizeServiceItem(item);
+        if (!normalized)
+            continue;
+        unique.set(normalized.name, normalized);
+    }
+    const items = Array.from(unique.values()).sort((a, b) => {
+        const ap = /mihomo/i.test(a.name) ? 0 : /ultra-ui|ubuntu/i.test(a.name) ? 1 : 2;
+        const bp = /mihomo/i.test(b.name) ? 0 : /ultra-ui|ubuntu/i.test(b.name) ? 1 : 2;
+        if (ap !== bp)
+            return ap - bp;
+        return a.name.localeCompare(b.name);
+    });
+    return {
+        ok: boolish(payload?.ok) ?? Boolean(items.length),
+        items,
+        updatedAtSec: toSec(firstNonEmpty([payload], ['updatedAtSec', 'updated_at_sec', 'updatedAt', 'updated_at', 'ts'])),
+        error: str(payload?.error || payload?.message),
+    };
+};
+export const normalizeUbuntuSystemLogs = (payload, fallback = {}) => {
+    const linesRaw = pickList(payload);
+    const lines = linesRaw.length
+        ? linesRaw.map((item) => (typeof item === 'string' ? item : str(getAnyFromObj(item, ['line', 'text', 'message', 'payload'])))).filter(Boolean)
+        : [];
+    const text = str(payload?.text || payload?.log || payload?.content || payload?.data?.text) || lines.join('\n');
+    return {
+        ok: boolish(payload?.ok) ?? Boolean(text),
+        source: str(payload?.source) || fallback.source || 'mihomo',
+        path: str(payload?.path || payload?.file || payload?.logPath || payload?.log_path),
+        tail: num(payload?.tail ?? fallback.tail, 0) || undefined,
+        lines,
+        text,
+        updatedAtSec: toSec(firstNonEmpty([payload], ['updatedAtSec', 'updated_at_sec', 'updatedAt', 'updated_at', 'ts'])),
+        error: str(payload?.error || payload?.message),
+    };
+};
+export const fetchUbuntuSystemStatusAPI = async () => {
+    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.status, silentCfg);
+    return normalizeUbuntuSystemStatus(data || {});
+};
+export const fetchUbuntuSystemResourcesAPI = async () => {
+    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.resources, silentCfg);
+    return normalizeUbuntuSystemResources(data || {});
+};
+export const fetchUbuntuSystemServicesAPI = async () => {
+    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.services, silentCfg);
+    return normalizeUbuntuSystemServices(data || {});
+};
+export const fetchUbuntuSystemLogsAPI = async (args) => {
+    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.logs, {
+        ...silentCfg,
+        params: {
+            source: args?.source || 'mihomo',
+            tail: args?.tail || 160,
+        },
+    });
+    return normalizeUbuntuSystemLogs(data || {}, args);
+};

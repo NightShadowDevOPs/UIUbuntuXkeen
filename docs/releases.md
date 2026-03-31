@@ -1,3 +1,9 @@
+## v0.6.19 — honest provider SSL staging
+
+- provider SSL checks через legacy router-agent / compatibility fallback больше не считаются рабочими внутри Ubuntu-линии;
+- Tasks показывает честный статус: URL подписок можно редактировать уже сейчас, но серверная проверка сертификатов появится только после подключения отдельного Ubuntu service на хосте;
+- auto-bootstrap legacy agent в store отключён по умолчанию, чтобы проект не подмешивал роутерный контур в новый browser profile.
+
 ## v0.6.18 — rollback invalid runtime experiment and restore honest frontend model
 Дата: **2026-03-31**
 

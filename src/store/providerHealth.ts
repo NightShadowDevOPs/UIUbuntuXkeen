@@ -1,9 +1,7 @@
-import { agentMihomoProvidersAPI, agentProviderSslCacheRefreshAPI, agentSslProbeBatchAPI } from '@/api/agent'
 import { fetchUbuntuProviderChecksAPI, fetchUbuntuProviderSslCacheStatusAPI, refreshUbuntuProviderSslCacheAPI, refreshUbuntuProvidersAPI, runUbuntuProviderChecksAPI } from '@/api/ubuntuService'
 import { normalizeProxyProtoKey } from '@/helper/proxyProto'
 import { useStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
-import { agentEnabled } from './agent'
 import { activeBackendCapabilities } from './backendCapabilities'
 import { activeBackend } from './setup'
 import { proxyProviderSubscriptionUrlMap } from './settings'
@@ -14,31 +12,24 @@ export const autoSortProxyProvidersByHealth = useStorage<boolean>(
   true,
 )
 
-/** Provider list sort mode on the Providers tab. */
 export const proxyProvidersSortMode = useStorage<'health' | 'activity' | 'traffic' | 'name'>(
   'config/proxy-providers-sort-mode',
   'health',
 )
 
-/** Show only providers that currently have active connections (best-effort). */
 export const showOnlyActiveProxyProviders = useStorage<boolean>(
   'config/show-only-active-proxy-providers',
   false,
 )
 
-/** Show only providers that already have observed traffic (today/session/live). */
 export const showOnlyTrafficProxyProviders = useStorage<boolean>(
   'config/show-only-traffic-proxy-providers',
   false,
 )
 
-/** Optional quick filter for providers tab: expired | nearExpiry | offline | degraded | healthy */
 export const providerHealthFilter = useStorage<string>('config/provider-health-filter', '')
 
-/** Providers sub-tab: protocol filter on Providers page (all | wg | vless | ss | ...). */
 const _proxyProvidersProtoFilter = useStorage<string>('config/proxy-providers-proto-filter', 'all')
-
-/** Providers sub-tab: protocol filter on Providers page (all | wg | vless | ss | ...). */
 export const proxyProvidersProtoFilter = computed({
   get: () => {
     const v = normalizeProxyProtoKey(_proxyProvidersProtoFilter.value || 'all')
@@ -51,24 +42,19 @@ export const proxyProvidersProtoFilter = computed({
 })
 
 const isUbuntuProviderServiceMode = computed(() => activeBackend.value?.kind === 'ubuntu-service')
-
 const hasUbuntuProviderCapability = (...keys: string[]) => {
   const caps = activeBackendCapabilities.value || {}
   return keys.some((key) => Boolean((caps as any)?.[key]))
 }
 
 export const providerHealthAvailable = computed(() => {
-  if (isUbuntuProviderServiceMode.value) {
-    return hasUbuntuProviderCapability('providers', 'providerChecks', 'providerSslCacheStatus', 'providerChecksRun', 'providerRefresh', 'providerSslCacheRefresh')
-  }
-  return agentEnabled.value
+  if (!isUbuntuProviderServiceMode.value) return false
+  return hasUbuntuProviderCapability('providers', 'providerChecks', 'providerSslCacheStatus', 'providerChecksRun', 'providerRefresh', 'providerSslCacheRefresh')
 })
 
 export const providerHealthActionsAvailable = computed(() => {
-  if (isUbuntuProviderServiceMode.value) {
-    return hasUbuntuProviderCapability('providerChecksRun', 'providerRefresh', 'providerSslCacheRefresh')
-  }
-  return agentEnabled.value
+  if (!isUbuntuProviderServiceMode.value) return false
+  return hasUbuntuProviderCapability('providerChecksRun', 'providerRefresh', 'providerSslCacheRefresh')
 })
 
 export const agentProvidersLoading = ref(false)
@@ -86,7 +72,6 @@ export const agentProvidersNextCheckAtMs = ref<number>(0)
 export const agentProvidersJobStatus = ref('')
 export const agentProvidersJobId = ref('')
 
-// SSL probe results for provider management panel URLs (name -> notAfter string).
 export const panelSslNotAfterByName = ref<Record<string, string>>({})
 export const panelSslErrorByName = ref<Record<string, string>>({})
 export const panelSslUrlByName = ref<Record<string, string>>({})
@@ -102,144 +87,21 @@ export const agentProviderByName = computed<Record<string, any>>(() => {
   return map
 })
 
-export const fetchAgentProviders = async (force = false) => {
-  if (providerHealthUsesUbuntuService.value) {
-    if (agentProvidersLoading.value) return
-
-    agentProvidersLoading.value = true
-    try {
-      const checksPromise = hasUbuntuProviderCapability('providerChecks', 'providers')
-        ? fetchUbuntuProviderChecksAPI()
-        : Promise.resolve({ ok: false, providers: [], error: '' } as any)
-      const cachePromise = hasUbuntuProviderCapability('providerSslCacheStatus')
-        ? fetchUbuntuProviderSslCacheStatusAPI()
-        : Promise.resolve({ ok: false } as any)
-
-      const [checksRes, cacheRes] = await Promise.allSettled([checksPromise, cachePromise])
-      const checks = checksRes.status === 'fulfilled' ? checksRes.value : ({ ok: false, providers: [], error: checksRes.reason?.message || 'failed' } as any)
-      const cache = cacheRes.status === 'fulfilled' ? cacheRes.value : ({ ok: false, error: cacheRes.reason?.message || '' } as any)
-
-      const providers = Array.isArray(checks?.providers) ? checks.providers : []
-      const hasProviders = providers.length > 0
-      const backendOk = Boolean(checks?.ok || cache?.ok || hasProviders)
-      const backendError = hasProviders ? null : checks?.error || cache?.error || null
-
-      if (backendOk || !agentEnabled.value) {
-        agentProvidersOk.value = backendOk
-        agentProvidersError.value = backendError
-        agentProviders.value = hasProviders ? providers : force ? [] : (agentProviders.value || [])
-
-        agentProvidersSslCacheReady.value = Boolean(checks?.sslCacheReady ?? cache?.sslCacheReady)
-        agentProvidersSslCacheFresh.value = Boolean(checks?.sslCacheFresh ?? cache?.sslCacheFresh)
-        agentProvidersSslRefreshing.value = Boolean(checks?.sslRefreshing ?? cache?.sslRefreshing)
-        agentProvidersSslRefreshPending.value = Boolean(checks?.sslRefreshPending ?? cache?.sslRefreshPending)
-
-        const ageSec = Number(checks?.sslCacheAgeSec ?? cache?.sslCacheAgeSec)
-        agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
-
-        const nextRefreshSec = Number(checks?.sslCacheNextRefreshAtSec ?? cache?.sslCacheNextRefreshAtSec)
-        agentProvidersSslCacheNextRefreshAtMs.value = Number.isFinite(nextRefreshSec) && nextRefreshSec > 0 ? nextRefreshSec * 1000 : 0
-
-        const checkedAtSec = Number(checks?.checkedAtSec ?? cache?.checkedAtSec)
-        agentProvidersAt.value = Number.isFinite(checkedAtSec) && checkedAtSec > 0 ? checkedAtSec * 1000 : Date.now()
-
-        const nextCheckSec = Number(checks?.nextCheckAtSec)
-        agentProvidersNextCheckAtMs.value = Number.isFinite(nextCheckSec) && nextCheckSec > 0 ? nextCheckSec * 1000 : 0
-
-        const job = checks?.job || cache?.job || null
-        agentProvidersJobStatus.value = String(job?.status || '').trim()
-        agentProvidersJobId.value = String(job?.id || '').trim()
-        return
-      }
-
-      const agentRes = await agentMihomoProvidersAPI(force)
-      const agentRows = Array.isArray((agentRes as any)?.providers) ? ((agentRes as any)?.providers as any[]) : []
-      const agentFallbackOk = Boolean((agentRes as any)?.ok || agentRows.length)
-      agentProvidersOk.value = agentFallbackOk
-      // If the compatibility bridge returned a usable list, keep the panel working
-      // and avoid a misleading "failed to get providers" warning above a visible table.
-      agentProvidersError.value = agentFallbackOk ? null : (agentRes as any)?.error || backendError || null
-      agentProviders.value = agentRows.length ? agentRows : force ? [] : (agentProviders.value || [])
-      agentProvidersSslCacheReady.value = Boolean((agentRes as any)?.sslCacheReady)
-      agentProvidersSslCacheFresh.value = Boolean((agentRes as any)?.sslCacheFresh)
-      agentProvidersSslRefreshing.value = Boolean((agentRes as any)?.sslRefreshing)
-      agentProvidersSslRefreshPending.value = Boolean((agentRes as any)?.sslRefreshPending)
-      const ageSec = Number((agentRes as any)?.sslCacheAgeSec)
-      agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
-      const nextRefreshSec = Number((agentRes as any)?.sslCacheNextRefreshAtSec)
-      agentProvidersSslCacheNextRefreshAtMs.value = Number.isFinite(nextRefreshSec) && nextRefreshSec > 0 ? nextRefreshSec * 1000 : 0
-      const checkedAtSec = Number((agentRes as any)?.checkedAtSec)
-      agentProvidersAt.value = Number.isFinite(checkedAtSec) && checkedAtSec > 0 ? checkedAtSec * 1000 : Date.now()
-      agentProvidersNextCheckAtMs.value = 0
-      agentProvidersJobStatus.value = ''
-      agentProvidersJobId.value = ''
-      return
-    } finally {
-      agentProvidersLoading.value = false
-    }
-  }
-
-  if (isUbuntuProviderServiceMode.value) {
-    agentProvidersOk.value = false
-    agentProvidersError.value = Object.keys(activeBackendCapabilities.value || {}).length ? 'capability-missing' : null
-    agentProviders.value = []
-    agentProvidersSslCacheReady.value = false
-    agentProvidersSslCacheFresh.value = false
-    agentProvidersSslRefreshing.value = false
-    agentProvidersSslRefreshPending.value = false
-    agentProvidersSslCacheAgeSec.value = -1
-    agentProvidersSslCacheNextRefreshAtMs.value = 0
-    agentProvidersNextCheckAtMs.value = 0
-    agentProvidersJobStatus.value = ''
-    agentProvidersJobId.value = ''
-    agentProvidersAt.value = Date.now()
-    return
-  }
-
-  if (!agentEnabled.value) {
-    agentProvidersOk.value = false
-    agentProvidersError.value = null
-    agentProviders.value = []
-    agentProvidersSslCacheReady.value = false
-    agentProvidersSslCacheFresh.value = false
-    agentProvidersSslRefreshing.value = false
-    agentProvidersSslRefreshPending.value = false
-    agentProvidersSslCacheAgeSec.value = -1
-    agentProvidersSslCacheNextRefreshAtMs.value = 0
-    agentProvidersNextCheckAtMs.value = 0
-    agentProvidersJobStatus.value = ''
-    agentProvidersJobId.value = ''
-    agentProvidersAt.value = Date.now()
-    return
-  }
-
-  if (agentProvidersLoading.value) return
-
-  agentProvidersLoading.value = true
-  try {
-    const res = await agentMihomoProvidersAPI(force)
-    const providers = Array.isArray((res as any)?.providers) ? ((res as any)?.providers as any[]) : []
-    const hasProviders = providers.length > 0
-    agentProvidersOk.value = !!res?.ok || hasProviders
-    agentProvidersError.value = res?.ok || hasProviders ? null : res?.error || 'offline'
-    agentProviders.value = hasProviders ? providers : (agentProviders.value || [])
-    agentProvidersSslCacheReady.value = Boolean((res as any)?.sslCacheReady)
-    agentProvidersSslCacheFresh.value = Boolean((res as any)?.sslCacheFresh)
-    agentProvidersSslRefreshing.value = Boolean((res as any)?.sslRefreshing)
-    agentProvidersSslRefreshPending.value = Boolean((res as any)?.sslRefreshPending)
-    const ageSec = Number((res as any)?.sslCacheAgeSec)
-    agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
-    const nextSec = Number((res as any)?.sslCacheNextRefreshAtSec)
-    agentProvidersSslCacheNextRefreshAtMs.value = Number.isFinite(nextSec) && nextSec > 0 ? nextSec * 1000 : 0
-    agentProvidersNextCheckAtMs.value = 0
-    agentProvidersJobStatus.value = ''
-    agentProvidersJobId.value = ''
-    agentProvidersAt.value = typeof (res as any)?.checkedAtSec === 'number' && (res as any).checkedAtSec > 0 ? (res as any).checkedAtSec * 1000 : Date.now()
-  } finally {
-    agentProvidersLoading.value = false
-  }
+const resetProviderRuntimeState = (error: string | null = null) => {
+  agentProvidersOk.value = false
+  agentProvidersError.value = error
+  agentProviders.value = []
+  agentProvidersSslCacheReady.value = false
+  agentProvidersSslCacheFresh.value = false
+  agentProvidersSslRefreshing.value = false
+  agentProvidersSslRefreshPending.value = false
+  agentProvidersSslCacheAgeSec.value = -1
+  agentProvidersSslCacheNextRefreshAtMs.value = 0
+  agentProvidersNextCheckAtMs.value = 0
+  agentProvidersJobStatus.value = ''
+  agentProvidersJobId.value = ''
+  agentProvidersAt.value = Date.now()
 }
-
 
 const normalizeSavedProviderSubscriptionUrl = (raw: any): string => {
   const url = String(raw || '').trim()
@@ -270,6 +132,53 @@ const collectSavedProviderSubscriptionTargets = () => {
   return ordered
 }
 
+export const fetchAgentProviders = async (force = false) => {
+  if (!providerHealthAvailable.value) {
+    resetProviderRuntimeState(isUbuntuProviderServiceMode.value && Object.keys(activeBackendCapabilities.value || {}).length ? 'capability-missing' : null)
+    return
+  }
+
+  if (agentProvidersLoading.value) return
+  agentProvidersLoading.value = true
+  try {
+    const checksPromise = hasUbuntuProviderCapability('providerChecks', 'providers')
+      ? fetchUbuntuProviderChecksAPI()
+      : Promise.resolve({ ok: false, providers: [], error: '' } as any)
+    const cachePromise = hasUbuntuProviderCapability('providerSslCacheStatus')
+      ? fetchUbuntuProviderSslCacheStatusAPI()
+      : Promise.resolve({ ok: false } as any)
+
+    const [checksRes, cacheRes] = await Promise.allSettled([checksPromise, cachePromise])
+    const checks = checksRes.status === 'fulfilled' ? checksRes.value : ({ ok: false, providers: [], error: checksRes.reason?.message || 'failed' } as any)
+    const cache = cacheRes.status === 'fulfilled' ? cacheRes.value : ({ ok: false, error: cacheRes.reason?.message || '' } as any)
+
+    const providers = Array.isArray(checks?.providers) ? checks.providers : []
+    const hasProviders = providers.length > 0
+    agentProvidersOk.value = Boolean(checks?.ok || cache?.ok || hasProviders)
+    agentProvidersError.value = hasProviders ? null : checks?.error || cache?.error || null
+    agentProviders.value = hasProviders ? providers : force ? [] : (agentProviders.value || [])
+
+    agentProvidersSslCacheReady.value = Boolean(checks?.sslCacheReady ?? cache?.sslCacheReady)
+    agentProvidersSslCacheFresh.value = Boolean(checks?.sslCacheFresh ?? cache?.sslCacheFresh)
+    agentProvidersSslRefreshing.value = Boolean(checks?.sslRefreshing ?? cache?.sslRefreshing)
+    agentProvidersSslRefreshPending.value = Boolean(checks?.sslRefreshPending ?? cache?.sslRefreshPending)
+
+    const ageSec = Number(checks?.sslCacheAgeSec ?? cache?.sslCacheAgeSec)
+    agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
+    const nextRefreshSec = Number(checks?.sslCacheNextRefreshAtSec ?? cache?.sslCacheNextRefreshAtSec)
+    agentProvidersSslCacheNextRefreshAtMs.value = Number.isFinite(nextRefreshSec) && nextRefreshSec > 0 ? nextRefreshSec * 1000 : 0
+    const checkedAtSec = Number(checks?.checkedAtSec ?? cache?.checkedAtSec)
+    agentProvidersAt.value = Number.isFinite(checkedAtSec) && checkedAtSec > 0 ? checkedAtSec * 1000 : Date.now()
+    const nextCheckSec = Number(checks?.nextCheckAtSec)
+    agentProvidersNextCheckAtMs.value = Number.isFinite(nextCheckSec) && nextCheckSec > 0 ? nextCheckSec * 1000 : 0
+    const job = checks?.job || cache?.job || null
+    agentProvidersJobStatus.value = String(job?.status || '').trim()
+    agentProvidersJobId.value = String(job?.id || '').trim()
+  } finally {
+    agentProvidersLoading.value = false
+  }
+}
+
 export const refreshSavedProviderSubscriptionSsl = async () => {
   const targets = collectSavedProviderSubscriptionTargets()
   panelSslCheckedAt.value = Date.now()
@@ -277,150 +186,49 @@ export const refreshSavedProviderSubscriptionSsl = async () => {
   panelSslErrorByName.value = {}
   panelSslUrlByName.value = Object.fromEntries(targets.map((target) => [target.name, target.url]))
 
-  if (!targets.length) {
-    panelSslProbeError.value = 'no-providers'
-    return { ok: false, error: 'no-providers', checkedAtSec: Math.floor(Date.now() / 1000), items: [] as any[] }
-  }
-
-  if (!agentEnabled.value) {
-    panelSslProbeError.value = 'agent-disabled'
-    return { ok: false, error: 'agent-disabled', checkedAtSec: Math.floor(Date.now() / 1000), items: [] as any[] }
-  }
-
-  panelSslProbeLoading.value = true
-  panelSslProbeError.value = null
-  try {
-        const lines = targets.map((target) => `${target.name}\t${target.url}`).join('\n')
-const res: any = await agentSslProbeBatchAPI(lines)
-    const items = Array.isArray(res?.items) ? res.items : []
-    const nextNotAfter: Record<string, string> = {}
-    const nextErrors: Record<string, string> = {}
-    const nextUrls: Record<string, string> = Object.fromEntries(targets.map((target) => [target.name, target.url]))
-
-    for (const item of items) {
-      const name = String(item?.name || '').trim()
-      if (!name) continue
-      const url = normalizeSavedProviderSubscriptionUrl(item?.url)
-      if (url) nextUrls[name] = url
-      const notAfter = String(item?.sslNotAfter || '').trim()
-      const err = String(item?.error || '').trim()
-      if (notAfter) nextNotAfter[name] = notAfter
-      if (err) nextErrors[name] = err
-    }
-
-    panelSslCheckedAt.value = Number(res?.checkedAtSec) > 0 ? Number(res.checkedAtSec) * 1000 : Date.now()
-    panelSslNotAfterByName.value = nextNotAfter
-    panelSslErrorByName.value = nextErrors
-    panelSslUrlByName.value = nextUrls
-
-    const hasAnyResult = Object.keys(nextNotAfter).length > 0 || Object.keys(nextErrors).length > 0
-    panelSslProbeError.value = res?.ok || hasAnyResult ? null : String(res?.error || 'probe-failed')
-
-    return {
-      ok: Boolean(res?.ok || hasAnyResult),
-      checkedAtSec: Number(res?.checkedAtSec) || Math.floor(Date.now() / 1000),
-      items,
-      fallback: 'saved-provider-subscription-urls',
-      error: panelSslProbeError.value || undefined,
-    }
-  } catch (e: any) {
-    panelSslProbeError.value = e?.message || 'failed'
-    return { ok: false, error: panelSslProbeError.value, checkedAtSec: Math.floor(Date.now() / 1000), items: [] as any[] }
-  } finally {
-    panelSslProbeLoading.value = false
-  }
+  const error = targets.length ? 'server-side-ssl-unavailable' : 'no-providers'
+  panelSslProbeError.value = error
+  return { ok: false, error, checkedAtSec: Math.floor(Date.now() / 1000), items: [] as any[] }
 }
 
 const providerHealthUsesUbuntuService = computed(() => isUbuntuProviderServiceMode.value && providerHealthAvailable.value)
 
 export const refreshAgentProviderSslCache = async () => {
-
-  if (providerHealthUsesUbuntuService.value) {
-    let res: any = { ok: false, error: 'capability-missing' }
-
-    try {
-      if (hasUbuntuProviderCapability('providerSslCacheRefresh')) {
-        res = await refreshUbuntuProviderSslCacheAPI()
-      } else if (hasUbuntuProviderCapability('providerChecksRun')) {
-        res = await runUbuntuProviderChecksAPI()
-      } else if (hasUbuntuProviderCapability('providerRefresh')) {
-        res = await refreshUbuntuProvidersAPI()
-      }
-    } catch (e: any) {
-      res = { ok: false, error: e?.message || 'failed' }
-    }
-
-    if (res?.ok) {
-      agentProvidersSslCacheReady.value = Boolean(res?.sslCacheReady)
-      agentProvidersSslCacheFresh.value = Boolean(res?.sslCacheFresh)
-      agentProvidersSslRefreshing.value = Boolean(res?.sslRefreshing ?? true)
-      agentProvidersSslRefreshPending.value = Boolean(res?.sslRefreshPending ?? true)
-      const ageSec = Number(res?.sslCacheAgeSec)
-      agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
-      const nextSec = Number(res?.sslCacheNextRefreshAtSec)
-      agentProvidersSslCacheNextRefreshAtMs.value = Number.isFinite(nextSec) && nextSec > 0 ? nextSec * 1000 : 0
-      const checkedAtSec = Number(res?.checkedAtSec)
-      agentProvidersAt.value = Number.isFinite(checkedAtSec) && checkedAtSec > 0 ? checkedAtSec * 1000 : Date.now()
-      const nextCheckSec = Number(res?.nextCheckAtSec)
-      agentProvidersNextCheckAtMs.value = Number.isFinite(nextCheckSec) && nextCheckSec > 0 ? nextCheckSec * 1000 : agentProvidersNextCheckAtMs.value
-      agentProvidersJobStatus.value = String(res?.job?.status || agentProvidersJobStatus.value || '').trim()
-      agentProvidersJobId.value = String(res?.job?.id || agentProvidersJobId.value || '').trim()
-      return res
-    }
-
-    if (!agentEnabled.value) return res
+  if (!providerHealthUsesUbuntuService.value) {
+    return refreshSavedProviderSubscriptionSsl()
   }
 
-  if (isUbuntuProviderServiceMode.value && !agentEnabled.value) return { ok: false, error: 'capability-missing' }
-  if (!agentEnabled.value) return { ok: false, error: 'agent-disabled' }
-
-  const savedTargets = collectSavedProviderSubscriptionTargets()
-  if (savedTargets.length > 0) {
-    const directRes = await refreshSavedProviderSubscriptionSsl()
-    try {
-      await fetchAgentProviders(true)
-    } catch {
-      // ignore provider list refresh failure; direct SSL results are already on screen
+  let res: any = { ok: false, error: 'capability-missing' }
+  try {
+    if (hasUbuntuProviderCapability('providerSslCacheRefresh')) {
+      res = await refreshUbuntuProviderSslCacheAPI()
+    } else if (hasUbuntuProviderCapability('providerChecksRun')) {
+      res = await runUbuntuProviderChecksAPI()
+    } else if (hasUbuntuProviderCapability('providerRefresh')) {
+      res = await refreshUbuntuProvidersAPI()
     }
-    agentProvidersSslCacheReady.value = Boolean(directRes?.ok)
-    agentProvidersSslCacheFresh.value = Boolean(directRes?.ok)
-    agentProvidersSslRefreshing.value = false
-    agentProvidersSslRefreshPending.value = false
-    agentProvidersSslCacheAgeSec.value = 0
-    agentProvidersSslCacheNextRefreshAtMs.value = 0
-    agentProvidersAt.value = panelSslCheckedAt.value || Date.now()
-    return directRes
-  }
-
-  let res: any = await agentProviderSslCacheRefreshAPI()
-  if (!res?.ok) {
-    const agentRes: any = await agentMihomoProvidersAPI(true)
-    const providers = Array.isArray(agentRes?.providers) ? agentRes.providers : []
-    if (agentRes?.ok || providers.length) {
-      res = {
-        ok: true,
-        checkedAtSec: Number(agentRes?.checkedAtSec) || Math.floor(Date.now() / 1000),
-        ready: Boolean(agentRes?.sslCacheReady),
-        fresh: Boolean(agentRes?.sslCacheFresh),
-        refreshing: Boolean(agentRes?.sslRefreshing ?? true),
-        cacheAgeSec: Number(agentRes?.sslCacheAgeSec),
-        nextRefreshAtSec: Number(agentRes?.sslCacheNextRefreshAtSec),
-        fallback: 'mihomo_providers',
-      }
-    }
+  } catch (e: any) {
+    res = { ok: false, error: e?.message || 'failed' }
   }
 
   if (res?.ok) {
-    agentProvidersSslCacheReady.value = Boolean(res?.ready)
-    agentProvidersSslCacheFresh.value = Boolean(res?.fresh)
-    agentProvidersSslRefreshing.value = Boolean(res?.refreshing ?? true)
-    agentProvidersSslRefreshPending.value = Boolean(res?.refreshing ?? true)
-    const ageSec = Number(res?.cacheAgeSec)
+    agentProvidersSslCacheReady.value = Boolean(res?.sslCacheReady)
+    agentProvidersSslCacheFresh.value = Boolean(res?.sslCacheFresh)
+    agentProvidersSslRefreshing.value = Boolean(res?.sslRefreshing ?? true)
+    agentProvidersSslRefreshPending.value = Boolean(res?.sslRefreshPending ?? true)
+    const ageSec = Number(res?.sslCacheAgeSec)
     agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
-    const nextSec = Number(res?.nextRefreshAtSec)
+    const nextSec = Number(res?.sslCacheNextRefreshAtSec)
     agentProvidersSslCacheNextRefreshAtMs.value = Number.isFinite(nextSec) && nextSec > 0 ? nextSec * 1000 : 0
-    agentProvidersAt.value = typeof res?.checkedAtSec === 'number' && res.checkedAtSec > 0 ? res.checkedAtSec * 1000 : Date.now()
+    const checkedAtSec = Number(res?.checkedAtSec)
+    agentProvidersAt.value = Number.isFinite(checkedAtSec) && checkedAtSec > 0 ? checkedAtSec * 1000 : Date.now()
+    const nextCheckSec = Number(res?.nextCheckAtSec)
+    agentProvidersNextCheckAtMs.value = Number.isFinite(nextCheckSec) && nextCheckSec > 0 ? nextCheckSec * 1000 : agentProvidersNextCheckAtMs.value
+    agentProvidersJobStatus.value = String(res?.job?.status || agentProvidersJobStatus.value || '').trim()
+    agentProvidersJobId.value = String(res?.job?.id || agentProvidersJobId.value || '').trim()
+    panelSslProbeError.value = null
   }
+
   return res
 }
 
@@ -446,39 +254,17 @@ export const probePanelSsl = async (force = false) => {
     return
   }
 
-  if (isUbuntuProviderServiceMode.value) {
-    panelSslNotAfterByName.value = {}
-    panelSslErrorByName.value = {}
-    panelSslUrlByName.value = {}
-    panelSslCheckedAt.value = Date.now()
-    panelSslProbeError.value = providerHealthAvailable.value ? null : 'capability-missing'
-    return
-  }
-
-  if (!agentEnabled.value) {
-    panelSslNotAfterByName.value = {}
-    panelSslErrorByName.value = {}
-    panelSslUrlByName.value = {}
-    panelSslCheckedAt.value = Date.now()
-    panelSslProbeError.value = null
-    return
-  }
-
   await refreshSavedProviderSubscriptionSsl()
-  return
 }
 
-// best-effort: refresh when agent toggled
 watch(
-  [agentEnabled, activeBackend, activeBackendCapabilities],
+  [activeBackend, activeBackendCapabilities],
   () => {
     fetchAgentProviders(false)
   },
   { immediate: true, deep: true },
 )
 
-// When subscription URLs change, drop the previous SSL probe snapshot so the
-// Tasks table never shows stale certificate dates for a different link.
 watch(
   proxyProviderSubscriptionUrlMap,
   () => {

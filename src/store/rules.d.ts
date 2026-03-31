@@ -1,0 +1,18 @@
+export declare const rulesFilter: any;
+export declare const rulesTabShow: any;
+export type RULES_VIEW_MODE = 'card' | 'table';
+export type RULES_SORT_BY = 'config' | 'hits_desc' | 'hits_asc' | 'type_asc' | 'proxy_asc' | 'updated_desc';
+export declare const rulesViewMode: any;
+export declare const rulesSortBy: any;
+export declare const rulesTypeFilter: any;
+export declare const rulesProxyFilter: any;
+export declare const rules: any;
+export declare const ruleProviderList: any;
+export declare const uniqueRuleTypes: any;
+export declare const uniqueRuleProxies: any;
+export declare const renderRules: any;
+export declare const renderRulesProvider: any;
+export declare const ruleHitMap: any;
+export declare const getRuleHitCount: (type: string, payload: string) => any;
+export declare const ruleMissCount: any;
+export declare const fetchRules: () => Promise<void>;

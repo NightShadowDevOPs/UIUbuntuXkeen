@@ -1,0 +1,46 @@
+import { normalizeBackendInput } from '@/helper/backend';
+import { useStorage } from '@vueuse/core';
+import { isEqual, omit } from 'lodash';
+import { v4 as uuid } from 'uuid';
+import { computed } from 'vue';
+import { sourceIPLabelList } from './settings';
+export const backendList = useStorage('setup/api-list', []);
+export const activeUuid = useStorage('setup/active-uuid', '');
+export const activeBackend = computed(() => backendList.value.find((backend) => backend.uuid === activeUuid.value));
+export const addBackend = (backend) => {
+    const normalizedBackend = normalizeBackendInput(backend);
+    const currentEnd = backendList.value.find((end) => {
+        return isEqual(omit(end, 'uuid'), normalizedBackend);
+    });
+    if (currentEnd) {
+        activeUuid.value = currentEnd.uuid;
+        return;
+    }
+    const id = uuid();
+    backendList.value.push({
+        ...normalizedBackend,
+        uuid: id,
+    });
+    activeUuid.value = id;
+};
+export const updateBackend = (uuid, backend) => {
+    const normalizedBackend = normalizeBackendInput(backend);
+    const index = backendList.value.findIndex((end) => end.uuid === uuid);
+    if (index !== -1) {
+        backendList.value[index] = {
+            ...normalizedBackend,
+            uuid,
+        };
+    }
+};
+export const removeBackend = (uuid) => {
+    backendList.value = backendList.value.filter((end) => end.uuid !== uuid);
+    sourceIPLabelList.value.forEach((label) => {
+        if (label.scope && label.scope.includes(uuid)) {
+            label.scope = label.scope.filter((scope) => scope !== uuid);
+            if (!label.scope.length) {
+                delete label.scope;
+            }
+        }
+    });
+};

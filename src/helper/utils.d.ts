@@ -1,0 +1,15 @@
+import { MIN_PROXY_CARD_WIDTH, PROXY_CARD_SIZE } from '@/constant';
+import type { Backend } from '@/types';
+import { type Options } from 'pretty-bytes';
+export declare const isPreferredDark: any;
+export declare const isMiddleScreen: any;
+export declare const isLargeScreen: any;
+export declare const isPWA: boolean | undefined;
+export declare const prettyBytesHelper: (bytes: number, opts?: Options) => any;
+export declare const fromNow: (timestamp: string) => any;
+export declare const exportSettings: () => void;
+export declare const getUrlFromBackend: (end: Omit<Backend, "uuid">) => string;
+export declare const getLabelFromBackend: (end: Omit<Backend, "uuid">) => string;
+export declare const getMinCardWidth: (size: PROXY_CARD_SIZE) => MIN_PROXY_CARD_WIDTH;
+export declare const SCROLLABLE_PARENT_CLASS = "scrollable-parent";
+export declare const scrollIntoCenter: (el: HTMLElement) => void;

@@ -1,0 +1,25 @@
+export type AdvancedSectionsFormModel = {
+    tunEnable: string;
+    tunStack: string;
+    tunAutoRoute: string;
+    tunAutoDetectInterface: string;
+    tunDnsHijackText: string;
+    tunDevice: string;
+    tunMtu: string;
+    tunStrictRoute: string;
+    tunRouteIncludeAddressText: string;
+    tunRouteExcludeAddressText: string;
+    tunIncludeInterfaceText: string;
+    tunExcludeInterfaceText: string;
+    profileStoreSelected: string;
+    profileStoreFakeIp: string;
+    snifferEnable: string;
+    snifferForceDomainText: string;
+    snifferSkipDomainText: string;
+    snifferParsePureIp: string;
+    snifferOverrideDestination: string;
+    snifferSniffText: string;
+};
+export declare const emptyAdvancedSectionsForm: () => AdvancedSectionsFormModel;
+export declare const advancedSectionsFormFromConfig: (value: string) => AdvancedSectionsFormModel;
+export declare const upsertAdvancedSectionsInConfig: (value: string, form: AdvancedSectionsFormModel) => string;

@@ -1,0 +1,11 @@
+export declare const timeSaved = 60;
+export declare const memory: any;
+export declare const lastMemoryTick: any;
+export declare const memoryHistory: any;
+export declare const connectionsHistory: any;
+export declare const downloadSpeed: any;
+export declare const lastTrafficTick: any;
+export declare const uploadSpeed: any;
+export declare const downloadSpeedHistory: any;
+export declare const uploadSpeedHistory: any;
+export declare const initSatistic: () => void;

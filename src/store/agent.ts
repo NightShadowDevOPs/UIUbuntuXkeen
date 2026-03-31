@@ -6,7 +6,7 @@ import { useStorage } from '@vueuse/core'
  * does not provide traffic shaping.
  */
 
-export const agentEnabled = useStorage<boolean>('config/agent-enabled', true)
+export const agentEnabled = useStorage<boolean>('config/agent-enabled', false)
 
 /**
  * Default tries same host as the UI, on port 9099.
@@ -24,11 +24,11 @@ export const agentToken = useStorage<string>('config/agent-token', '')
  * If enabled, bandwidth limits (Mbps) are enforced by the agent (tc/iptables),
  * NOT by disconnecting connections.
  */
-export const agentEnforceBandwidth = useStorage<boolean>('config/agent-enforce-bandwidth', true)
+export const agentEnforceBandwidth = useStorage<boolean>('config/agent-enforce-bandwidth', false)
 
 /**
  * One-time LAN bootstrap for fresh browsers / new PCs.
- * The project relies on router-agent for shared users DB, QoS and shaping.
+ * Older router builds relied on router-agent for shared users DB, QoS and shaping.
  * Older builds stored both switches only in localStorage, so on another PC the UI
  * started with agent disabled even when the router-agent was already installed and working.
  */
@@ -57,28 +57,10 @@ const isLikelyLanAgentUrl = (value: string) => {
 }
 
 export const bootstrapRouterAgentForLan = () => {
-  if (typeof window === 'undefined') return
-
-  const url = normalizeAgentUrl(agentUrl.value)
-  if (!url) {
-    agentLanBootstrapDone.value = true
-    return
-  }
-
-  // Self-heal stale browser profiles: earlier builds could already mark bootstrap
-  // as done while both switches stayed false in localStorage.
-  const shouldHealLanFlags = isLikelyLanAgentUrl(url) && (!agentEnabled.value || !agentEnforceBandwidth.value)
-  if (agentLanBootstrapDone.value && !shouldHealLanFlags) return
-
-  if (isLikelyLanAgentUrl(url)) {
-    agentEnabled.value = true
-    agentEnforceBandwidth.value = true
-  }
-
+  // Legacy router bootstrap is intentionally disabled in the Ubuntu host line.
   agentLanBootstrapDone.value = true
 }
 
-bootstrapRouterAgentForLan()
 
 /**
  * Remember which IPs were shaped by the UI, so we can clean up removed limits.

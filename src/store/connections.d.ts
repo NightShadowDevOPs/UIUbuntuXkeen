@@ -1,0 +1,16 @@
+export declare const connectionTabShow: any;
+export declare const connectionSortType: any;
+export declare const connectionSortDirection: any;
+export declare const quickFilterRegex: any;
+export declare const quickFilterEnabled: any;
+export declare const connectionFilter: any;
+export declare const sourceIPFilter: any;
+export declare const activeConnections: any;
+export declare const closedConnections: any;
+export declare const isPaused: any;
+export declare const downloadTotal: any;
+export declare const uploadTotal: any;
+export declare const lastConnectionsTick: any;
+export declare const initConnections: () => void;
+export declare const connections: any;
+export declare const renderConnections: any;

@@ -1,0 +1,10 @@
+import { type UserLimitSnapshot } from '@/store/userLimitSnapshots';
+import { type UserLimitProfile } from '@/store/userLimitProfiles';
+export declare const resetProfilesToDefault: () => void;
+export declare const createSnapshotNow: (label: string) => UserLimitSnapshot;
+export declare const applyProfileToUsers: (users: string[], profile: UserLimitProfile) => Promise<void>;
+export declare const unblockResetUsers: (users: string[]) => Promise<void>;
+export declare const disableLimitsForUsers: (users: string[]) => Promise<void>;
+export declare const restoreSnapshot: (id: string) => Promise<void>;
+export declare const exportLimitsBundle: () => void;
+export declare const importLimitsBundle: (raw: any, mode: "merge" | "replace") => Promise<void>;

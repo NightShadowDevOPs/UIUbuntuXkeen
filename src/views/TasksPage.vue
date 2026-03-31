@@ -82,6 +82,7 @@
 
         <div v-if="!providerHealthAvailable" class="mb-2 mt-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
           <div>{{ $t('providerHealthBackendUnavailable') }}</div>
+          <div class="mt-1 opacity-80">{{ $t('providerSslServerNotConfiguredTip') }}</div>
           <div class="mt-1 opacity-80">{{ $t('providersPanelSavedListHint') }}</div>
         </div>
         <div v-if="providersPanelBusy" class="text-sm opacity-70">…</div>
@@ -2276,8 +2277,8 @@ const sslSubscriptionInfo = (item: { name: string; sslNotAfter?: string; sslErro
       }
     }
     return {
-      text: err ? t('providerSslError') : (hasUrl ? '—' : t('providersPanelNoSubscriptionUrl')),
-      cls: err ? 'text-error' : (!hasUrl ? 'text-warning' : ''),
+      text: err ? t('providerSslError') : (hasUrl ? (providerHealthAvailable.value ? '—' : t('providerSslServerNotConfiguredShort')) : t('providersPanelNoSubscriptionUrl')),
+      cls: err ? 'text-error' : (!hasUrl ? 'text-warning' : (!providerHealthAvailable.value ? 'text-warning' : '')), 
       title: err
         ? `${t('providerSslSourceSubscription')} • ${backendProbeLabel} • ${t('providerSslError')}: ${err}${hasUrl ? ` • URL: ${getProviderSourceUrl(item)}` : ''}`
         : `${t('providerSslSourceSubscription')} • ${backendProbeLabel}`,
@@ -2465,6 +2466,11 @@ const friendlyProviderPanelError = (err: any, kind: 'providers' | 'ssl' = 'provi
       ? 'SSL-проверка не успела завершиться. Остальные данные страницы доступны.'
       : 'Список провайдеров отвечает слишком долго. Попробуйте обновить ещё раз.'
   }
+  if (low.includes('server-side-ssl-unavailable') || low.includes('capability-missing')) {
+    return kind === 'ssl'
+      ? 'Серверная проверка сертификатов для провайдеров ещё не подключена на этом Ubuntu-хосте.'
+      : 'Провайдерная SSL-проверка ещё не подключена на этом Ubuntu-хосте.'
+  }
   if (low.includes('offline') || low.includes('network error') || low.includes('failed to fetch')) {
     return kind === 'ssl'
       ? 'SSL-проверка сейчас недоступна.'
@@ -2532,7 +2538,7 @@ const hasDirectProviderSslSnapshot = computed(() => {
 const providerSslCacheStatusText = computed(() => {
   if (panelSslProbeLoading.value) return t('providerSslRefreshing')
   if (hasDirectProviderSslSnapshot.value) return ''
-  if (!providerHealthAvailable.value) return ''
+  if (!providerHealthAvailable.value) return providersPanelRenderList.value.some((it: any) => String(it?.url || '').trim()) ? t('providerSslServerNotConfigured') : ''
   if (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value) return t('providerSslRefreshing')
   if (!agentProvidersSslCacheReady.value && providersPanelRenderList.value.length > 0) return t('providerSslPending')
   return ''
@@ -2541,14 +2547,17 @@ const providerSslCacheStatusText = computed(() => {
 const providerSslCacheStatusClass = computed(() => {
   if (panelSslProbeLoading.value) return 'text-info'
   if (hasDirectProviderSslSnapshot.value) return 'text-base-content/60'
-  if (!providerHealthAvailable.value) return 'text-base-content/60'
+  if (!providerHealthAvailable.value) return providersPanelRenderList.value.some((it: any) => String(it?.url || '').trim()) ? 'text-warning' : 'text-base-content/60'
   if (agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value) return 'text-info'
   if (!agentProvidersSslCacheReady.value && providersPanelRenderList.value.length > 0) return 'text-warning'
   return 'text-base-content/60'
 })
 
 const refreshProviderSslCacheNow = async () => {
-  if (!providerHealthActionsAvailable.value || providerSslCacheRefreshBusy.value) return
+  if (!providerHealthActionsAvailable.value || providerSslCacheRefreshBusy.value) {
+    if (!providerHealthActionsAvailable.value) panelSslProbeError.value = 'server-side-ssl-unavailable'
+    return
+  }
   providerSslCacheRefreshBusy.value = true
   try {
     let refreshError = ''

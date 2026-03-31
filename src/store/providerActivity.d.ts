@@ -1,0 +1,32 @@
+export type ProviderActivity = {
+    connections: number;
+    active: boolean;
+    bytes: number;
+    speed: number;
+    activeProxy: string;
+    activeProxyBytes: number;
+    currentBytes: number;
+    download: number;
+    upload: number;
+    todayBytes: number;
+    todayDownload: number;
+    todayUpload: number;
+    updatedAt?: number;
+};
+export type ProviderLiveStatus = {
+    connections: number;
+    active: boolean;
+};
+export declare const initProviderTrafficSync: () => void;
+export declare const providerProxyNames: (provider: any) => string[];
+export declare const connectionProviderCandidates: (conn: any) => string[];
+export declare const connectionProxyCandidates: (conn: any) => string[];
+export declare const connectionMatchesProviderProxyNames: (conn: any, proxyNames: Iterable<string>) => string;
+export declare const connectionMatchesProvider: (conn: any, providerName: string, proxyNames: Iterable<string>) => string;
+export declare const providerActivityByName: any;
+export declare const providerActivitySnapshot: any;
+export declare const providerLiveStatusByName: any;
+export declare const providerTrafficSyncState: any;
+export declare const providerTrafficPullNow: () => Promise<void>;
+export declare const providerTrafficPushNow: () => Promise<void>;
+export declare const clearProviderTrafficSession: () => void;

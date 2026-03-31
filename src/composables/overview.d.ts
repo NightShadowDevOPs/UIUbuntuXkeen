@@ -1,0 +1,9 @@
+export declare const ipForChina: any;
+export declare const ipForGlobal: any;
+export declare const baiduLatency: any;
+export declare const githubLatency: any;
+export declare const youtubeLatency: any;
+export declare const cloudflareLatency: any;
+export declare const yandexLatency: any;
+export declare const twoipLatency: any;
+export declare const customPingLatency: any;

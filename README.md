@@ -6,7 +6,7 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.6.18**
+- Текущая версия линии: **v0.6.19**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 - Текущий шаг: **rollback after invalid runtime experiment + cleanup-first**
 
@@ -15,7 +15,7 @@
 - До ошибочного `v0.6.17` проект был **статическим frontend UI**, который подключается к выбранному backend через `Setup`.
 - Наличие `Dockerfile` и `Caddyfile` в репозитории **не означает**, что проект уже стал встроенным Ubuntu backend/service.
 - Релиз `v0.6.17` **не считать правильным**: в нём была самовольно навязана новая runtime-модель `frontend + backend`, не зафиксированная как штатная архитектура проекта.
-- Релиз `v0.6.18` откатывает эту ветку и возвращает проект к честной модели: **frontend first, cleanup first, server-side этап — отдельно и осознанно**.
+- Релиз `v0.6.19` делает следующий честный шаг: убирает ложную provider SSL-проверку через legacy path и оставляет только подготовку URL подписок до появления Ubuntu service на хосте.
 
 ## Что уже сделано в cleanup-линии
 
@@ -25,7 +25,7 @@
 - `Трафик` очищен от роутерных QoS / Netcraze карточек.
 - `Tasks / Users / Policies` убраны из основной навигации как legacy-аудит.
 
-### v0.6.18
+### v0.6.19
 - откатена ошибочная runtime-ветка `v0.6.17`;
 - подтверждена фактическая модель проекта: **статический UI + выбранный backend через Setup**;
 - docs обновлены под честное состояние проекта;
@@ -36,3 +36,8 @@
 - продолжать page-by-page cleanup;
 - разобрать `TasksPage.vue` по блокам и действиям;
 - отдельно спроектировать настоящий Ubuntu server-side контур для проверок Провайдеров, истории, jobs и хранения результатов.
+
+
+## Provider SSL checks
+
+As of `v0.6.19`, provider certificate checks are **not** treated as a finished frontend-only feature. The UI keeps the provider subscription URL editor, while the actual TLS/SSL polling is reserved for a dedicated Ubuntu service running on the project host.
