@@ -1,10 +1,18 @@
-Prepared release: v0.6.42. The recovered v0.6.41 baseline is kept intact, while the distribution is cleaned from legacy router-only baggage. Confirmed recovery path: stop `mihomo`, remove the UI directory, start `mihomo` again, let Mihomo redownload the UI from the repository.
+Prepared release: v0.6.43. This is a stability/audit release on top of the recovered v0.6.41 baseline and the cleaned v0.6.42 distribution. The project runtime contour is now documented explicitly: UI is served by Mihomo, `/ui/` opens `Overview` first, and no phantom standalone service is bundled.
 
-Актуальный релиз для переноса: **v0.6.42**
+Актуальный релиз для переноса: **v0.6.43**
 
-Что сделано в `v0.6.42`
-- удалён `router-agent/` из дистрибутива;
-- удалён root-мусор `_api*.sh`, `_backup_new.sh`, `extracted_api*.sh`;
-- в документации зафиксирован реальный recovery/update-механизм через `mihomo`;
-- runtime-контур сервера не менялся;
-- релиз является безопасным cleanup/stabilize-шагом от восстановленной базы `v0.6.41`.
+Что сделано в `v0.6.43`
+- корневой маршрут UI переведён на `Overview`, чтобы старт UI не зависел от страницы `Proxies`;
+- зафиксирован реальный runtime contour проекта: `mihomo.service` обслуживает UI, recovery делается удалением папки UI и повторным стартом `mihomo`;
+- `Хосты 3x-ui` и `Пользователи` сохранены как отдельные разделы UI, но без ложных утверждений о наличии отдельного service на сервере;
+- добавлен документ аудита backend-контура и зафиксирован следующий безопасный шаг.
+
+Что важно помнить
+- не придумывать отдельный server-side service, если он не существует в реальном runtime проекта;
+- перед любыми backend-изменениями сначала сверять фактический контур `mihomo` / `/etc/mihomo/uiubuntu`;
+- recovery/update path подтверждён пользователем: остановить `mihomo`, удалить папку UI, запустить `mihomo` снова;
+- все запросы и шаги фиксируются в docs.
+
+Следующий безопасный шаг
+- отдельно разобрать существующий server-side contour (`api.sh`, capability probing, storage expectations) и только после этого подключать реальное хранение для `3x-ui Hosts` и `Users`.

@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div>
         <div class="font-semibold">Контроль пользователей LAN / proxy</div>
-        <div class="text-xs opacity-70">IP, MAC, обнаруженное имя хоста и индивидуальный доступ к proxy. Отдельный service из релиза v0.6.39 убран; следующий шаг — встроить хранение в существующий backend проекта.</div>
+        <div class="text-xs opacity-70">IP, MAC, обнаруженное имя хоста и индивидуальный доступ к proxy. Экран работает от текущей базы UI и готов к подключению существующего server-side backend без отдельной фантомной сущности.</div>
       </div>
       <div class="flex items-center gap-2">
         <select v-model="proxyAccessPolicyMode" class="select select-bordered select-sm">

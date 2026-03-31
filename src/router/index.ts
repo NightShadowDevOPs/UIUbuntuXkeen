@@ -108,7 +108,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: ROUTE_NAME.proxies,
+      redirect: ROUTE_NAME.overview,
       component: HomePage,
       children: childrenRouter,
     },
@@ -119,7 +119,7 @@ const router = createRouter({
     },
     {
       path: '/:catchAll(.*)',
-      redirect: ROUTE_NAME.proxies,
+      redirect: ROUTE_NAME.overview,
     },
   ],
 })

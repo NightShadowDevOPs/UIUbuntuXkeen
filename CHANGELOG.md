@@ -1,3 +1,9 @@
+## v0.6.43
+- stabilized root startup routing: `/ui/` now opens `Overview` first instead of `Proxies`, so the UI is less fragile during future route-level regressions;
+- audited the actual runtime contour of the Ubuntu project: UI is served by Mihomo, recovery is done by deleting the UI directory and restarting Mihomo, no phantom standalone service is bundled;
+- cleaned the visible wording on `Хосты 3x-ui` and `Пользователи` so these screens no longer imply that a separate invented service exists on the server;
+- documented the current backend contour and the next safe implementation path for server-side storage and SSL polling.
+
 ## v0.6.42
 - removed the legacy `router-agent/` directory from the distribution;
 - removed root-level helper leftovers `_api*.sh`, `_backup_new.sh`, `extracted_api*.sh` from the release package;
