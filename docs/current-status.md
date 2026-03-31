@@ -1,8 +1,1 @@
-Current prepared release: v0.6.40. The standalone `ubuntu-service/` from v0.6.39 has been removed; UIUbuntuXkeen must continue through its existing backend contour.
-
-# Текущий статус — v0.6.40
-
-- Текущая линия: **v0.6.40**
-- Последний подготовленный релиз: **v0.6.40**
-- Отдельный `ubuntu-service/` в дистрибутив больше не входит.
-- Следующий реальный backend-шаг: встроить endpoints для 3x-ui host SSL checks и users DB в существующий backend проекта.
+Current prepared release: v0.6.41. Hotfix for the blank root `/ui/` screen introduced in v0.6.40: `providerHealth.ts` no longer references missing runtime symbols. Existing backend contour remains unchanged; no phantom standalone service is included.

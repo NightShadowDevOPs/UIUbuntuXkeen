@@ -1,8 +1,8 @@
-Prepared release: v0.6.40. The phantom standalone `ubuntu-service/` from v0.6.39 has been removed from the distribution. The project keeps dedicated **3x-ui Hosts** and **Users** sections, but the next implementation step must go into the existing backend contour of UIUbuntuXkeen instead of a new service.
+Prepared release: v0.6.41. The phantom standalone `ubuntu-service/` from v0.6.39 has been removed from the distribution. The project keeps dedicated **3x-ui Hosts** and **Users** sections, but the next implementation step must go into the existing backend contour of UIUbuntuXkeen instead of a new service.
 
-Актуальный релиз для переноса: **v0.6.40**
+Актуальный релиз для переноса: **v0.6.41**
 
-Что сделано в `v0.6.40`
+Что сделано в `v0.6.41`
 - из релиза удалён `ubuntu-service/`;
 - убраны инструкции по отдельному systemd service;
 - документация приведена к честному состоянию;

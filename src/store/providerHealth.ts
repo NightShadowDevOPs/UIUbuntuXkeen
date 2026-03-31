@@ -3,6 +3,7 @@ import { normalizeProxyProtoKey } from '@/helper/proxyProto'
 import { useStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { activeBackendCapabilities } from './backendCapabilities'
+import { activeBackend } from './setup'
 import { providerSslDbMeta, providerSslDbSnapshot } from './providerSslDb'
 import { proxyProviderSubscriptionUrlMap } from './settings'
 import { proxyProviederList } from './proxies'
@@ -220,7 +221,7 @@ export const refreshSavedProviderSubscriptionSsl = async () => {
   return { ok: false, error, checkedAtSec: Math.floor(Date.now() / 1000), items: [] as any[] }
 }
 
-const providerHealthUsesUbuntuService = computed(() => isUbuntuProviderServiceMode.value && providerHealthAvailable.value)
+const providerHealthUsesUbuntuService = computed(() => providerHealthAvailable.value)
 
 export const refreshAgentProviderSslCache = async () => {
   if (!providerHealthUsesUbuntuService.value) {
