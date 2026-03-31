@@ -6,7 +6,7 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.6.12**
+- Текущая версия линии: **v0.6.14**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 - Текущий шаг: **Tasks provider SSL cache flow (no blocking batch probe)**
 
@@ -18,6 +18,7 @@
 - таблица Tasks читает `panelSslNotAfter` из agent provider cache и показывает результат проверки URL 3x-ui подписок.
 
 
-### v0.6.13
-- Tasks SSL снова использует прямую проверку по сохранённым URL 3x-ui подписок провайдеров.
-- URL из backend/provider metadata не используются как authoritative source для этой таблицы.
+### v0.6.14
+- Tasks SSL снова использует router-side cache flow: `ssl_cache_refresh` + `mihomo_providers`, без blocking browser probe.
+- URL 3x-ui подписок остаются общими через users DB и используются agent'ом как server-side source of truth для panel SSL.
+- TLS-проверки устойчивее разбирают реальные subscription URL, включая query/fragment/userinfo.

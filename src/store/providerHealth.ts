@@ -334,6 +334,9 @@ const res: any = await agentSslProbeBatchAPI(lines)
 const providerHealthUsesUbuntuService = computed(() => isUbuntuProviderServiceMode.value && providerHealthAvailable.value)
 
 export const refreshAgentProviderSslCache = async () => {
+  // Agent mode should use router-side ssl_cache_refresh + mihomo_providers.
+  // Saved provider subscription URLs remain shared via users DB and are read
+  // by the agent itself; do not switch Tasks back to blocking direct probe.
 
   if (providerHealthUsesUbuntuService.value) {
     let res: any = { ok: false, error: 'capability-missing' }
@@ -373,24 +376,6 @@ export const refreshAgentProviderSslCache = async () => {
 
   if (isUbuntuProviderServiceMode.value && !agentEnabled.value) return { ok: false, error: 'capability-missing' }
   if (!agentEnabled.value) return { ok: false, error: 'agent-disabled' }
-
-  const savedTargets = collectSavedProviderSubscriptionTargets()
-  if (savedTargets.length > 0) {
-    const directRes = await refreshSavedProviderSubscriptionSsl()
-    try {
-      await fetchAgentProviders(true)
-    } catch {
-      // ignore provider list refresh failure; direct SSL results are already on screen
-    }
-    agentProvidersSslCacheReady.value = Boolean(directRes?.ok)
-    agentProvidersSslCacheFresh.value = Boolean(directRes?.ok)
-    agentProvidersSslRefreshing.value = false
-    agentProvidersSslRefreshPending.value = false
-    agentProvidersSslCacheAgeSec.value = 0
-    agentProvidersSslCacheNextRefreshAtMs.value = 0
-    agentProvidersAt.value = panelSslCheckedAt.value || Date.now()
-    return directRes
-  }
 
   let res: any = await agentProviderSslCacheRefreshAPI()
   if (!res?.ok) {
@@ -464,7 +449,15 @@ export const probePanelSsl = async (force = false) => {
     return
   }
 
-  await refreshSavedProviderSubscriptionSsl()
+  if (force && providerHealthActionsAvailable.value) {
+    await refreshAgentProviderSslCache()
+  }
+  await fetchAgentProviders(true)
+  panelSslCheckedAt.value = Date.now()
+  panelSslNotAfterByName.value = {}
+  panelSslErrorByName.value = {}
+  panelSslUrlByName.value = {}
+  panelSslProbeError.value = null
   return
 }
 

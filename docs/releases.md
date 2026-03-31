@@ -241,15 +241,16 @@
 - `v0.5.4` — функциональный hotfix compatibility fallback.
 
 ## v0.5.2
-## v0.6.13 — direct SSL probe by saved provider subscription URLs
+## v0.6.14 — router-side SSL cache restore and URL parsing hardening
 Дата: **2026-03-31**
 
 Сделано:
-- Tasks больше не берёт URL для SSL-проверки из backend/provider metadata;
-- direct probe снова выполняется по адресам 3x-ui подписок, введённым в списке провайдеров и сохранённым в users DB;
-- `ssl_probe_batch` стал источником результата для таблицы провайдеров в Tasks.
+- из раздела **«Задачи»** снова убран blocking direct `ssl_probe_batch`; кнопки SSL работают через штатную связку `ssl_cache_refresh` → `mihomo_providers`;
+- URL 3x-ui подписок продолжают храниться в общем users DB (`providerPanelUrls`) и использоваться router-agent'ом как единый серверный источник panel SSL;
+- в router-agent усилен разбор HTTPS/WSS URL для TLS certificate checks: корректнее обрабатываются query-string, fragment, userinfo и нестандартные варианты `host:port`.
 
 Результат:
-- можно тестировать сертификаты прямо по URL из списка провайдеров;
-- неправильные URL из конфига больше не ломают SSL-проверку в Tasks.
+- UI больше не должен зависать/падать из-за длинной серии прямых browser probe;
+- проверка сертификатов читается из общего server-side cache и одинаково работает на разных устройствах;
+- меньше ложных `probe-failed`, когда subscription URL содержит не только простой `https://host/path`.
 
