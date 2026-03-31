@@ -14,19 +14,21 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v5
         with:
+          version: 9.12.1
           run_install: false
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+          package-manager-cache: false
 
       - name: Versions
         shell: bash
@@ -43,26 +45,107 @@ jobs:
           node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); console.log('Project version:', pkg.version ?? 'unknown')"
 
       - name: Install dependencies
+        id: install
         shell: bash
         env:
           HUSKY: '0'
           CI: 'true'
         run: |
-          set -euo pipefail
-          pnpm install --no-frozen-lockfile --reporter=append-only
+          set +e
+          pnpm install --no-frozen-lockfile --reporter=append-only 2>&1 | tee install-deps.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
 
       - name: Type check (informational)
         continue-on-error: true
         shell: bash
         run: |
-          set -euo pipefail
-          pnpm type-check
+          set +e
+          pnpm type-check 2>&1 | tee type-check.log
+          exit 0
 
       - name: Build UI
+        id: build_ui
         shell: bash
         env:
           CI: 'true'
           NODE_OPTIONS: --max-old-space-size=4096
         run: |
+          set +e
+          if [ "${{ steps.install.outputs.exit_code }}" != "0" ]; then
+            echo "Skipping build because install failed" | tee build-ui.log
+            echo "exit_code=200" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pnpm exec vite build --debug 2>&1 | tee build-ui.log
+          code=${PIPESTATUS[0]}
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Print captured logs
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          echo "===== install-deps.log ====="
+          cat install-deps.log 2>/dev/null || true
+          echo "===== type-check.log ====="
+          cat type-check.log 2>/dev/null || true
+          echo "===== build-ui.log ====="
+          cat build-ui.log 2>/dev/null || true
+          echo "Install exit code: ${{ steps.install.outputs.exit_code }}"
+          echo "Build exit code:   ${{ steps.build_ui.outputs.exit_code }}"
+
+      - name: Write step summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## UI build diagnostics"
+            echo
+            echo "- Install exit code: \`${{ steps.install.outputs.exit_code }}\`"
+            echo "- Build exit code: \`${{ steps.build_ui.outputs.exit_code }}\`"
+            echo
+            echo "### install-deps.log"
+            echo '```text'
+            cat install-deps.log 2>/dev/null || true
+            echo '```'
+            echo
+            echo "### type-check.log"
+            echo '```text'
+            cat type-check.log 2>/dev/null || true
+            echo '```'
+            echo
+            echo "### build-ui.log"
+            echo '```text'
+            cat build-ui.log 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload diagnostics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-build-logs
+          path: |
+            install-deps.log
+            type-check.log
+            build-ui.log
+          if-no-files-found: warn
+
+      - name: Fail on install/build error
+        if: always()
+        shell: bash
+        run: |
           set -euo pipefail
-          pnpm build --debug
+          install_code="${{ steps.install.outputs.exit_code }}"
+          build_code="${{ steps.build_ui.outputs.exit_code }}"
+          if [ "$install_code" != "0" ]; then
+            echo "Install dependencies failed with exit code $install_code"
+            exit 1
+          fi
+          if [ "$build_code" != "0" ]; then
+            echo "Build UI failed with exit code $build_code"
+            exit 1
+          fi

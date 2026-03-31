@@ -1,3 +1,8 @@
+## v0.6.34
+- update GitHub Actions to `actions/checkout@v5` and `actions/setup-node@v6` to remove the Node.js 20 deprecation warning
+- capture `pnpm install`, `pnpm type-check` and `pnpm exec vite build --debug` logs into files, job summary and uploaded artifact `ui-build-logs`
+- keep the job alive until diagnostics are printed, then fail it in a final guard step with explicit install/build exit-code reporting
+
 ## v0.6.33
 - switch GitHub Actions to `pnpm/action-setup` + `actions/setup-node@v4` with pnpm cache and raw `pnpm build --debug` output
 - remove `flag-icons`/`import.meta.glob('/node_modules/...')` from provider badges and render country flags through emoji fonts already shipped with the UI
