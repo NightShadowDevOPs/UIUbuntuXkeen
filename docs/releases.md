@@ -1,2 +1,3 @@
+- v0.6.42 — cleaned the distribution from `router-agent/` and root helper leftovers; documented the confirmed Mihomo-based UI recovery/update mechanism.
 - v0.6.41 — removed the standalone phantom `ubuntu-service/` from the distribution and returned the project to the existing backend contour.
 - v0.6.39 — attempted a standalone `ubuntu-service/` backend MVP; reverted by v0.6.41.
