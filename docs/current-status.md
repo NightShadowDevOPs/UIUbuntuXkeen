@@ -1,15 +1,17 @@
-Current prepared release: v0.6.34. The CI workflow now captures install/type-check/build logs into summary and artifact before failing, and deprecated Node.js 20 Actions are bumped away.
+Current prepared release: v0.6.35. The real CI blocker is now fixed: stale transpiled src/*.js shadowed TypeScript / TSX sources, and Vite tried to parse JSX from plain .js files. Diagnostics from v0.6.34 remain useful, but this release removes the underlying cause.
 
-# Текущий статус — v0.6.34
+# Текущий статус — v0.6.35
 
-- Текущая линия: **v0.6.34**
-- Проект остаётся в честной модели: **статический frontend UI + выбранный backend через Setup**.
-- Проверка SSL сертификатов Провайдеров всё ещё не считается закрытой frontend-only функцией: реальная проверка должна жить в отдельном Ubuntu service на хосте.
-- `v0.6.17` по-прежнему считать ошибочным архитектурным ответвлением.
-- `v0.6.34` не пытается угадывать новый build blocker вслепую: релиз сначала гарантированно вытаскивает полный install/build лог наружу.
+- Текущая линия: **v0.6.35**
+- Подтверждённо рабочий пользователем релиз: **v0.2.10**
+- Подготовленный релиз: **v0.6.35**
 
-## Что поймано сейчас
+## Что исправлено
+- Из `src/` удалены заехавшие transpiled-артефакты `*.js` и `*.d.ts`, которые перекрывали исходники `.ts` / `.tsx`.
+- Vite-resolve теперь принудительно предпочитает `.ts` / `.tsx` раньше `.js`.
+- Диагностика CI из `v0.6.34` сохранена: если всплывёт новый blocker, лог уже не потеряется.
 
-- По скриншоту GitHub всё ещё показывает только `Build UI / Process completed with exit code 1`.
-- Warning про Node.js 20 actions засоряет картину, но сам по себе не объясняет build failure.
-- Следовательно, сейчас самый полезный шаг — стабильно сохранить и вывести полные логи каждого CI-этапа.
+## Следующая проверка
+- Прогнать GitHub Actions на `v0.6.35`.
+- Убедиться, что шаг `Build UI` проходит без ошибки `ConnectionCard.js (26:56): Expression expected`.
+- После зелёной сборки вернуться к плану аудита безопасности и функциональным задачам по провайдерам / трафику / состоянию хоста.

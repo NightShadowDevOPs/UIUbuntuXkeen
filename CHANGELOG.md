@@ -1,3 +1,8 @@
+## v0.6.35
+- removed stale transpiled `src/**/*.js` and `src/**/*.d.ts` artifacts that were shadowing the real TypeScript / TSX sources during Vite resolution;
+- forced Vite resolve order to prefer `.ts` / `.tsx` before `.js`;
+- added `.gitignore` guard so generated source artifacts do not get committed back into `src/`.
+
 ## v0.6.34
 - update GitHub Actions to `actions/checkout@v5` and `actions/setup-node@v6` to remove the Node.js 20 deprecation warning
 - capture `pnpm install`, `pnpm type-check` and `pnpm exec vite build --debug` logs into files, job summary and uploaded artifact `ui-build-logs`

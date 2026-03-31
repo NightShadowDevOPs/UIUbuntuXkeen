@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vite/
+coverage/
+
+# stale transpiled artifacts must not live inside src/
+src/**/*.js
+src/**/*.d.ts

@@ -1,4 +1,5 @@
-- v0.6.34 — updated GitHub Actions to `actions/checkout@v5` and `actions/setup-node@v6`, capture full install/type-check/build logs into Step Summary and artifact `ui-build-logs`, then fail in a final guard step with explicit exit-code reporting.
+- v0.6.35 — removed stale transpiled `src/**/*.js` and `src/**/*.d.ts` artifacts that shadowed TypeScript / TSX sources, added Vite resolve priority for `.ts` / `.tsx`, and kept CI diagnostics from v0.6.34 in place.
+- v0.6.35 — updated GitHub Actions to `actions/checkout@v5` and `actions/setup-node@v6`, capture full install/type-check/build logs into Step Summary and artifact `ui-build-logs`, then fail in a final guard step with explicit exit-code reporting.
 - v0.6.33 — moved CI to `pnpm/action-setup` and removed the `flag-icons` node_modules glob path from provider badges.
 - v0.6.32 — replaced `build-ui.yml` with a simplified CI flow that prints install/build logs inline on failure and removes the noisy lockfile drift step.
 - v0.6.30 — fixed invalid GitHub Actions YAML syntax in `build-ui.yml` and restored a parseable CI workflow.
