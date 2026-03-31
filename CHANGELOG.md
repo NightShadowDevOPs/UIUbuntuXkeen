@@ -1,7 +1,12 @@
-## v0.6.35
-- removed stale transpiled `src/**/*.js` and `src/**/*.d.ts` artifacts that were shadowing the real TypeScript / TSX sources during Vite resolution;
-- forced Vite resolve order to prefer `.ts` / `.tsx` before `.js`;
-- added `.gitignore` guard so generated source artifacts do not get committed back into `src/`.
+## v0.6.36
+- kept the v0.6.35 build fix in place: stale transpiled `src/**/*.js` and `src/**/*.d.ts` no longer shadow the real TypeScript / TSX sources;
+- returned provider SSL checks to a visible workspace on the **Providers** page;
+- persist provider SSL snapshot, cache timestamps and refresh state in the shared users DB;
+- added LAN users inventory with `IP / MAC / hostname / source / proxyAccess` fields stored in DB;
+- added proxy access policy `allow all` / `allow-list only`;
+- restrict denied clients only on Mihomo proxy ports instead of dropping all host traffic;
+- extended the bundled agent with `blockipports` / `unblockipports` plus persisted rehydrate support;
+- bumped bundled agent version to `0.6.23` in `api.sh` and `router-agent/install.sh`.
 
 ## v0.6.34
 - update GitHub Actions to `actions/checkout@v5` and `actions/setup-node@v6` to remove the Node.js 20 deprecation warning
@@ -17,46 +22,3 @@
 - actually replace `.github/workflows/build-ui.yml` with the simplified inline-log workflow
 - remove stale `Check lockfile drift` / preflight-heavy workflow content that remained in the previous archive
 - keep inline `install-deps.log` and `build-ui.log` printing so GitHub Actions can finally show the first real build failure
-
-## v0.6.32
-
-- replaced the GitHub Actions `build-ui.yml` with a simplified workflow that prints `install-deps.log` and `build-ui.log` inline on failure
-- removed the noisy lockfile drift step from CI so the first real install/build error is visible
-- kept explicit pnpm bootstrap and informational type-check before the final Vite build
-
-## v0.6.30
-- Fixed YAML syntax in `.github/workflows/build-ui.yml` after the broken `Check lockfile drift` step in v0.6.29.
-- Rewrote the workflow block with valid multiline shell commands so GitHub Actions can parse and run the file again.
-- Kept the CI diagnostics and pnpm bootstrap path from the previous hotfixes.
-
-## v0.6.29
-
-- simplify GitHub Actions install/build steps so raw pnpm/vite errors print directly to the job log
-- switch CI dependency bootstrap to `pnpm install --no-frozen-lockfile` to get past package/lock drift
-- add explicit lockfile drift diagnostics before install
-- keep Husky disabled in CI
-
-## v0.6.28
-
-- harden GitHub Actions dependency installation step with inline failure log output
-- disable Husky during CI install to avoid non-build bootstrap noise
-- keep workflow diagnostics focused on the first real install/build failure
-
-## v0.6.27 - 2026-03-31
-
-- replaced `pnpm/action-setup` with explicit `npm install -g pnpm@9.12.1` in GitHub Actions
-- removed the deprecated Node 20 based pnpm action from the workflow path
-- made `Build UI` print `build-ui.log` inside the same failing step so the primary Vite error is visible immediately
-- kept preflight diagnostics and resilient project version read before install/build
-
-## v0.6.25 - 2026-03-31
-
-- hardened GitHub Actions workflow diagnostics around the pre-build steps
-- moved preflight diagnostics before version read so failures show working directory, file list, node and pnpm versions
-- made project version read resilient and explicit via `node:fs` JSON parse
-- made `Show build log on failure` safe when `build-ui.log` does not exist yet
-
-## v0.6.24 - 2026-03-31
-
-- added explicit pnpm bootstrap in GitHub Actions workflow before install/build
-- kept verbose `vite build --debug` logging to surface real bundling errors on failure

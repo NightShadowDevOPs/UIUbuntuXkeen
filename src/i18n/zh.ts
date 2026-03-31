@@ -1900,7 +1900,7 @@ usersDbChanged: '已更改',
   hostWorkspaceCleanupNotice: '“主机”页面已清理路由器遗留卡片，现在只保留这个 Ubuntu 项目的主机/运行态视图。',
   trafficWorkspaceHostOnlyTip: '此页面现在只保留主机/运行态流量视图。路由器 QoS 和兼容层卡片已从主 Ubuntu 流程中移除。',
   legacyWorkspaceTasksNotice: '该页面暂时从主导航中隐藏，仅用于审计 legacy 功能，不应视为当前 Ubuntu/server 主流程的一部分。',
-  legacyWorkspaceUsersNotice: '该页面目前仅为审计 legacy 逻辑而保留，并已从主导航隐藏，等待服务端重构。',
+  legacyWorkspaceUsersNotice: '此页面现在汇集了 LAN 用户清单、proxy 访问控制以及保留的 legacy 用户工具。',
   legacyWorkspacePoliciesNotice: '该页面目前仅为审计 legacy 逻辑而保留，并已从主导航隐藏，等待服务端重构。',
 } satisfies LANG_MESSAGE
 

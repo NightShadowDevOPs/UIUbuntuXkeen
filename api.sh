@@ -21,7 +21,7 @@ MIHOMO_CFG_META="${MIHOMO_CFG_META:-$MIHOMO_CFG_DIR/meta.json}"
 MIHOMO_CFG_REVS_DIR="${MIHOMO_CFG_REVS_DIR:-$MIHOMO_CFG_DIR/revs}"
 MIHOMO_CFG_REVS_MAX="${MIHOMO_CFG_REVS_MAX:-10}"
 TOKEN="${TOKEN:-}"
-AGENT_VERSION="0.6.22"
+AGENT_VERSION="0.6.23"
 MIHOMO_CONFIG="${MIHOMO_CONFIG:-/opt/etc/mihomo/config.yaml}"
 MIHOMO_LOG="${MIHOMO_LOG:-}"
 GEOIP_URL="${GEOIP_URL:-https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat}"
@@ -3503,6 +3503,29 @@ block_mac_ports() {
   reply_ok '{"ok":true}'
 }
 
+
+block_mac_selected_ports() {
+  m="$1"; p="$2"
+  [ -n "$m" ] || { reply_ok '{"ok":false,"error":"missing-mac"}'; return; }
+  [ -n "$p" ] || { reply_ok '{"ok":false,"error":"missing-ports"}'; return; }
+  ensure_block_chain
+
+  oldIFS="$IFS"
+  IFS=','
+  for port in $p; do
+    port="$(echo "$port" | tr -d ' ')"
+    echo "$port" | grep -q '^[0-9]\+$' || continue
+    iptables -t filter -C ZASH_BLOCK -m mac --mac-source "$m" -p tcp --dport "$port" -j REJECT >/dev/null 2>&1 || \
+      iptables -t filter -A ZASH_BLOCK -m mac --mac-source "$m" -p tcp --dport "$port" -j REJECT
+    iptables -t filter -C ZASH_BLOCK -m mac --mac-source "$m" -p udp --dport "$port" -j REJECT >/dev/null 2>&1 || \
+      iptables -t filter -A ZASH_BLOCK -m mac --mac-source "$m" -p udp --dport "$port" -j REJECT
+  done
+  IFS="$oldIFS"
+
+  persist_block "macport" "$m" "$p"
+  reply_ok '{"ok":true}'
+}
+
 unblock_mac_ports() {
   m="$1"
   [ -n "$m" ] || { reply_ok '{"ok":false,"error":"missing-mac"}'; return; }
@@ -3519,6 +3542,18 @@ unblock_mac_ports() {
   done
 
   remove_persist_block "mac" "$m"
+  reply_ok '{"ok":true}'
+}
+
+unblock_mac_selected_ports() {
+  m="$1"
+  [ -n "$m" ] || { reply_ok '{"ok":false,"error":"missing-mac"}'; return; }
+  ensure_block_chain
+  iptables -t filter -S ZASH_BLOCK 2>/dev/null | grep -i -F -- "--mac-source $m" | grep -F -- '-j REJECT' | while read -r rule; do
+    drule="$(echo "$rule" | sed 's/^-A /-D /')"
+    iptables -t filter $drule >/dev/null 2>&1 || true
+  done
+  remove_persist_block "macport" "$m"
   reply_ok '{"ok":true}'
 }
 
@@ -3541,6 +3576,38 @@ unblock_ip() {
   reply_ok '{"ok":true}'
 }
 
+block_ip_ports() {
+  ip_="$1"; p="$2"
+  [ -n "$ip_" ] || { reply_ok '{"ok":false,"error":"missing-ip"}'; return; }
+  [ -n "$p" ] || { reply_ok '{"ok":false,"error":"missing-ports"}'; return; }
+  ensure_block_chain
+
+  oldIFS="$IFS"
+  IFS=','
+  for port in $p; do
+    port="$(echo "$port" | tr -d ' ')"
+    echo "$port" | grep -q '^[0-9]\+$' || continue
+    iptables -t filter -C ZASH_BLOCK -s "$ip_" -p tcp --dport "$port" -j REJECT >/dev/null 2>&1 ||       iptables -t filter -A ZASH_BLOCK -s "$ip_" -p tcp --dport "$port" -j REJECT
+    iptables -t filter -C ZASH_BLOCK -s "$ip_" -p udp --dport "$port" -j REJECT >/dev/null 2>&1 ||       iptables -t filter -A ZASH_BLOCK -s "$ip_" -p udp --dport "$port" -j REJECT
+  done
+  IFS="$oldIFS"
+
+  persist_block "ipport" "$ip_" "$p"
+  reply_ok '{"ok":true}'
+}
+
+unblock_ip_ports() {
+  ip_="$1"
+  [ -n "$ip_" ] || { reply_ok '{"ok":false,"error":"missing-ip"}'; return; }
+  ensure_block_chain
+  iptables -t filter -S ZASH_BLOCK 2>/dev/null | grep -F -- "-s $ip_ " | grep -F -- "-j REJECT" | while read -r rule; do
+    drule="$(echo "$rule" | sed 's/^-A /-D /')"
+    iptables -t filter $drule >/dev/null 2>&1 || true
+  done
+  remove_persist_block "ipport" "$ip_"
+  reply_ok '{"ok":true}'
+}
+
 rehydrate_blocks() {
   [ -f "$BLOCKS_FILE" ] || return 0
   ensure_block_chain
@@ -3552,7 +3619,7 @@ rehydrate_blocks() {
     val="$c"
 
     # Legacy format: <mac> <ports>
-    if [ "$kind" != "mac" ] && [ "$kind" != "ip" ]; then
+    if [ "$kind" != "mac" ] && [ "$kind" != "macport" ] && [ "$kind" != "ip" ] && [ "$kind" != "ipport" ]; then
       kind="mac"
       key="$a"
       val="$b"
@@ -3560,8 +3627,39 @@ rehydrate_blocks() {
 
     if [ "$kind" = "ip" ]; then
       [ -n "$key" ] || continue
-      iptables -t filter -C ZASH_BLOCK -s "$key" -j DROP >/dev/null 2>&1 || \
-        iptables -t filter -A ZASH_BLOCK -s "$key" -j DROP
+      iptables -t filter -C ZASH_BLOCK -s "$key" -j DROP >/dev/null 2>&1 ||         iptables -t filter -A ZASH_BLOCK -s "$key" -j DROP
+      continue
+    fi
+
+    if [ "$kind" = "ipport" ]; then
+      ip_="$key"
+      p="$val"
+      [ -n "$ip_" ] || continue
+      [ -n "$p" ] || continue
+      oldIFS="$IFS"; IFS=','
+      for port in $p; do
+        port="$(echo "$port" | tr -d ' ')"
+        echo "$port" | grep -q '^[0-9]\+$' || continue
+        iptables -t filter -C ZASH_BLOCK -s "$ip_" -p tcp --dport "$port" -j REJECT >/dev/null 2>&1 ||           iptables -t filter -A ZASH_BLOCK -s "$ip_" -p tcp --dport "$port" -j REJECT
+        iptables -t filter -C ZASH_BLOCK -s "$ip_" -p udp --dport "$port" -j REJECT >/dev/null 2>&1 ||           iptables -t filter -A ZASH_BLOCK -s "$ip_" -p udp --dport "$port" -j REJECT
+      done
+      IFS="$oldIFS"
+      continue
+    fi
+
+    if [ "$kind" = "macport" ]; then
+      m="$key"
+      p="$val"
+      [ -n "$m" ] || continue
+      [ -n "$p" ] || continue
+      oldIFS="$IFS"; IFS=','
+      for port in $p; do
+        port="$(echo "$port" | tr -d ' ')"
+        echo "$port" | grep -q '^[0-9]\+$' || continue
+        iptables -t filter -C ZASH_BLOCK -m mac --mac-source "$m" -p tcp --dport "$port" -j REJECT >/dev/null 2>&1 ||           iptables -t filter -A ZASH_BLOCK -m mac --mac-source "$m" -p tcp --dport "$port" -j REJECT
+        iptables -t filter -C ZASH_BLOCK -m mac --mac-source "$m" -p udp --dport "$port" -j REJECT >/dev/null 2>&1 ||           iptables -t filter -A ZASH_BLOCK -m mac --mac-source "$m" -p udp --dport "$port" -j REJECT
+      done
+      IFS="$oldIFS"
       continue
     fi
 
@@ -5060,16 +5158,34 @@ case "$cmd" in
   blockmac)
     block_mac_ports "$mac" "$ports"
     ;;
+  blockmacports)
+    [ -n "$mac" ] || { reply_ok '{"ok":false,"error":"missing-mac"}'; exit 0; }
+    [ -n "$ports" ] || { reply_ok '{"ok":false,"error":"missing-ports"}'; exit 0; }
+    block_mac_selected_ports "$mac" "$ports"
+    ;;
   unblockmac)
     unblock_mac_ports "$mac"
+    ;;
+  unblockmacports)
+    [ -n "$mac" ] || { reply_ok '{"ok":false,"error":"missing-mac"}'; exit 0; }
+    unblock_mac_selected_ports "$mac"
     ;;
   blockip)
     [ -n "$ip" ] || { reply_ok '{"ok":false,"error":"missing-ip"}'; exit 0; }
     block_ip "$ip"
     ;;
+  blockipports)
+    [ -n "$ip" ] || { reply_ok '{"ok":false,"error":"missing-ip"}'; exit 0; }
+    [ -n "$ports" ] || { reply_ok '{"ok":false,"error":"missing-ports"}'; exit 0; }
+    block_ip_ports "$ip" "$ports"
+    ;;
   unblockip)
     [ -n "$ip" ] || { reply_ok '{"ok":false,"error":"missing-ip"}'; exit 0; }
     unblock_ip "$ip"
+    ;;
+  unblockipports)
+    [ -n "$ip" ] || { reply_ok '{"ok":false,"error":"missing-ip"}'; exit 0; }
+    unblock_ip_ports "$ip"
     ;;
   mihomo_config)
     mihomo_config_json

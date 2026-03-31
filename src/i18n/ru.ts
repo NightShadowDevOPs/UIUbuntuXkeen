@@ -2067,7 +2067,7 @@ usersDbChanged: 'Изменено',
   hostWorkspaceCleanupNotice: 'Экран «Хост» очищен от роутерных карточек и теперь показывает только host/runtime-контур этого Ubuntu-проекта.',
   trafficWorkspaceHostOnlyTip: 'Этот экран оставлен как host/runtime-рабочее место. Роутерные QoS и compatibility-карточки убраны из основной Ubuntu-линии.',
   legacyWorkspaceTasksNotice: 'Раздел временно скрыт из основного меню и оставлен только для аудита legacy-функций. Не считать его штатной частью Ubuntu/server-контура.',
-  legacyWorkspaceUsersNotice: 'Этот экран пока сохранён только для аудита legacy-логики и скрыт из основного меню до серверной переработки.',
+  legacyWorkspaceUsersNotice: 'Здесь собраны таблица LAN-пользователей, управление доступом к proxy и legacy-инструменты по пользователям.',
   legacyWorkspacePoliciesNotice: 'Этот экран пока сохранён только для аудита legacy-логики и скрыт из основного меню до серверной переработки.',
 }
 

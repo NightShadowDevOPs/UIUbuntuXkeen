@@ -202,4 +202,8 @@ export type SourceIPLabel = {
   label: string
   id: string
   scope?: string[]
+  mac?: string
+  hostname?: string
+  source?: string
+  proxyAccess?: boolean
 }

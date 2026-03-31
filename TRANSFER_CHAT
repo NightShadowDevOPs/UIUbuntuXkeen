@@ -1,29 +1,30 @@
-Prepared release: v0.6.35. The CI workflow now fixes the real CI build blocker: stale transpiled src/*.js shadowed TS/TSX files and broke Vite on JSX parsing; diagnostics from v0.6.34 stay in place.
+Prepared release: v0.6.36. Build UI is already fixed by the previous cleanup, and this release continues with provider SSL visibility, shared DB state and proxy access control.
 
 31.03.2026 UIUbuntuXkeen — сообщение для нового чата (вставь целиком)
 
 Проект: UIUbuntuXkeen
 Репозиторий: NightShadowDevOPs/UIUbuntuXkeen
-Актуальный релиз для переноса: **v0.6.35**
+Актуальный релиз для переноса: **v0.6.36**
 
 Что важно помнить
 
 - Это отдельный Ubuntu/host-проект, его нельзя смешивать с роутерной линией UltraUIXkeen / Netcraze.
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**.
-- `v0.6.17` считать ошибочным архитектурным ответвлением; линия после него возвращена к модели **статический frontend UI + выбранный backend через Setup**.
-- Проверка SSL сертификатов Провайдеров пока не считается закрытой frontend-only функцией: реальная проверка должна жить в отдельном Ubuntu service на хосте.
-- Автоматическую проверку SSL-сертификатов прокси-провайдеров не трогали и не ломали.
+- Линия после ошибочного `v0.6.17` возвращена к модели **статический frontend UI + выбранный backend через Setup**.
+- Автоматическую проверку SSL-сертификатов прокси-провайдеров нельзя ломать.
 
-Что сделано в `v0.6.35`
-- `.github/workflows/build-ui.yml` обновлён до `actions/checkout@v5` и `actions/setup-node@v6`, чтобы убрать warning про deprecated Node.js 20 actions.
-- `pnpm install`, `pnpm type-check` и `pnpm exec vite build --debug` теперь всегда пишут полные логи в файлы, в Step Summary и в artifact `ui-build-logs`.
-- Job больше не обрывается в середине шага: сначала сохраняются exit code и лог, потом отдельный финальный шаг завершает workflow с понятной причиной.
+Что сделано в `v0.6.36`
+- Build-fix из `v0.6.35` сохранён: stale transpiled `src/*.js` больше не перекрывают `.ts` / `.tsx`.
+- На страницу **Провайдеры** возвращён видимый блок SSL-проверок провайдеров.
+- Снимок SSL-провайдеров, время проверки и состояние кеша сохраняются в **shared users DB**.
+- Добавлена таблица LAN-пользователей с хранением **IP / MAC / hostname / source / proxyAccess**.
+- Добавлен режим доступа к proxy: **allow all** или **allow-list only**.
+- Ограничение применяется только к **proxy-портам Mihomo**, а не ко всему трафику устройства.
+- В bundled agent добавлены `blockipports` / `unblockipports`, а также восстановление таких правил после рестарта.
+- Версия bundled agent поднята до **0.6.23** в `api.sh` и `router-agent/install.sh`.
 
-Что поймано
-- По скриншоту GitHub всё ещё показывает только `Build UI / Process completed with exit code 1`; warning про Node.js 20 actions — отдельный шум, а не доказанная первопричина build failure.
-- Значит сейчас важнее не гадать про проектный blocker наугад, а гарантированно вытащить полный install/build лог наружу.
-
-Следующий шаг
-
-- Прогнать workflow из `v0.6.35`.
-- Если CI не зелёный — открыть Step Summary или artifact `ui-build-logs` и брать уже первую конкретную строку ошибки для следующего точечного фикса.
+Что проверить после релиза
+- На странице **Провайдеры** виден блок SSL-проверок и кнопка ручного запуска.
+- После проверки видны дата последней проверки, срок действия и состояние кеша.
+- На странице **Пользователи** видна таблица `IP / MAC / hostname / proxy access`.
+- В режиме `allow-list only` к proxy могут подключаться только явно разрешённые хосты.

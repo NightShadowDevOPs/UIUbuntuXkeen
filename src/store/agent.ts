@@ -95,6 +95,23 @@ export const managedAgentIpBlocks = useStorage<Record<string, true>>(
   {},
 )
 
+
+/**
+ * Proxy-port only MAC blocks managed by the proxy access control.
+ */
+export const managedAgentProxyPortMacBlocks = useStorage<Record<string, { ports: string }>>(
+  'config/agent-managed-proxy-port-mac-blocks-v1',
+  {},
+)
+
+/**
+ * Proxy-port only IP blocks managed by the proxy access control.
+ */
+export const managedAgentProxyPortIpBlocks = useStorage<Record<string, { ports: string }>>(
+  'config/agent-managed-proxy-port-ip-blocks-v1',
+  {},
+)
+
 /**
  * Scheduled backups (cron). Stored locally; can be applied to the router via the agent.
  * Default: daily at 04:00.

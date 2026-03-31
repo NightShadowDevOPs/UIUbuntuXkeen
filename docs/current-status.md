@@ -1,17 +1,22 @@
-Current prepared release: v0.6.35. The real CI blocker is now fixed: stale transpiled src/*.js shadowed TypeScript / TSX sources, and Vite tried to parse JSX from plain .js files. Diagnostics from v0.6.34 remain useful, but this release removes the underlying cause.
+Current prepared release: v0.6.36. Build UI is fixed, and the current step restores visible provider SSL control plus DB-backed proxy access management.
 
-# Текущий статус — v0.6.35
+# Текущий статус — v0.6.36
 
-- Текущая линия: **v0.6.35**
+- Текущая линия: **v0.6.36**
 - Подтверждённо рабочий пользователем релиз: **v0.2.10**
-- Подготовленный релиз: **v0.6.35**
+- Подготовленный релиз: **v0.6.36**
 
-## Что исправлено
-- Из `src/` удалены заехавшие transpiled-артефакты `*.js` и `*.d.ts`, которые перекрывали исходники `.ts` / `.tsx`.
-- Vite-resolve теперь принудительно предпочитает `.ts` / `.tsx` раньше `.js`.
-- Диагностика CI из `v0.6.34` сохранена: если всплывёт новый blocker, лог уже не потеряется.
+## Что исправлено и добавлено
+- сохранён build-fix против stale transpiled `src/*.js`;
+- SSL-провайдеры снова видны на странице **Провайдеры**;
+- снимок SSL-проверок и время последнего обновления сохраняются в **shared users DB**;
+- добавлена таблица LAN-пользователей с полями `IP / MAC / hostname / source / proxyAccess`;
+- добавлен режим фильтрации доступа к proxy: `allow all` / `allow-list only`;
+- блокировка применяется только к proxy-портам Mihomo;
+- bundled agent расширен командами `blockipports` / `unblockipports`.
 
 ## Следующая проверка
-- Прогнать GitHub Actions на `v0.6.35`.
-- Убедиться, что шаг `Build UI` проходит без ошибки `ConnectionCard.js (26:56): Expression expected`.
-- После зелёной сборки вернуться к плану аудита безопасности и функциональным задачам по провайдерам / трафику / состоянию хоста.
+- Убедиться, что список SSL-провайдеров снова виден на странице **Провайдеры**.
+- Проверить ручной запуск SSL-проверки.
+- Проверить сохранение LAN-хостов и имён в таблице пользователей.
+- Проверить режим `allow-list only` на реальных клиентах.

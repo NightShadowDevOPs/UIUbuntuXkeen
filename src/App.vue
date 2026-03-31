@@ -16,6 +16,7 @@ import {
   theme,
 } from './store/settings'
 import { initUsersDbSync } from './store/usersDbSync'
+import { initProxyAccessControl } from './composables/proxyAccessControl'
 import { bootstrapRouterAgentForLan } from './store/agent'
 import { initProviderTrafficSync } from './store/providerActivity'
 
@@ -77,6 +78,7 @@ watch(
 onMounted(() => {
   bootstrapRouterAgentForLan()
   initUsersDbSync()
+  initProxyAccessControl()
   initProviderTrafficSync()
   if (autoImportSettings.value) {
     importSettingsFromUrl()

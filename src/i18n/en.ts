@@ -2065,7 +2065,7 @@ usersDbChanged: 'Changed',
   hostWorkspaceCleanupNotice: 'The Host workspace was cleaned up: router-era cards were removed and only the Ubuntu host/runtime flow remains.',
   trafficWorkspaceHostOnlyTip: 'This page now stays focused on host/runtime traffic. Router QoS and compatibility cards were removed from the main Ubuntu flow.',
   legacyWorkspaceTasksNotice: 'This page is hidden from the main navigation for now and kept only for legacy audit. Do not treat it as part of the normal Ubuntu/server workflow.',
-  legacyWorkspaceUsersNotice: 'This page is currently kept only for legacy audit and hidden from the main navigation until the server-side redesign is ready.',
+  legacyWorkspaceUsersNotice: 'This page now combines LAN inventory, proxy access control and the remaining legacy user tools.',
   legacyWorkspacePoliciesNotice: 'This page is currently kept only for legacy audit and hidden from the main navigation until the server-side redesign is ready.',
 }
 

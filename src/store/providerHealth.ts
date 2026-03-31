@@ -3,6 +3,7 @@ import { normalizeProxyProtoKey } from '@/helper/proxyProto'
 import { useStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { activeBackendCapabilities } from './backendCapabilities'
+import { providerSslDbMeta, providerSslDbSnapshot } from './providerSslDb'
 import { activeBackend } from './setup'
 import { proxyProviderSubscriptionUrlMap } from './settings'
 import { proxyProviederList } from './proxies'
@@ -101,6 +102,13 @@ const resetProviderRuntimeState = (error: string | null = null) => {
   agentProvidersJobStatus.value = ''
   agentProvidersJobId.value = ''
   agentProvidersAt.value = Date.now()
+  providerSslDbMeta.value = {
+    checkedAtMs: agentProvidersAt.value,
+    nextRefreshAtMs: 0,
+    cacheFresh: false,
+    cacheReady: false,
+    refreshing: false,
+  }
 }
 
 const normalizeSavedProviderSubscriptionUrl = (raw: any): string => {
@@ -174,6 +182,31 @@ export const fetchAgentProviders = async (force = false) => {
     const job = checks?.job || cache?.job || null
     agentProvidersJobStatus.value = String(job?.status || '').trim()
     agentProvidersJobId.value = String(job?.id || '').trim()
+
+    const checkedAtMs = agentProvidersAt.value || Date.now()
+    const snapshot: Record<string, any> = {}
+    for (const provider of agentProviders.value || []) {
+      const name = String((provider as any)?.name || '').trim()
+      if (!name) continue
+      snapshot[name] = {
+        name,
+        url: String((provider as any)?.url || '').trim(),
+        host: String((provider as any)?.host || '').trim(),
+        port: String((provider as any)?.port || '').trim(),
+        sslNotAfter: String((provider as any)?.sslNotAfter || '').trim(),
+        panelUrl: String((provider as any)?.panelUrl || '').trim(),
+        panelSslNotAfter: String((provider as any)?.panelSslNotAfter || '').trim(),
+        checkedAtMs,
+      }
+    }
+    providerSslDbSnapshot.value = snapshot
+    providerSslDbMeta.value = {
+      checkedAtMs,
+      nextRefreshAtMs: agentProvidersSslCacheNextRefreshAtMs.value || 0,
+      cacheFresh: !!agentProvidersSslCacheFresh.value,
+      cacheReady: !!agentProvidersSslCacheReady.value,
+      refreshing: !!(agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value),
+    }
   } finally {
     agentProvidersLoading.value = false
   }

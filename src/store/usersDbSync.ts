@@ -7,6 +7,8 @@ import { debounce, isEqual } from 'lodash'
 import { computed, ref, watch } from 'vue'
 import { agentEnabled } from './agent'
 import { proxyProviderIconMap, proxyProviderPanelUrlMap, proxyProviderSslWarnDaysMap, sourceIPLabelList, sslNearExpiryDaysDefault, tunnelInterfaceDescriptionMap } from './settings'
+import { proxyAccessPolicyMode, type ProxyAccessPolicyMode } from './proxyAccess'
+import { providerSslDbMeta, providerSslDbSnapshot, type ProviderSslDbItem, type ProviderSslDbMeta } from './providerSslDb'
 import { userLimits, type UserLimit, type UserLimitsStore } from './userLimits'
 
 /**
@@ -89,6 +91,9 @@ type UsersDbPayload = {
   providerSslWarnDaysMap: Record<string, number>
   tunnelInterfaceDescriptions: Record<string, string>
   userLimits: UserLimitsStore
+  proxyAccessPolicyMode: ProxyAccessPolicyMode
+  providerSslSnapshots: Record<string, ProviderSslDbItem>
+  providerSslMeta: ProviderSslDbMeta
 }
 
 export type UsersDbDiff = {
@@ -211,6 +216,13 @@ const normalizeLabel = (x: any): SourceIPLabel | null => {
 
   const o: SourceIPLabel = { key, label, id }
   if (scope && scope.length) o.scope = scope
+  const mac = String((x as any).mac || '').trim().toLowerCase()
+  const hostname = String((x as any).hostname || '').trim()
+  const source = String((x as any).source || '').trim()
+  if (mac) o.mac = mac
+  if (hostname) o.hostname = hostname
+  if (source) o.source = source
+  if (typeof (x as any).proxyAccess === 'boolean') o.proxyAccess = !!(x as any).proxyAccess
   return o
 }
 
@@ -303,6 +315,46 @@ const sanitizeNumMap = (raw: any): Record<string, number> => {
   return out
 }
 
+
+const sanitizeProxyAccessPolicyMode = (raw: any): ProxyAccessPolicyMode => {
+  return String(raw || '').trim() === 'allowListOnly' ? 'allowListOnly' : 'allowAll'
+}
+
+const sanitizeProviderSslSnapshots = (raw: any): Record<string, ProviderSslDbItem> => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+  const out: Record<string, ProviderSslDbItem> = {}
+  for (const [key, value] of Object.entries(raw)) {
+    const name = String(key || '').trim()
+    if (!name) continue
+    const row = value && typeof value === 'object' ? (value as any) : {}
+    const checkedAtMs = Number(row.checkedAtMs)
+    out[name] = {
+      name,
+      url: String(row.url || '').trim() || undefined,
+      host: String(row.host || '').trim() || undefined,
+      port: String(row.port || '').trim() || undefined,
+      sslNotAfter: String(row.sslNotAfter || '').trim() || undefined,
+      panelUrl: String(row.panelUrl || '').trim() || undefined,
+      panelSslNotAfter: String(row.panelSslNotAfter || '').trim() || undefined,
+      checkedAtMs: Number.isFinite(checkedAtMs) && checkedAtMs > 0 ? Math.trunc(checkedAtMs) : undefined,
+    }
+  }
+  return out
+}
+
+const sanitizeProviderSslMeta = (raw: any): ProviderSslDbMeta => {
+  const row = raw && typeof raw === 'object' ? (raw as any) : {}
+  const checkedAtMs = Number(row.checkedAtMs)
+  const nextRefreshAtMs = Number(row.nextRefreshAtMs)
+  return {
+    checkedAtMs: Number.isFinite(checkedAtMs) && checkedAtMs > 0 ? Math.trunc(checkedAtMs) : 0,
+    nextRefreshAtMs: Number.isFinite(nextRefreshAtMs) && nextRefreshAtMs > 0 ? Math.trunc(nextRefreshAtMs) : 0,
+    cacheFresh: !!row.cacheFresh,
+    cacheReady: !!row.cacheReady,
+    refreshing: !!row.refreshing,
+  }
+}
+
 const sanitizeUserLimit = (raw: any): UserLimit => {
   const out: UserLimit = {}
   if (!raw || typeof raw !== 'object') return out
@@ -367,12 +419,26 @@ const normalizePayload = (p: UsersDbPayload): UsersDbPayload => {
   const sslNear = sanitizeInt((p as any)?.sslNearExpiryDaysDefault, 2, 0, 365)
   const warnMap = sanitizeNumMap((p as any)?.providerSslWarnDaysMap)
   const tunnelMap = sanitizeTunnelDescriptionMap((p as any)?.tunnelInterfaceDescriptions || (p as any)?.tunnelInterfaceDescriptionMap || {})
-  return { labels, providerPanelUrls: urls, providerIcons: icons, sslNearExpiryDaysDefault: sslNear, providerSslWarnDaysMap: warnMap, tunnelInterfaceDescriptions: tunnelMap, userLimits: sanitizeUserLimits((p as any)?.userLimits) }
+  const proxyAccessMode = sanitizeProxyAccessPolicyMode((p as any)?.proxyAccessPolicyMode)
+  const providerSslSnapshots = sanitizeProviderSslSnapshots((p as any)?.providerSslSnapshots || (p as any)?.providerSslState)
+  const providerSslMetaValue = sanitizeProviderSslMeta((p as any)?.providerSslMeta)
+  return {
+    labels,
+    providerPanelUrls: urls,
+    providerIcons: icons,
+    sslNearExpiryDaysDefault: sslNear,
+    providerSslWarnDaysMap: warnMap,
+    tunnelInterfaceDescriptions: tunnelMap,
+    userLimits: sanitizeUserLimits((p as any)?.userLimits),
+    proxyAccessPolicyMode: proxyAccessMode,
+    providerSslSnapshots,
+    providerSslMeta: providerSslMetaValue,
+  }
 }
 
 const labelSig = (x: any) => {
   const scope = Array.isArray(x?.scope) ? (x.scope as any[]).map(String).sort().join(',') : ''
-  return `${String(x?.label || '').trim()}|${scope}`
+  return `${String(x?.label || '').trim()}|${scope}|${String(x?.mac || '').trim().toLowerCase()}|${String(x?.hostname || '').trim()}|${String(x?.source || '').trim()}|${typeof x?.proxyAccess === 'boolean' ? (x.proxyAccess ? '1' : '0') : ''}`
 }
 
 export const computeUsersDbDiff = (remote: UsersDbPayload, local: UsersDbPayload): UsersDbDiff => {
@@ -561,6 +627,9 @@ const safeParsePayload = (raw: string): UsersDbPayload => {
         providerSslWarnDaysMap: {},
         tunnelInterfaceDescriptions: {},
         userLimits: {},
+        proxyAccessPolicyMode: 'allowAll',
+        providerSslSnapshots: {},
+        providerSslMeta: sanitizeProviderSslMeta(null),
       }
 
     if (v && typeof v === 'object') {
@@ -610,17 +679,20 @@ const safeParsePayload = (raw: string): UsersDbPayload => {
         providerSslWarnDaysMap: warnMap,
         tunnelInterfaceDescriptions: sanitizeTunnelDescriptionMap(v.tunnelInterfaceDescriptions || v.tunnelInterfaceDescriptionMap || {}),
         userLimits: sanitizeUserLimits(v.userLimits),
+        proxyAccessPolicyMode: sanitizeProxyAccessPolicyMode(v.proxyAccessPolicyMode),
+        providerSslSnapshots: sanitizeProviderSslSnapshots(v.providerSslSnapshots || v.providerSslState),
+        providerSslMeta: sanitizeProviderSslMeta(v.providerSslMeta),
       }
     }
   } catch {
     // ignore
   }
-  return { labels: [], providerPanelUrls: {}, providerIcons: {}, sslNearExpiryDaysDefault: 2, providerSslWarnDaysMap: {}, tunnelInterfaceDescriptions: {}, userLimits: {} }
+  return { labels: [], providerPanelUrls: {}, providerIcons: {}, sslNearExpiryDaysDefault: 2, providerSslWarnDaysMap: {}, tunnelInterfaceDescriptions: {}, userLimits: {}, proxyAccessPolicyMode: 'allowAll', providerSslSnapshots: {}, providerSslMeta: sanitizeProviderSslMeta(null) }
 }
 
 const buildPayloadForWrite = (p: UsersDbPayload) => {
   return {
-    version: 3,
+    version: 4,
     labels: p.labels || [],
     providerPanelUrls: p.providerPanelUrls || {},
     providerIcons: (p as any).providerIcons || {},
@@ -628,6 +700,9 @@ const buildPayloadForWrite = (p: UsersDbPayload) => {
     providerSslWarnDaysMap: p.providerSslWarnDaysMap || {},
     tunnelInterfaceDescriptions: (p as any).tunnelInterfaceDescriptions || {},
     userLimits: sanitizeUserLimits((p as any).userLimits || {}),
+    proxyAccessPolicyMode: sanitizeProxyAccessPolicyMode((p as any).proxyAccessPolicyMode),
+    providerSslSnapshots: sanitizeProviderSslSnapshots((p as any).providerSslSnapshots || {}),
+    providerSslMeta: sanitizeProviderSslMeta((p as any).providerSslMeta),
   }
 }
 
@@ -700,6 +775,13 @@ const mergePayload = (remote: UsersDbPayload, local: UsersDbPayload): UsersDbPay
 
   // Local preference for the global threshold.
   const sslNear = sanitizeInt(lN.sslNearExpiryDaysDefault, rN.sslNearExpiryDaysDefault || 2, 0, 365)
+  const proxyAccessMode = sanitizeProxyAccessPolicyMode(lN.proxyAccessPolicyMode || rN.proxyAccessPolicyMode)
+  const providerSslSnapshots = { ...(rN.providerSslSnapshots || {}), ...(lN.providerSslSnapshots || {}) }
+  const providerSslMeta = (() => {
+    const left = sanitizeProviderSslMeta(rN.providerSslMeta)
+    const right = sanitizeProviderSslMeta(lN.providerSslMeta)
+    return right.checkedAtMs >= left.checkedAtMs ? right : left
+  })()
 
   return normalizePayload({
     labels,
@@ -709,6 +791,9 @@ const mergePayload = (remote: UsersDbPayload, local: UsersDbPayload): UsersDbPay
     providerSslWarnDaysMap: warnMap,
     tunnelInterfaceDescriptions: tunnelMap,
     userLimits: limits,
+    proxyAccessPolicyMode: proxyAccessMode,
+    providerSslSnapshots,
+    providerSslMeta,
   })
 }
 
@@ -722,7 +807,10 @@ const payloadEqual = (a: UsersDbPayload, b: UsersDbPayload) => {
     an.sslNearExpiryDaysDefault === bn.sslNearExpiryDaysDefault &&
     isEqual(an.providerSslWarnDaysMap || {}, bn.providerSslWarnDaysMap || {}) &&
     isEqual((an as any).tunnelInterfaceDescriptions || {}, (bn as any).tunnelInterfaceDescriptions || {}) &&
-    isEqual(an.userLimits || {}, bn.userLimits || {})
+    isEqual(an.userLimits || {}, bn.userLimits || {}) &&
+    an.proxyAccessPolicyMode === bn.proxyAccessPolicyMode &&
+    isEqual(an.providerSslSnapshots || {}, bn.providerSslSnapshots || {}) &&
+    isEqual(an.providerSslMeta || {}, bn.providerSslMeta || {})
   )
 }
 
@@ -735,6 +823,9 @@ const setLocalFromPayload = (p: UsersDbPayload) => {
   proxyProviderSslWarnDaysMap.value = (n.providerSslWarnDaysMap || {}) as any
   tunnelInterfaceDescriptionMap.value = ((n as any).tunnelInterfaceDescriptions || {}) as any
   userLimits.value = (n.userLimits || {}) as any
+  proxyAccessPolicyMode.value = sanitizeProxyAccessPolicyMode((n as any).proxyAccessPolicyMode)
+  providerSslDbSnapshot.value = sanitizeProviderSslSnapshots((n as any).providerSslSnapshots || {}) as any
+  providerSslDbMeta.value = sanitizeProviderSslMeta((n as any).providerSslMeta)
 }
 
 const getLocalPayload = (): UsersDbPayload => {
@@ -746,6 +837,9 @@ const getLocalPayload = (): UsersDbPayload => {
     providerSslWarnDaysMap: (proxyProviderSslWarnDaysMap.value || {}) as any,
     tunnelInterfaceDescriptions: (tunnelInterfaceDescriptionMap.value || {}) as any,
     userLimits: (userLimits.value || {}) as any,
+    proxyAccessPolicyMode: proxyAccessPolicyMode.value,
+    providerSslSnapshots: (providerSslDbSnapshot.value || {}) as any,
+    providerSslMeta: (providerSslDbMeta.value || {}) as any,
   })
 }
 
@@ -763,7 +857,7 @@ export const usersDbSyncedIdSet = computed(() => {
   const snapById = new Map<string, string>()
   const sig = (x: any) => {
     const scope = Array.isArray(x?.scope) ? (x.scope as any[]).map(String).sort().join(',') : ''
-    return `${String(x?.id || '')}|${String(x?.key || '')}|${String(x?.label || '')}|${scope}`
+    return `${String(x?.id || '')}|${String(x?.key || '')}|${String(x?.label || '')}|${scope}|${String(x?.mac || '').trim().toLowerCase()}|${String(x?.hostname || '').trim()}|${String(x?.source || '').trim()}|${typeof x?.proxyAccess === 'boolean' ? (x.proxyAccess ? '1' : '0') : ''}`
   }
 
   for (const it of (usersDbLastSyncedLabels.value || []) as any[]) {
@@ -1178,6 +1272,13 @@ const smartMergePayload = (remote: UsersDbPayload, local: UsersDbPayload, choice
     providerSslWarnDaysMap: sanitizeNumMap(mergedWarn),
     tunnelInterfaceDescriptions: sanitizeTunnelDescriptionMap(mergedTunnels),
     userLimits: mergeUserLimits(rN.userLimits || {}, lN.userLimits || {}),
+    proxyAccessPolicyMode: sanitizeProxyAccessPolicyMode(lN.proxyAccessPolicyMode || rN.proxyAccessPolicyMode),
+    providerSslSnapshots: { ...(rN.providerSslSnapshots || {}), ...(lN.providerSslSnapshots || {}) },
+    providerSslMeta: sanitizeProviderSslMeta(
+      Number((lN.providerSslMeta || {}).checkedAtMs || 0) >= Number((rN.providerSslMeta || {}).checkedAtMs || 0)
+        ? lN.providerSslMeta
+        : rN.providerSslMeta,
+    ),
   })
 }
 
@@ -1252,7 +1353,7 @@ export const initUsersDbSync = () => {
   )
 
   watch(
-    [sourceIPLabelList, proxyProviderPanelUrlMap, proxyProviderIconMap, sslNearExpiryDaysDefault, proxyProviderSslWarnDaysMap, tunnelInterfaceDescriptionMap, userLimits],
+    [sourceIPLabelList, proxyProviderPanelUrlMap, proxyProviderIconMap, sslNearExpiryDaysDefault, proxyProviderSslWarnDaysMap, tunnelInterfaceDescriptionMap, userLimits, proxyAccessPolicyMode, providerSslDbSnapshot, providerSslDbMeta],
     () => {
       if (suppressPushCount > 0) {
         suppressPushCount -= 1

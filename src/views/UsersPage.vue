@@ -1,6 +1,8 @@
 <template>
   <div class="grid grid-cols-1 gap-2 overflow-x-hidden p-2">
     <div class="rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-base-content/80">{{ $t('legacyWorkspaceUsersNotice') }}</div>
+    <UsersInventoryPanel />
+
     <div class="card">
       <div class="card-title px-4 pt-4">{{ t('users') }}</div>
       <div class="card-body gap-3">
@@ -301,6 +303,7 @@ import { showNotification } from '@/helper/notification'
 import { i18n } from '@/i18n'
 import { disableSwipe } from '@/composables/swipe'
 import { ROUTE_NAME } from '@/constant'
+import UsersInventoryPanel from '@/components/users/UsersInventoryPanel.vue'
 import { cleanupExpiredPendingPageFocus, clearPendingPageFocus, flashNavHighlight, getPendingPageFocusForRoute } from '@/helper/navFocus'
 import { getSourceIpRuleKind, matchesSourceIpRule } from '@/helper/sourceip'
 import { connections } from '@/store/connections'
