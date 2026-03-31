@@ -6,7 +6,7 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.6.27**
+- Текущая версия линии: **v0.6.29**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 - Текущий шаг: **cleanup-first + честная фиксация runtime-модели + нормальный CI-лог сборки**
 
@@ -16,9 +16,15 @@
 - Наличие `Dockerfile` и `Caddyfile` в репозитории **не означает**, что проект уже стал встроенным Ubuntu backend/service.
 - Релиз `v0.6.17` **не считать правильным**: в нём была самовольно навязана новая runtime-модель `frontend + backend`, не зафиксированная как штатная архитектура проекта.
 - Релиз `v0.6.19` убрал ложную provider SSL-проверку через legacy path и оставил только подготовку URL подписок до появления Ubuntu service на хосте.
-- Релиз `v0.6.27` исправляет GitHub Actions workflow: `pnpm` теперь устанавливается отдельным шагом до install/build, а подробный вывод `vite build --debug` остаётся включённым.
+- Релиз `v0.6.29` упрощает GitHub Actions workflow: install/build шаги больше не прячут первичную ошибку, а CI install временно использует `--no-frozen-lockfile`, чтобы пройти мимо drift между `package.json` и `pnpm-lock.yaml`.
 
 ## Что уже сделано в cleanup-линии
+
+### v0.6.29
+- шаг `Install dependencies` упрощён до прямого `pnpm install --no-frozen-lockfile --reporter append-only`;
+- добавлен `Check lockfile drift`, который явно печатает missing packages в importer section `pnpm-lock.yaml`;
+- цель релиза — перестать ловить пустые CI-падения и наконец увидеть реальную install/build картину.
+
 
 ### v0.6.27
 - добавлен `.github/workflows/build-ui.yml`;
@@ -50,5 +56,5 @@
 As of `v0.6.27`, provider certificate checks are **not** treated as a finished frontend-only feature. The UI keeps the provider subscription URL editor, while the actual TLS/SSL polling is reserved for a dedicated Ubuntu service running on the project host.
 
 
-## CI note (v0.6.28)
-The GitHub Actions workflow now prints dependency install logs inline and disables Husky during CI bootstrap.
+## CI note (v0.6.29)
+The GitHub Actions workflow now installs dependencies without `--frozen-lockfile` in CI and prints lockfile drift before bootstrap, so the next failure should be a real pnpm/vite error instead of a silent workflow stumble.

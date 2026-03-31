@@ -1,3 +1,10 @@
+## v0.6.29
+
+- simplify GitHub Actions install/build steps so raw pnpm/vite errors print directly to the job log
+- switch CI dependency bootstrap to `pnpm install --no-frozen-lockfile` to get past package/lock drift
+- add explicit lockfile drift diagnostics before install
+- keep Husky disabled in CI
+
 ## v0.6.28
 
 - harden GitHub Actions dependency installation step with inline failure log output

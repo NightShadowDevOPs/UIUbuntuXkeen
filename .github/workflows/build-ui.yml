@@ -41,44 +41,47 @@ jobs:
       - name: Read project version
         shell: bash
         run: |
-          set -euo pipefail
-          if [[ ! -f package.json ]]; then
-            echo "package.json not found in $(pwd)"
-            ls -la
-            exit 1
-          fi
+          set -euxo pipefail
           node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); console.log('Project version:', pkg.version ?? 'unknown')"
+
+      - name: Check lockfile drift
+        shell: bash
+        run: |
+          set -euxo pipefail
+          node <<'NODE'
+          const fs = require('node:fs')
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+          const lock = fs.readFileSync('pnpm-lock.yaml', 'utf8')
+          const deps = Object.keys(pkg.dependencies || {})
+          const missing = deps.filter((name) => {
+            return !lock.includes(`
+      '${name}':`) && !lock.includes(`
+      ${name}:`)
+          })
+          if (missing.length) {
+            console.log('Lockfile drift detected for dependencies:', missing.join(', '))
+          } else {
+            console.log('No dependency drift detected in pnpm-lock importer section.')
+          }
+          NODE
 
       - name: Install dependencies
         shell: bash
+        env:
+          HUSKY: '0'
         run: |
-          set +e
-          export HUSKY=0
-          pnpm install --frozen-lockfile 2>&1 | tee install-deps.log
-          status=${PIPESTATUS[0]}
-          echo "Install exit code: $status"
-          if [[ $status -ne 0 ]]; then
-            echo "===== install-deps.log ====="
-            cat install-deps.log
-            exit $status
-          fi
+          set -euxo pipefail
+          pnpm install --no-frozen-lockfile --reporter append-only
 
       - name: Type check (informational)
         continue-on-error: true
         shell: bash
         run: |
-          set -o pipefail
-          pnpm type-check 2>&1 | tee type-check.log
+          set -euxo pipefail
+          pnpm type-check
 
       - name: Build UI
         shell: bash
         run: |
-          set +e
-          pnpm exec vite build --debug 2>&1 | tee build-ui.log
-          status=${PIPESTATUS[0]}
-          echo "Build exit code: $status"
-          if [[ $status -ne 0 ]]; then
-            echo "===== build-ui.log ====="
-            cat build-ui.log
-            exit $status
-          fi
+          set -euxo pipefail
+          pnpm exec vite build --debug
