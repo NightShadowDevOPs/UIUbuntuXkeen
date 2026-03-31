@@ -1,3 +1,4 @@
+- v0.6.44 — connected `3x-ui Hosts` and `Users` to the real Mihomo/api.sh compatibility-bridge contour (`mihomo_providers`, `ssl_cache_refresh`, `users_db_get`, `users_db_put`).
 - v0.6.43 — audited the actual Mihomo-based runtime contour, redirected root UI startup to Overview, and removed visible phantom-service wording from the new management screens.
 - v0.6.42 — cleaned the distribution from `router-agent/` and root helper leftovers; documented the confirmed Mihomo-based UI recovery/update mechanism.
 - v0.6.41 — removed the standalone phantom `ubuntu-service/` from the distribution and returned the project to the existing backend contour.

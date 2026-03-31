@@ -1,3 +1,9 @@
+## v0.6.44
+- connected `Хосты 3x-ui` and `Пользователи` to the existing Mihomo/api.sh backend contour through the compatibility bridge instead of a phantom standalone service;
+- compatibility capabilities now expose the real commands already present in `api.sh`: `mihomo_providers`, `ssl_cache_refresh`, `users_db_get`, `users_db_put`;
+- `3x-ui Hosts` now reads and saves `providerPanelUrls` through the shared users DB;
+- `Users` inventory now reads and saves plain LAN host rows and `proxyAccessPolicyMode` through the same shared users DB while preserving non-host rules.
+
 ## v0.6.43
 - stabilized root startup routing: `/ui/` now opens `Overview` first instead of `Proxies`, so the UI is less fragile during future route-level regressions;
 - audited the actual runtime contour of the Ubuntu project: UI is served by Mihomo, recovery is done by deleting the UI directory and restarting Mihomo, no phantom standalone service is bundled;

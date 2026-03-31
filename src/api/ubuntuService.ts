@@ -1,6 +1,9 @@
-import { UBUNTU_BACKEND_ENDPOINTS } from '@/config/backendContract'
+import { BACKEND_KINDS, UBUNTU_BACKEND_ENDPOINTS } from '@/config/backendContract'
 import { getAnyFromObj } from '@/helper/providerHealth'
 import axios from 'axios'
+import { agentMihomoProvidersAPI, agentProviderSslCacheRefreshAPI, agentUsersDbGetAPI, agentUsersDbPutAPI } from '@/api/agent'
+import { detectBackendKind } from '@/helper/backend'
+import { activeBackend } from '@/store/setup'
 import dayjs from 'dayjs'
 
 const silentCfg = {
@@ -130,32 +133,301 @@ export const normalizeUbuntuProviderState = (payload: any): UbuntuProviderState 
   }
 }
 
+const preferCompatibilityBridge = () => detectBackendKind(activeBackend.value) !== BACKEND_KINDS.UBUNTU_SERVICE
+
+const decodeB64Utf8 = (value: string) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  try {
+    return decodeURIComponent(escape(atob(raw)))
+  } catch {
+    try {
+      return atob(raw)
+    } catch {
+      return ''
+    }
+  }
+}
+
+const normalizeProviderUrlMap = (raw: any) => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {} as Record<string, string>
+  const out: Record<string, string> = {}
+  for (const [key, value] of Object.entries(raw)) {
+    const name = str(key)
+    const url = str(value)
+    if (!name || !url) continue
+    out[name] = url
+  }
+  return out
+}
+
+const isPlainInventoryKey = (value: any) => {
+  const key = str(value)
+  if (!key) return false
+  if (key.startsWith('/')) return false
+  if (key.includes('/')) return false
+  return true
+}
+
+const normalizeUsersDbLabels = (raw: any) => {
+  if (!Array.isArray(raw)) return [] as any[]
+  const seen = new Set<string>()
+  const out: any[] = []
+  for (const item of raw) {
+    const key = str((item as any)?.key)
+    if (!key || seen.has(key)) continue
+    const label = str((item as any)?.label) || str((item as any)?.hostname) || key
+    out.push({
+      ...(item && typeof item === 'object' ? item : {}),
+      id: str((item as any)?.id) || `lan_${key.replace(/[^0-9a-zA-Z]+/g, '_')}`,
+      key,
+      label,
+      mac: str((item as any)?.mac).toLowerCase() || undefined,
+      hostname: str((item as any)?.hostname) || undefined,
+      source: str((item as any)?.source) || undefined,
+      proxyAccess: typeof (item as any)?.proxyAccess === 'boolean' ? !!(item as any).proxyAccess : undefined,
+    })
+    seen.add(key)
+  }
+  return out
+}
+
+const parseUsersDbPayload = (content: string) => {
+  const fallback = {
+    version: 4,
+    labels: [] as any[],
+    providerPanelUrls: {} as Record<string, string>,
+    proxyAccessPolicyMode: 'allowAll',
+  }
+
+  try {
+    const parsed = JSON.parse(String(content || '').trim() || '{}')
+    if (Array.isArray(parsed)) {
+      return {
+        ...fallback,
+        labels: normalizeUsersDbLabels(parsed),
+      }
+    }
+    if (!parsed || typeof parsed !== 'object') return fallback
+
+    const labelsSource =
+      Array.isArray((parsed as any).labels)
+        ? (parsed as any).labels
+        : Array.isArray((parsed as any).sourceIPLabelList)
+          ? (parsed as any).sourceIPLabelList
+          : Array.isArray((parsed as any).users)
+            ? (parsed as any).users
+            : []
+
+    const urlSource =
+      (parsed as any).providerPanelUrls && typeof (parsed as any).providerPanelUrls === 'object'
+        ? (parsed as any).providerPanelUrls
+        : (parsed as any).proxyProviderPanelUrls && typeof (parsed as any).proxyProviderPanelUrls === 'object'
+          ? (parsed as any).proxyProviderPanelUrls
+          : (parsed as any).proxyProviderPanelUrlMap && typeof (parsed as any).proxyProviderPanelUrlMap === 'object'
+            ? (parsed as any).proxyProviderPanelUrlMap
+            : {}
+
+    return {
+      ...(parsed as any),
+      version: Number((parsed as any).version) || 4,
+      labels: normalizeUsersDbLabels(labelsSource),
+      providerPanelUrls: normalizeProviderUrlMap(urlSource),
+      proxyAccessPolicyMode: str((parsed as any).proxyAccessPolicyMode) === 'allowListOnly' ? 'allowListOnly' : 'allowAll',
+    }
+  } catch {
+    return fallback
+  }
+}
+
+const loadUsersDbDocument = async () => {
+  const remote = await agentUsersDbGetAPI()
+  if (!remote?.ok) throw new Error(str(remote?.error) || 'users-db-get-failed')
+  const content = decodeB64Utf8(str(remote?.contentB64))
+  return {
+    rev: Number(remote?.rev || 0),
+    updatedAt: str(remote?.updatedAt),
+    payload: parseUsersDbPayload(content),
+  }
+}
+
+const saveUsersDbDocument = async (payload: any, rev: number) => {
+  const doc = {
+    ...(payload && typeof payload === 'object' ? payload : {}),
+    version: Number(payload?.version || 4) || 4,
+    labels: normalizeUsersDbLabels(payload?.labels || []),
+    providerPanelUrls: normalizeProviderUrlMap(payload?.providerPanelUrls || {}),
+    proxyAccessPolicyMode: str(payload?.proxyAccessPolicyMode) === 'allowListOnly' ? 'allowListOnly' : 'allowAll',
+  }
+  const content = JSON.stringify(doc, null, 2)
+  const saved = await agentUsersDbPutAPI({ rev, content })
+  if (!saved?.ok) throw new Error(str(saved?.error) || 'users-db-put-failed')
+  return {
+    rev: Number(saved?.rev || rev || 0),
+    updatedAt: str(saved?.updatedAt),
+    payload: doc,
+  }
+}
+
+const listProvidersFromUsersDb = async () => {
+  const doc = await loadUsersDbDocument()
+  return Object.entries(doc.payload.providerPanelUrls || {})
+    .map(([name, panelUrl]) => ({ name: str(name), panelUrl: str(panelUrl), enabled: true }))
+    .filter((item) => item.name && item.panelUrl)
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+const saveProvidersToUsersDb = async (items: Array<{ name: string; panelUrl: string; enabled?: boolean }>) => {
+  const doc = await loadUsersDbDocument()
+  const nextUrls: Record<string, string> = {}
+  for (const item of items || []) {
+    const name = str(item?.name)
+    const panelUrl = str(item?.panelUrl)
+    const enabled = boolish((item as any)?.enabled) ?? true
+    if (!name || !panelUrl || !enabled) continue
+    nextUrls[name] = panelUrl
+  }
+  doc.payload.providerPanelUrls = nextUrls
+  const saved = await saveUsersDbDocument(doc.payload, doc.rev)
+  return Object.entries(saved.payload.providerPanelUrls || {})
+    .map(([name, panelUrl]) => ({ name: str(name), panelUrl: str(panelUrl), enabled: true }))
+    .filter((item) => item.name && item.panelUrl)
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+const listUsersInventoryFromUsersDb = async () => {
+  const doc = await loadUsersDbDocument()
+  const items = (doc.payload.labels || [])
+    .filter((item: any) => isPlainInventoryKey(item?.key))
+    .map((item: any) => ({
+      ip: str(item?.key),
+      key: str(item?.key),
+      mac: str(item?.mac),
+      label: str(item?.label),
+      hostname: str(item?.hostname),
+      source: str(item?.source),
+      proxyAccess: typeof item?.proxyAccess === 'boolean' ? !!item.proxyAccess : false,
+      updatedAt: doc.updatedAt,
+    }))
+    .filter((item: any) => item.ip)
+    .sort((a: any, b: any) => String(a.label || a.hostname || a.ip).localeCompare(String(b.label || b.hostname || b.ip)))
+
+  return {
+    items,
+    policyMode: str(doc.payload.proxyAccessPolicyMode) === 'allowListOnly' ? 'allowListOnly' : 'allowAll',
+  }
+}
+
+const saveUsersInventoryToUsersDb = async (
+  items: Array<{ ip: string; mac?: string; label?: string; hostname?: string; source?: string; proxyAccess?: boolean }>,
+  policyMode: string,
+) => {
+  const doc = await loadUsersDbDocument()
+  const existingByKey = new Map<string, any>()
+  for (const item of doc.payload.labels || []) {
+    const key = str((item as any)?.key)
+    if (!key) continue
+    existingByKey.set(key, item)
+  }
+
+  const preserved = (doc.payload.labels || []).filter((item: any) => !isPlainInventoryKey(item?.key))
+  const nextInventory = (items || [])
+    .map((item) => {
+      const ip = str(item?.ip)
+      if (!ip) return null
+      const current = existingByKey.get(ip) || {}
+      return {
+        ...current,
+        id: str(current?.id) || `lan_${ip.replace(/[^0-9a-zA-Z]+/g, '_')}`,
+        key: ip,
+        label: str(item?.label) || str(item?.hostname) || ip,
+        mac: str(item?.mac).toLowerCase() || undefined,
+        hostname: str(item?.hostname) || undefined,
+        source: str(item?.source) || undefined,
+        proxyAccess: item?.proxyAccess === true,
+      }
+    })
+    .filter(Boolean)
+
+  doc.payload.labels = [...preserved, ...nextInventory]
+  doc.payload.proxyAccessPolicyMode = policyMode === 'allowListOnly' ? 'allowListOnly' : 'allowAll'
+  const saved = await saveUsersDbDocument(doc.payload, doc.rev)
+  return {
+    items: (saved.payload.labels || [])
+      .filter((item: any) => isPlainInventoryKey(item?.key))
+      .map((item: any) => ({
+        ip: str(item?.key),
+        key: str(item?.key),
+        mac: str(item?.mac),
+        label: str(item?.label),
+        hostname: str(item?.hostname),
+        source: str(item?.source),
+        proxyAccess: item?.proxyAccess === true,
+        updatedAt: saved.updatedAt,
+      }))
+      .filter((item: any) => item.ip)
+      .sort((a: any, b: any) => String(a.label || a.hostname || a.ip).localeCompare(String(b.label || b.hostname || b.ip))),
+    policyMode: str(saved.payload.proxyAccessPolicyMode) === 'allowListOnly' ? 'allowListOnly' : 'allowAll',
+  }
+}
+
+const bridgeProviderChecks = async (force = false) => {
+  const payload = await agentMihomoProvidersAPI(force)
+  return normalizeUbuntuProviderState(payload || {})
+}
+
+const bridgeRefreshProviderSslCache = async () => {
+  const refresh = await agentProviderSslCacheRefreshAPI()
+  const checks = await agentMihomoProvidersAPI(true)
+  return normalizeUbuntuProviderState({
+    ...(checks || {}),
+    checkedAtSec: Number((refresh as any)?.checkedAtSec || (checks as any)?.checkedAtSec || 0) || undefined,
+    sslCacheReady: (refresh as any)?.ready ?? (checks as any)?.sslCacheReady,
+    sslCacheFresh: (refresh as any)?.fresh ?? (checks as any)?.sslCacheFresh,
+    sslRefreshing: (refresh as any)?.refreshing ?? (checks as any)?.sslRefreshing,
+    sslCacheAgeSec: (refresh as any)?.cacheAgeSec ?? (checks as any)?.sslCacheAgeSec,
+    sslCacheNextRefreshAtSec: (refresh as any)?.nextRefreshAtSec ?? (checks as any)?.sslCacheNextRefreshAtSec,
+    error: str((refresh as any)?.error || (checks as any)?.error),
+  })
+}
+
+
 
 export const fetchUbuntuProvidersAPI = async () => {
-  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providers, silentCfg)
-  return pickList(data || {}).map((item) => ({
-    ...item,
-    name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
-    panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
-    enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
-  }))
+  if (preferCompatibilityBridge()) return listProvidersFromUsersDb()
+  try {
+    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providers, silentCfg)
+    return pickList(data || {}).map((item) => ({
+      ...item,
+      name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
+      panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
+      enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
+    }))
+  } catch {
+    return listProvidersFromUsersDb()
+  }
 }
 
 export const saveUbuntuProvidersAPI = async (items: Array<{ name: string; panelUrl: string; enabled?: boolean }>) => {
-  const { data } = await axios.put(
-    UBUNTU_BACKEND_ENDPOINTS.providers,
-    { providers: items },
-    {
-      ...silentCfg,
-      timeout: 15000,
-    },
-  )
-  return pickList(data || {}).map((item) => ({
-    ...item,
-    name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
-    panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
-    enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
-  }))
+  if (preferCompatibilityBridge()) return saveProvidersToUsersDb(items)
+  try {
+    const { data } = await axios.put(
+      UBUNTU_BACKEND_ENDPOINTS.providers,
+      { providers: items },
+      {
+        ...silentCfg,
+        timeout: 15000,
+      },
+    )
+    return pickList(data || {}).map((item) => ({
+      ...item,
+      name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
+      panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
+      enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
+    }))
+  } catch {
+    return saveProvidersToUsersDb(items)
+  }
 }
 
 export type UbuntuUsersInventoryRow = {
@@ -170,19 +442,24 @@ export type UbuntuUsersInventoryRow = {
 }
 
 export const fetchUbuntuUsersInventoryAPI = async () => {
-  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.usersInventory, silentCfg)
-  return {
-    items: pickList(data || {}).map((item) => ({
-      ip: str(getAnyFromObj(item, ['ip', 'key'])),
-      key: str(getAnyFromObj(item, ['key', 'ip'])),
-      mac: str(getAnyFromObj(item, ['mac'])),
-      label: str(getAnyFromObj(item, ['label', 'displayName', 'display_name'])),
-      hostname: str(getAnyFromObj(item, ['hostname'])),
-      source: str(getAnyFromObj(item, ['source'])),
-      proxyAccess: boolish(getAnyFromObj(item, ['proxyAccess', 'proxy_access'])) ?? true,
-      updatedAt: str(getAnyFromObj(item, ['updatedAt', 'updated_at'])),
-    })),
-    policyMode: str(getAnyFromObj(data || {}, ['policyMode', 'policy_mode'])) || 'allowAll',
+  if (preferCompatibilityBridge()) return listUsersInventoryFromUsersDb()
+  try {
+    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.usersInventory, silentCfg)
+    return {
+      items: pickList(data || {}).map((item) => ({
+        ip: str(getAnyFromObj(item, ['ip', 'key'])),
+        key: str(getAnyFromObj(item, ['key', 'ip'])),
+        mac: str(getAnyFromObj(item, ['mac'])),
+        label: str(getAnyFromObj(item, ['label', 'displayName', 'display_name'])),
+        hostname: str(getAnyFromObj(item, ['hostname'])),
+        source: str(getAnyFromObj(item, ['source'])),
+        proxyAccess: boolish(getAnyFromObj(item, ['proxyAccess', 'proxy_access'])) ?? true,
+        updatedAt: str(getAnyFromObj(item, ['updatedAt', 'updated_at'])),
+      })),
+      policyMode: str(getAnyFromObj(data || {}, ['policyMode', 'policy_mode'])) || 'allowAll',
+    }
+  } catch {
+    return listUsersInventoryFromUsersDb()
   }
 }
 
@@ -190,61 +467,91 @@ export const saveUbuntuUsersInventoryAPI = async (
   items: Array<{ ip: string; mac?: string; label?: string; hostname?: string; source?: string; proxyAccess?: boolean }>,
   policyMode: string,
 ) => {
-  const { data } = await axios.put(
-    UBUNTU_BACKEND_ENDPOINTS.usersInventory,
-    { items, policyMode },
-    {
-      ...silentCfg,
-      timeout: 15000,
-    },
-  )
-  return {
-    items: pickList(data || {}).map((item) => ({
-      ip: str(getAnyFromObj(item, ['ip', 'key'])),
-      key: str(getAnyFromObj(item, ['key', 'ip'])),
-      mac: str(getAnyFromObj(item, ['mac'])),
-      label: str(getAnyFromObj(item, ['label', 'displayName', 'display_name'])),
-      hostname: str(getAnyFromObj(item, ['hostname'])),
-      source: str(getAnyFromObj(item, ['source'])),
-      proxyAccess: boolish(getAnyFromObj(item, ['proxyAccess', 'proxy_access'])) ?? true,
-      updatedAt: str(getAnyFromObj(item, ['updatedAt', 'updated_at'])),
-    })),
-    policyMode: str(getAnyFromObj(data || {}, ['policyMode', 'policy_mode'])) || policyMode || 'allowAll',
+  if (preferCompatibilityBridge()) return saveUsersInventoryToUsersDb(items, policyMode)
+  try {
+    const { data } = await axios.put(
+      UBUNTU_BACKEND_ENDPOINTS.usersInventory,
+      { items, policyMode },
+      {
+        ...silentCfg,
+        timeout: 15000,
+      },
+    )
+    return {
+      items: pickList(data || {}).map((item) => ({
+        ip: str(getAnyFromObj(item, ['ip', 'key'])),
+        key: str(getAnyFromObj(item, ['key', 'ip'])),
+        mac: str(getAnyFromObj(item, ['mac'])),
+        label: str(getAnyFromObj(item, ['label', 'displayName', 'display_name'])),
+        hostname: str(getAnyFromObj(item, ['hostname'])),
+        source: str(getAnyFromObj(item, ['source'])),
+        proxyAccess: boolish(getAnyFromObj(item, ['proxyAccess', 'proxy_access'])) ?? true,
+        updatedAt: str(getAnyFromObj(item, ['updatedAt', 'updated_at'])),
+      })),
+      policyMode: str(getAnyFromObj(data || {}, ['policyMode', 'policy_mode'])) || policyMode || 'allowAll',
+    }
+  } catch {
+    return saveUsersInventoryToUsersDb(items, policyMode)
   }
 }
 
 export const fetchUbuntuProviderChecksAPI = async () => {
-  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providerChecks, silentCfg)
-  return normalizeUbuntuProviderState(data || {})
+  if (preferCompatibilityBridge()) return bridgeProviderChecks(false)
+  try {
+    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providerChecks, silentCfg)
+    return normalizeUbuntuProviderState(data || {})
+  } catch {
+    return bridgeProviderChecks(false)
+  }
 }
 
 export const runUbuntuProviderChecksAPI = async () => {
-  const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerChecksRun, null, {
-    ...silentCfg,
-    timeout: 15000,
-  })
-  return normalizeUbuntuProviderState(data || {})
+  if (preferCompatibilityBridge()) return bridgeRefreshProviderSslCache()
+  try {
+    const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerChecksRun, null, {
+      ...silentCfg,
+      timeout: 15000,
+    })
+    return normalizeUbuntuProviderState(data || {})
+  } catch {
+    return bridgeRefreshProviderSslCache()
+  }
 }
 
 export const refreshUbuntuProvidersAPI = async () => {
-  const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerRefresh, null, {
-    ...silentCfg,
-    timeout: 15000,
-  })
-  return normalizeUbuntuProviderState(data || {})
+  if (preferCompatibilityBridge()) return bridgeProviderChecks(true)
+  try {
+    const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerRefresh, null, {
+      ...silentCfg,
+      timeout: 15000,
+    })
+    return normalizeUbuntuProviderState(data || {})
+  } catch {
+    return bridgeProviderChecks(true)
+  }
 }
 
 export const refreshUbuntuProviderSslCacheAPI = async () => {
-  const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheRefresh, null, {
-    ...silentCfg,
-    timeout: 15000,
-  })
-  return normalizeUbuntuProviderState(data || {})
+  if (preferCompatibilityBridge()) return bridgeRefreshProviderSslCache()
+  try {
+    const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheRefresh, null, {
+      ...silentCfg,
+      timeout: 15000,
+    })
+    return normalizeUbuntuProviderState(data || {})
+  } catch {
+    return bridgeRefreshProviderSslCache()
+  }
 }
 
 export const fetchUbuntuProviderSslCacheStatusAPI = async () => {
-  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheStatus, silentCfg)
-  return normalizeUbuntuProviderState(data || {})
+  if (preferCompatibilityBridge()) return bridgeProviderChecks(false)
+  try {
+    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheStatus, silentCfg)
+    return normalizeUbuntuProviderState(data || {})
+  } catch {
+    return bridgeProviderChecks(false)
+  }
 }
 
 const boolish = (value: any): boolean | undefined => {
