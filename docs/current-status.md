@@ -1,11 +1,11 @@
-Current prepared release: v0.6.50. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
+Current prepared release: v0.6.51. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
 
-## Обновление v0.6.50
+## Обновление v0.6.51
 - подтверждён живой запуск `ultra-ui-ubuntu-backend.service` на Ubuntu-хосте
 - подтверждены ответы `/api/health`, `/api/version`, `/api/capabilities`, `/api/status`
 - подтверждено подключение backend в `Setup` как `ubuntu-service` с `host:port + /api`
 - выявлен фронтовой дефект сборки URL: часть экранов строила маршрут как `/api/api/...` и падала в `capabilities-http-404`
-- в `v0.6.50` исправлена нормализация backend endpoint-ов для standalone Ubuntu backend
+- в `v0.6.51` исправлена нормализация backend endpoint-ов для standalone Ubuntu backend
 
 ## Что сейчас точно есть
 - UI по-прежнему раздаётся самим `mihomo`

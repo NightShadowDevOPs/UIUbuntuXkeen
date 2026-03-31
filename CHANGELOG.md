@@ -1,3 +1,8 @@
+## v0.6.51
+- fixed absolute ubuntu backend endpoint composition for capabilities probes when secondaryPath is set to `/api`;
+- kept `/api` as the required recommended secondary path for ubuntu-service backend validation;
+- updated backend/frontend version markers and transfer docs.
+
 ## v0.6.50
 - fixed Ubuntu backend route composition in the UI when `secondaryPath=/api`: capability probing now targets `/api/capabilities` once instead of building a broken doubled path
 - fixed Ubuntu backend API calls for `3x-ui Hosts`, provider SSL cache, `Users inventory`, `status/resources/services/logs` so the frontend no longer asks the backend for `/api/api/...`

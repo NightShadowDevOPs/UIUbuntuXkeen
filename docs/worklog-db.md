@@ -1,6 +1,6 @@
 # Журнал шагов
 
-Актуально для релиза: **v0.6.50**
+Актуально для релиза: **v0.6.51**
 
 ## Шаги v0.6.49
 1. Зафиксирован новый запрос пользователя: начать backend-этап релизами, по ходу объяснять действия на сервере, постоянно актуализировать документацию и фиксировать каждый шаг.
@@ -22,10 +22,10 @@
 6. Выполнен synthetic install-test: подтверждено создание env, создание service file и отсутствие падения на `set -u`.
 7. На живом Ubuntu-хосте подтвержден успешный запуск `ultra-ui-ubuntu-backend.service` и ответы `/api/health`, `/api/version`, `/api/capabilities`, `/api/status`.
 
-## Шаги v0.6.50
+## Шаги v0.6.51
 1. После живого подключения backend в `Setup` выявлен фронтовой дефект сборки адресов для standalone backend с `secondaryPath=/api`.
 2. По экрану `Хосты 3x-ui` подтверждено, что capabilities-запрос и часть Ubuntu API-вызовов уходили в `capabilities-http-404`, хотя backend уже был живой и выбран активным.
 3. Добавлена нормализация endpoint-ов: если secondary path уже равен `/api`, фронт больше не дублирует этот префикс при обращении к Ubuntu backend.
 4. Исправлены `capabilities`, `providers`, `providerChecks`, `providerSslCacheStatus`, `providerSslCacheRefresh`, `usersInventory`, `status`, `resources`, `services`, `logs`.
-5. Обновлены README, transfer-файлы, release log, current-status, change-requests и отдельная заметка hotfix `docs/backend-route-hotfix-v0.6.50.md`.
+5. Обновлены README, transfer-файлы, release log, current-status, change-requests и отдельная заметка hotfix `docs/backend-route-hotfix-v0.6.51.md`.
 6. Выполнена локальная проверка логики нормализации endpoint-ов на сценариях `secondaryPath=/api` и `secondaryPath=''`; собран новый релизный архив.

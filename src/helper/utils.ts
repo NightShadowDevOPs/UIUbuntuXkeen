@@ -46,7 +46,20 @@ export const getUrlFromBackend = (end: Omit<Backend, 'uuid'>) => {
 }
 
 export const getUrlFromBackendEndpoint = (end: Omit<Backend, 'uuid'>, endpoint: string) => {
-  return `${end.protocol}://${end.host}:${end.port}${getBackendEndpointPath(end, endpoint)}`
+  const secondaryPath = normalizeSecondaryPath(end.secondaryPath)
+  const normalizedEndpoint = normalizeSecondaryPath(endpoint)
+
+  let path = normalizedEndpoint || '/'
+
+  if (secondaryPath) {
+    if (!normalizedEndpoint) {
+      path = secondaryPath
+    } else if (!(normalizedEndpoint === secondaryPath || normalizedEndpoint.startsWith(`${secondaryPath}/`))) {
+      path = `${secondaryPath}${normalizedEndpoint}`
+    }
+  }
+
+  return `${end.protocol}://${end.host}:${end.port}${path}`
 }
 
 export const getLabelFromBackend = (end: Omit<Backend, 'uuid'>) => {

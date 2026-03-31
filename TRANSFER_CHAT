@@ -1,8 +1,8 @@
-Prepared release: v0.6.50. The standalone Ubuntu backend is now confirmed on the live host, and this hotfix fixes the frontend route composition bug that produced `/api/api/...` requests after selecting the backend in `Setup`.
+Prepared release: v0.6.51. The standalone Ubuntu backend is now confirmed on the live host, and this hotfix fixes the frontend route composition bug that produced `/api/api/...` requests after selecting the backend in `Setup`.
 
-Актуальный релиз для переноса: **v0.6.50**
+Актуальный релиз для переноса: **v0.6.51**
 
-Что сделано в `v0.6.50`
+Что сделано в `v0.6.51`
 - на живом Ubuntu-хосте подтверждён запуск `ultra-ui-ubuntu-backend.service` и ответы `/api/health`, `/api/version`, `/api/capabilities`, `/api/status`
 - подтверждено подключение backend в `Setup` как `ubuntu-service` через `host:port + /api`
 - исправлена фронтовая сборка URL для standalone backend: больше нет битого маршрута `/api/api/...`
@@ -22,9 +22,9 @@ Prepared release: v0.6.50. The standalone Ubuntu backend is now confirmed on the
 4. В UI оставить выбранным backend `ubuntu-service`.
 5. Проверить экран `Хосты 3x-ui` уже без `capabilities-http-404` и без fallback-плашки.
 
-Что следующим шагом после `v0.6.50`
+Что следующим шагом после `v0.6.51`
 - подтвердить сохранение `3x-ui Hosts` через backend;
 - подтвердить сохранение `Users inventory`;
 - добавить следующий backend-блок: `Host / resources / services / logs`.
 
-[Update v0.6.50]
+[Update v0.6.51]

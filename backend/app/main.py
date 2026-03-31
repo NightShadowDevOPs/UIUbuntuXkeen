@@ -56,22 +56,30 @@ if settings.cors_allow_all:
     )
 
 
+@app.get("/health")
 @app.get("/api/health")
+@app.get("/api/api/health")
 def api_health():
     return service.health()
 
 
+@app.get("/version")
 @app.get("/api/version")
+@app.get("/api/api/version")
 def api_version():
     return service.version_payload()
 
 
+@app.get("/capabilities")
 @app.get("/api/capabilities")
+@app.get("/api/api/capabilities")
 def api_capabilities():
     return service.capabilities_payload()
 
 
+@app.get("/status")
 @app.get("/api/status")
+@app.get("/api/api/status")
 def api_status():
     return service.status_payload()
 
