@@ -19,7 +19,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Setup pnpm
         shell: bash
@@ -36,6 +35,7 @@ jobs:
           ls -la
           node --version
           npm --version
+          which pnpm
           pnpm --version
 
       - name: Read project version

@@ -1,3 +1,9 @@
+## v0.6.27 — remove setup-node pnpm cache precondition
+
+- удалён `cache: pnpm` из `actions/setup-node`, потому что GitHub Actions пытался найти `pnpm` ещё до шага установки `pnpm`
+- сохранён явный bootstrap через `npm install -g pnpm@9.12.1`
+- в preflight добавлен `which pnpm`, чтобы сразу видеть PATH-проблемы
+
 ## v0.6.26 — GitHub Actions pnpm bootstrap and inline build log
 
 - убран `pnpm/action-setup`, который тянул deprecated Node 20 runtime warning

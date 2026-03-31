@@ -1,4 +1,4 @@
-## v0.6.26 - 2026-03-31
+## v0.6.27 - 2026-03-31
 
 - replaced `pnpm/action-setup` with explicit `npm install -g pnpm@9.12.1` in GitHub Actions
 - removed the deprecated Node 20 based pnpm action from the workflow path
