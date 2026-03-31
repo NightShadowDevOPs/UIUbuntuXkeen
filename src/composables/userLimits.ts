@@ -34,8 +34,16 @@ import { debounce } from 'lodash'
 import { computed, ref, watch } from 'vue'
 import { getTrafficRange } from './userTraffic'
 
-export type UserLimitResolved = Required<Pick<UserLimit, 'enabled' | 'disabled' | 'trafficPeriod'>> &
-  Omit<UserLimit, 'enabled' | 'disabled' | 'trafficPeriod'>
+export type UserLimitResolved = Required<
+  Pick<
+    UserLimit,
+    'enabled' | 'disabled' | 'trafficPeriod' | 'trafficLimitBytes' | 'bandwidthLimitBps'
+  >
+> &
+  Omit<
+    UserLimit,
+    'enabled' | 'disabled' | 'trafficPeriod' | 'trafficLimitBytes' | 'bandwidthLimitBps'
+  >
 
 const resolveLimit = (l?: UserLimit): UserLimitResolved => {
   return {

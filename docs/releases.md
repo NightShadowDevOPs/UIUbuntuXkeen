@@ -1,4 +1,4 @@
-## v0.6.21 — second build unblock hotfix
+## v0.6.22 — second build unblock hotfix
 
 - закрыты новые падения CI/Actions после `v0.6.20`: `sleep` в `TasksPage`, несовместимый `@click` для `usersDbPushNow`, доступ к `EventTarget.value`, отставание `zh.ts` от `en.ts`, optional-поля в `userLimits`;
 - релиз снова не меняет архитектуру Ubuntu UI и не возвращает проект к роутерному runtime;

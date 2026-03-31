@@ -3904,8 +3904,10 @@ const refreshGeoInfo = async () => {
         sizeBytes:
           typeof x.sizeBytes === 'number' ? x.sizeBytes : Number(x.sizeBytes || 0) || undefined,
       }))
-      .filter((x) => x.exists)
-      .sort((a, b) => (a.kind || '').localeCompare(b.kind || ''))
+      .filter((x: { exists: boolean }) => x.exists)
+      .sort((a: { kind?: string }, b: { kind?: string }) =>
+        (a.kind || '').localeCompare(b.kind || ''),
+      )
   } catch (e: any) {
     geoError.value = e?.message || 'failed'
   } finally {

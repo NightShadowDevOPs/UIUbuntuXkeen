@@ -1,4 +1,4 @@
-## v0.6.21 - 2026-03-31
+## v0.6.22 - 2026-03-31
 
 - исправлен `TasksPage.vue`: добавлен локальный `sleep()` helper для polling-циклов provider SSL и users-db операций;
 - исправлен `TasksPage.vue`: `usersDbPushNow` больше не передаётся в `@click` как функция с несовместимой сигнатурой обработчика DOM event;
