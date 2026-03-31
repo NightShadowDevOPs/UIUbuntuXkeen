@@ -1,22 +1,25 @@
-Prepared release: v0.6.44. This is a stability/audit release on top of the recovered v0.6.41 baseline and the cleaned v0.6.42 distribution. The project runtime contour is now documented explicitly: UI is served by Mihomo, `/ui/` opens `Overview` first, and no phantom standalone service is bundled.
+Prepared release: v0.6.45. This release makes the current backend contour actually usable: the UI no longer dies on missing `/api/capabilities`, and instead falls back to the real `api.sh` contour already present on the Mihomo host.
 
-Актуальный релиз для переноса: **v0.6.44**
+Актуальный релиз для переноса: **v0.6.45**
 
-Что сделано в `v0.6.44`
-- корневой маршрут UI переведён на `Overview`, чтобы старт UI не зависел от страницы `Proxies`;
-- зафиксирован реальный runtime contour проекта: `mihomo.service` обслуживает UI, recovery делается удалением папки UI и повторным стартом `mihomo`;
-- `Хосты 3x-ui` и `Пользователи` сохранены как отдельные разделы UI, но без ложных утверждений о наличии отдельного service на сервере;
-- добавлен документ аудита backend-контура и зафиксирован следующий безопасный шаг.
+Что сделано в `v0.6.45`
 
-Что важно помнить
-- не придумывать отдельный server-side service, если он не существует в реальном runtime проекта;
-- перед любыми backend-изменениями сначала сверять фактический контур `mihomo` / `/etc/mihomo/uiubuntu`;
-- recovery/update path подтверждён пользователем: остановить `mihomo`, удалить папку UI, запустить `mihomo` снова;
-- все запросы и шаги фиксируются в docs.
+- добавлена серверная команда `cmd=capabilities` в `api.sh`;
+- capability-store UI теперь проверяет `/api/capabilities`, затем `cgi-bin/api.sh?cmd=capabilities`, и только потом включает compatibility fallback;
+- `Хосты 3x-ui` и `Пользователи` теперь могут реально работать через текущий contour `Mihomo + api.sh + shared users DB`;
+- compatibility bridge теперь честно объявляет `providerChecksRun`, `providerRefresh`, `usersInventory`, `usersInventoryPut`;
+- `api.sh` поднят до `0.6.24`.
 
-Следующий безопасный шаг
-- отдельно разобрать существующий server-side contour (`api.sh`, capability probing, storage expectations) и только после этого подключать реальное хранение для `3x-ui Hosts` и `Users`.
+Подтверждённый recovery-механизм UI
 
+- остановить `mihomo`;
+- удалить папку UI;
+- запустить `mihomo`;
+- `mihomo` сам заново скачает UI из репозитория.
 
-[Update v0.6.44]
-- `Хосты 3x-ui` и `Пользователи` подключены к существующему Mihomo/api.sh contour через compatibility bridge (`mihomo_providers`, `ssl_cache_refresh`, `users_db_get`, `users_db_put`).
+Следующий шаг
+
+- backend-only полировка server-side применения `proxyAccess`;
+- при необходимости — отдельные точечные команды в `api.sh` под `3x-ui Hosts` / `Users`, но без нового отдельного сервиса.
+
+[Update v0.6.45]

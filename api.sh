@@ -21,7 +21,7 @@ MIHOMO_CFG_META="${MIHOMO_CFG_META:-$MIHOMO_CFG_DIR/meta.json}"
 MIHOMO_CFG_REVS_DIR="${MIHOMO_CFG_REVS_DIR:-$MIHOMO_CFG_DIR/revs}"
 MIHOMO_CFG_REVS_MAX="${MIHOMO_CFG_REVS_MAX:-10}"
 TOKEN="${TOKEN:-}"
-AGENT_VERSION="0.6.23"
+AGENT_VERSION="0.6.24"
 MIHOMO_CONFIG="${MIHOMO_CONFIG:-/opt/etc/mihomo/config.yaml}"
 MIHOMO_LOG="${MIHOMO_LOG:-}"
 GEOIP_URL="${GEOIP_URL:-https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat}"
@@ -3878,7 +3878,12 @@ rehydrate_qos_hosts() {
   return 0
 }
 
-qos_status() {
+qos_
+capabilities_json() {
+  reply_ok '{"ok":true,"capabilities":{"status":true,"version":true,"capabilities":true,"providers":true,"providerChecks":true,"providerChecksRun":true,"providerRefresh":true,"providerSslCacheRefresh":true,"providerSslCacheStatus":true,"usersInventory":true,"usersInventoryPut":true,"connections":true,"logs":true}}'
+}
+
+status() {
   echo "Content-Type: application/json"
   echo "Access-Control-Allow-Origin: *"
   echo "Access-Control-Allow-Methods: GET, POST, OPTIONS"
@@ -5294,6 +5299,9 @@ case "$cmd" in
     ;;
   restore_status)
     restore_status_json
+    ;;
+  capabilities)
+    capabilities_json
     ;;
   restore_log)
     restore_log_json

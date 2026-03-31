@@ -941,6 +941,23 @@ export const agentMihomoProvidersAPI = async (force = false): Promise<{
 
 
 
+
+export const agentCapabilitiesAPI = async (): Promise<{
+  ok: boolean
+  capabilities?: Record<string, any>
+  error?: string
+}> => {
+  try {
+    const { data } = await agentAxios().get('/cgi-bin/api.sh', {
+      params: { cmd: 'capabilities' },
+      timeout: 8000,
+    })
+    return (data || {}) as any
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'failed' }
+  }
+}
+
 export const agentProviderSslCacheRefreshAPI = async (): Promise<{
   ok: boolean
   checkedAtSec?: number

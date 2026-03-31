@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div>
         <div class="font-semibold">Контроль пользователей LAN / proxy</div>
-        <div class="text-xs opacity-70">IP, MAC, обнаруженное имя хоста и индивидуальный доступ к proxy. Экран работает от текущей базы UI и готов к подключению существующего server-side backend без отдельной фантомной сущности.</div>
+        <div class="text-xs opacity-70">IP, MAC, обнаруженное имя хоста и индивидуальный доступ к proxy. Экран работает через текущий серверный contour проекта: Mihomo + api.sh + shared users DB, без отдельной фантомной сущности.</div>
       </div>
       <div class="flex items-center gap-2">
         <select v-model="proxyAccessPolicyMode" class="select select-bordered select-sm">

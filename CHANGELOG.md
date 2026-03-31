@@ -1,3 +1,11 @@
+## v0.6.45
+
+- включён рабочий capability-fallback на существующий `api.sh`, чтобы `Хосты 3x-ui` и `Пользователи` реально считались backend-доступными даже без отдельного `/api/capabilities`;
+- добавлена серверная команда `cmd=capabilities` в `api.sh`;
+- compatibility-bridge теперь честно объявляет `providerChecksRun`, `providerRefresh`, `usersInventory`, `usersInventoryPut`;
+- уточнены тексты экранов `Хосты 3x-ui` и `Пользователи`: текущий backend-contour — `Mihomo + api.sh + shared users DB`;
+- `api.sh` поднят до версии `0.6.24`.
+
 ## v0.6.44
 - connected `Хосты 3x-ui` and `Пользователи` to the existing Mihomo/api.sh backend contour through the compatibility bridge instead of a phantom standalone service;
 - compatibility capabilities now expose the real commands already present in `api.sh`: `mihomo_providers`, `ssl_cache_refresh`, `users_db_get`, `users_db_put`;

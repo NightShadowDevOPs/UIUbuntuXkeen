@@ -1,4 +1,5 @@
 import { buildCompatibilityBridgeCapabilities, normalizeBackendCapabilities } from '@/helper/backendCapabilities'
+import { agentCapabilitiesAPI } from '@/api/agent'
 import { detectBackendKind } from '@/helper/backend'
 import { getUrlFromBackend } from '@/helper/utils'
 import { activeBackend } from '@/store/setup'
@@ -66,11 +67,26 @@ export const refreshActiveBackendCapabilities = async (force = false) => {
     activeBackendCapabilitiesUpdatedAt.value = Date.now()
     return normalized
   } catch (e: any) {
-    activeBackendCapabilities.value = {}
-    activeBackendCapabilitiesReady.value = false
-    activeBackendCapabilitiesError.value = e?.message || 'failed'
+    try {
+      const agentPayload = await agentCapabilitiesAPI()
+      if (agentPayload?.ok && agentPayload?.capabilities) {
+        const normalized = normalizeCapabilitiesPayload(agentPayload)
+        activeBackendCapabilities.value = normalized
+        activeBackendCapabilitiesReady.value = true
+        activeBackendCapabilitiesError.value = ''
+        activeBackendCapabilitiesUpdatedAt.value = Date.now()
+        return normalized
+      }
+    } catch {
+      // handled by compatibility fallback below
+    }
+
+    const fallback = buildCompatibilityBridgeCapabilities()
+    activeBackendCapabilities.value = fallback
+    activeBackendCapabilitiesReady.value = true
+    activeBackendCapabilitiesError.value = ''
     activeBackendCapabilitiesUpdatedAt.value = Date.now()
-    return {}
+    return fallback
   } finally {
     clearTimeout(timeoutId)
   }
