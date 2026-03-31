@@ -1,3 +1,4 @@
+- v0.6.31 — replaced `build-ui.yml` with a simplified CI flow that prints install/build logs inline on failure and removes the noisy lockfile drift step.
 - v0.6.30 — fixed invalid GitHub Actions YAML syntax in `build-ui.yml` and restored a parseable CI workflow.
 ## v0.6.30 — simplify CI install and bypass frozen lockfile drift
 

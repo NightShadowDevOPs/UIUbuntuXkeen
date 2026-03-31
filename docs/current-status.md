@@ -1,14 +1,14 @@
-Current prepared release: v0.6.30. The CI workflow file syntax is repaired after the invalid YAML in v0.6.29.
+Current prepared release: v0.6.31. The GitHub Actions workflow is replaced with a simpler log-first version so CI finally prints the first real install/build error instead of empty `Error:` blocks.
 
-# Текущий статус — v0.6.30
+# Текущий статус — v0.6.31
 
-- Текущая линия: **v0.6.30**
+- Текущая линия: **v0.6.31**
 - Проект остаётся в честной модели: **статический frontend UI + выбранный backend через Setup**.
 - Проверка SSL сертификатов Провайдеров всё ещё не считается закрытой frontend-only функцией: реальная проверка должна жить в отдельном Ubuntu service на хосте.
 - `v0.6.17` по-прежнему считать ошибочным архитектурным ответвлением.
-- `v0.6.30` переводит GitHub Actions install-step на `pnpm install --no-frozen-lockfile` и явно показывает drift между `package.json` и `pnpm-lock.yaml`.
+- `v0.6.31` меняет GitHub Actions на упрощённый workflow без шага `Check lockfile drift`, с гарантированным выводом `install-deps.log` и `build-ui.log` прямо в CI.
 
 ## Что поймано сейчас
 
-- В importer section `pnpm-lock.yaml` отсутствуют как минимум `flag-icons` и `qrcode-generator`.
-- Из-за этого CI с `--frozen-lockfile` падал ещё на шаге install и не доходил до реальной build-ошибки.
+- До `v0.6.31` CI всё ещё показывал пустые `Error:` даже когда шаги `Install dependencies` и `Build UI` падали.
+- Значит основной блокер сместился из bootstrap-ошибок GitHub Actions в сам способ вывода логов шага.
