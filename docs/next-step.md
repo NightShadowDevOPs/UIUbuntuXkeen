@@ -1,6 +1,7 @@
-# Следующий шаг после v0.6.47
+# Следующий шаг после v0.6.48
 
-1. Отдельно определить реальный server-side runtime endpoint для Ubuntu-хоста, если backend для `3x-ui Hosts` и `Users` действительно нужен.
-2. Не привязывать новые UI-функции к `/cgi-bin/api.sh`, пока route не существует в рантайме и не отвечает не-404.
-3. После появления реального endpoint — только тогда включать живую SSL-проверку, shared users DB и server-side policy.
-4. До этого держать `Хосты 3x-ui` и `Пользователи` в честном локальном fallback-режиме.
+1. Поставить backend на живой Ubuntu-хост через `backend/scripts/install.sh`.
+2. Проверить `systemctl status ultra-ui-ubuntu-backend` и `curl http://127.0.0.1:18090/api/health`.
+3. В `Setup` добавить и выбрать backend `http://<IP_хоста>:18090` как `ubuntu-service`.
+4. Проверить сохранение `Хосты 3x-ui` и `Пользователи` уже через SQLite backend, а не через локальный fallback UI.
+5. После подтверждения запуска — расширять backend на `Host`, `Traffic`, `QoS`, `logs`, `resources`.

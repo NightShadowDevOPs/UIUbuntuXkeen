@@ -14,3 +14,12 @@ ubuntu-service/app/__pycache__/
 ubuntu-service/*.db
 ubuntu-service/*.sqlite
 ubuntu-service/*.sqlite3
+
+# UIUbuntuXkeen backend local state
+backend/.venv/
+backend/__pycache__/
+backend/app/__pycache__/
+backend/runtime/
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3

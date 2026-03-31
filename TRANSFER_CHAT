@@ -1,23 +1,32 @@
-Prepared release: v0.6.47. This release is a stabilizing honesty fix: the UI no longer fakes a working backend when the current Ubuntu host does not expose `/api/capabilities` or `/cgi-bin/api.sh`. `3x-ui Hosts` and `Users` now fall back to local UI data and show an explicit warning instead of a misleading network-driven pseudo-state.
+Prepared release: v0.6.48. This release starts the real Ubuntu backend line for UIUbuntuXkeen as a standalone systemd service. The project no longer depends on reviving `/cgi-bin/api.sh`; instead, it now contains a separate `backend/` with FastAPI + SQLite for `3x-ui Hosts`, `Users inventory`, `jobs`, and provider SSL checks.
 
-Актуальный релиз для переноса: **v0.6.47**
+Актуальный релиз для переноса: **v0.6.48**
 
-Что сделано в `v0.6.47`
-- подтверждено по живому хосту, что `http://192.168.5.23:9090/cgi-bin/api.sh?...` сейчас отвечает `404 page not found`; значит server-side backend route в текущем runtime не подключён
-- убран ложный capability fallback: если `/api/capabilities` и `cgi-bin/api.sh?cmd=capabilities` отсутствуют, UI больше не включает фальшивые backend-возможности
-- `Хосты 3x-ui` теперь честно переходят в локальный fallback-режим и показывают предупреждение о недоступном backend route
-- `Пользователи` делают то же самое, не изображая подключённую server-side БД
-- в package.json убраны старые scripts `backend:dev` и `backend:smoke`, которые тянули фантомный `ubuntu-service`
+Что сделано в `v0.6.48`
+- пользователь подтвердил старт backend-этапа отдельным релизом, с обязательной актуализацией документации и фиксацией всех шагов
+- в проект добавлен каталог `backend/` с отдельным Ubuntu service на FastAPI + SQLite
+- реализованы endpoints: `/api/health`, `/api/version`, `/api/capabilities`, `/api/status`, `/api/providers`, `/api/providers/checks`, `/api/providers/ssl-cache/refresh`, `/api/users/inventory`, `/api/jobs`
+- backend хранит `3x-ui Hosts` и `Users inventory` в SQLite, а не только в локальном UI-state
+- реализована серверная SSL/TLS-проверка panel URL провайдеров через Python `ssl/socket`
+- добавлены `backend/scripts/install.sh`, `backend/scripts/run-dev.sh` и systemd unit template
+- документация `docs/*`, `TRANSFER_CHAT` и журнал запросов/шагов обновлены под новый backend-контур
 
-Что подтверждено по серверу
-- UI обслуживается самим `mihomo`
-- текущая папка UI на сервере: `/etc/mihomo/uiubuntu`
-- аварийное восстановление работает штатно через перезапуск `mihomo` с удалением папки UI
-- route `/cgi-bin/api.sh` на текущем хосте **не активен** и возвращает `404 page not found`
+Что важно понимать
+- UI по-прежнему раздаётся самим `mihomo`
+- новый backend запускается отдельно как `ultra-ui-ubuntu-backend.service`
+- backend не встроен в `mihomo` и не использует `/cgi-bin/api.sh` как каноничный runtime
+- пока backend не установлен на хосте и не выбран в `Setup`, UI продолжит честный fallback-режим
 
-Что делать дальше
-1. Не строить новые UI-зависимости на `api.sh`, пока на сервере реально не появится рабочий route.
-2. Если нужен настоящий backend для `3x-ui Hosts` / `Users`, сначала определить, где он должен жить в реальном runtime Mihomo на Ubuntu.
-3. После появления реального server-side route — только тогда включать живую SSL-проверку и shared DB режим.
+Что делать дальше на сервере
+1. Залить релиз в репозиторий.
+2. На Ubuntu-хосте выполнить установку backend через `backend/scripts/install.sh`.
+3. Проверить `http://127.0.0.1:18090/api/health`.
+4. В UI открыть `Setup`, добавить backend `http://<IP_хоста>:18090` и выбрать его как `ubuntu-service`.
+5. Проверить экраны `Хосты 3x-ui` и `Пользователи` уже через живой backend.
 
-[Update v0.6.47]
+Что следующим шагом после `v0.6.48`
+- подтвердить первый запуск backend на живом хосте;
+- проверить сохранение `3x-ui Hosts` и `Users inventory` через UI;
+- расширить backend на `Host`, `Traffic`, `QoS`, `logs`, `resources`.
+
+[Update v0.6.48]

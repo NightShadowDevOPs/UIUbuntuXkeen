@@ -1,0 +1,16 @@
+[Unit]
+Description=Ultra UI Ubuntu backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/ultra-ui-ubuntu-backend
+EnvironmentFile=-/etc/ultra-ui-ubuntu/agent.env
+ExecStart=/opt/ultra-ui-ubuntu-backend/.venv/bin/uvicorn app.main:app --app-dir /opt/ultra-ui-ubuntu-backend --host ${ULTRA_UI_HOST} --port ${ULTRA_UI_PORT}
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
