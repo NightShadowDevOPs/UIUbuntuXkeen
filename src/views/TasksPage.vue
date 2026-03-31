@@ -173,7 +173,7 @@
                             class="input input-bordered input-xs w-20"
                             :placeholder="String(sslNearExpiryDaysDefault)"
                             :value="getProviderSslWarnOverride(p.name) === null ? '' : String(getProviderSslWarnOverride(p.name))"
-                            @input="(e) => setProviderSslWarnOverride(p.name, (e && e.target && e.target.value) || '')"
+                            @input="(e) => setProviderSslWarnOverride(p.name, ((e.target as HTMLInputElement | null)?.value || ''))"
                           />
                           <button type="button" class="btn btn-ghost btn-xs" @click="clearProviderSslWarnOverride(p.name)">
                             {{ $t('clear') }}
@@ -784,7 +784,7 @@
         <button type="button" class="btn btn-sm" @click="usersDbPullNow" :disabled="!usersDbSyncEnabled || !agentEnabled || usersDbBusy">
           {{ $t('pull') }}
         </button>
-        <button type="button" class="btn btn-sm" @click="usersDbPushNow" :disabled="!usersDbSyncEnabled || !agentEnabled || usersDbBusy || usersDbHasConflict">
+        <button type="button" class="btn btn-sm" @click="() => usersDbPushNow()" :disabled="!usersDbSyncEnabled || !agentEnabled || usersDbBusy || usersDbHasConflict">
           {{ $t('push') }}
         </button>
       </div>
@@ -1945,6 +1945,8 @@ import { useI18n } from 'vue-i18n'
 import router from '@/router'
 import { ROUTE_NAME } from '@/constant'
 import { ChevronDownIcon } from '@heroicons/vue/20/solid'
+
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
 import {
   usersDbConflictCount,
   usersDbConflictDiff,

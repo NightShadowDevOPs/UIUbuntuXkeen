@@ -54,7 +54,7 @@ const resolveLimit = (l?: UserLimit): UserLimitResolved => {
   }
 }
 
-export const getUserLimit = (user: string) => {
+export const getUserLimit = (user: string): UserLimitResolved => {
   const raw = userLimits.value[user]
   return resolveLimit(raw)
 }

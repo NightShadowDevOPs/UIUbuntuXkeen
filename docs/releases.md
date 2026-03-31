@@ -1,8 +1,8 @@
-## v0.6.20 — build unblock hotfix
+## v0.6.21 — second build unblock hotfix
 
-- исправлены ошибки сборки из CI/Actions: `Array.prototype.at`, nullable `info.days`, nullable `trafficLimitBytes`, nullable `shaperBadge` и отсутствующий `uptimeSec` в `UbuntuSystemStatus`;
-- `tsconfig.app.json` поднят до `ES2022`, чтобы линия не ломалась на стандартных методах JS/TS;
-- релиз не меняет продуктовую архитектуру: provider SSL checks по-прежнему остаются целевой серверной функцией Ubuntu-хоста, а не fake frontend-only поведением.
+- закрыты новые падения CI/Actions после `v0.6.20`: `sleep` в `TasksPage`, несовместимый `@click` для `usersDbPushNow`, доступ к `EventTarget.value`, отставание `zh.ts` от `en.ts`, optional-поля в `userLimits`;
+- релиз снова не меняет архитектуру Ubuntu UI и не возвращает проект к роутерному runtime;
+- provider SSL checks по-прежнему остаются отдельным серверным этапом на Ubuntu-хосте, а не fake frontend-only функцией.
 
 ## v0.6.19 — honest provider SSL staging
 

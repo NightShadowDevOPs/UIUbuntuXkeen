@@ -1,10 +1,10 @@
-## v0.6.20 - 2026-03-31
+## v0.6.21 - 2026-03-31
 
-- исправлен build/type-check hotfix для `Array.prototype.at()` в `src/composables/uiBuild.ts`;
-- исправлены TypeScript-претензии к `UserTrafficStats.vue`: безопасный доступ к `shaperBadge` в шаблоне и нормализация `trafficLimitBytes` при открытии лимитов;
-- исправлен `ProxyProvider.vue`: `sslExpireBadge` больше не падает на `info.days === null`;
-- расширен тип `UbuntuSystemStatus`: добавлен `uptimeSec` для `HostRuntimeCard.vue`;
-- `tsconfig.app.json` поднят до `ES2022`, чтобы сборка не спотыкалась о современные стандартные API.
+- исправлен `TasksPage.vue`: добавлен локальный `sleep()` helper для polling-циклов provider SSL и users-db операций;
+- исправлен `TasksPage.vue`: `usersDbPushNow` больше не передаётся в `@click` как функция с несовместимой сигнатурой обработчика DOM event;
+- исправлен `TasksPage.vue`: `sslWarnDays` input теперь читает `value` через безопасный `HTMLInputElement` cast;
+- исправлен `src/i18n/zh.ts`: китайский словарь теперь наследует недостающие ключи из `en.ts`, чтобы новые строки не валили типизацию;
+- исправлен `src/composables/userLimits.ts`: `getUserLimit()` теперь явно возвращает `UserLimitResolved`, чтобы downstream-код не видел optional-поля там, где лимит уже нормализован.
 
 ## v0.6.19 - 2026-03-31
 

@@ -6,7 +6,7 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.6.20**
+- Текущая версия линии: **v0.6.21**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 - Текущий шаг: **rollback after invalid runtime experiment + cleanup-first**
 
@@ -16,7 +16,7 @@
 - Наличие `Dockerfile` и `Caddyfile` в репозитории **не означает**, что проект уже стал встроенным Ubuntu backend/service.
 - Релиз `v0.6.17` **не считать правильным**: в нём была самовольно навязана новая runtime-модель `frontend + backend`, не зафиксированная как штатная архитектура проекта.
 - Релиз `v0.6.19` убрал ложную provider SSL-проверку через legacy path и оставил только подготовку URL подписок до появления Ubuntu service на хосте.
-- Релиз `v0.6.20` — это build/type-check hotfix после падения CI: без смены архитектуры и без примешивания роутерного runtime.
+- Релиз `v0.6.21` — это второй build/type-check hotfix после следующего падения CI: без смены архитектуры и без примешивания роутерного runtime.
 
 ## Что уже сделано в cleanup-линии
 
@@ -26,7 +26,7 @@
 - `Трафик` очищен от роутерных QoS / Netcraze карточек.
 - `Tasks / Users / Policies` убраны из основной навигации как legacy-аудит.
 
-### v0.6.20
+### v0.6.21
 - закрыты текущие build/type-check blockers из CI/Actions;
 - `tsconfig.app.json` поднят до `ES2022`;
 - provider SSL checks по-прежнему не считаются закрытой frontend-only функцией.
@@ -46,4 +46,4 @@
 
 ## Provider SSL checks
 
-As of `v0.6.20`, provider certificate checks are **not** treated as a finished frontend-only feature. The UI keeps the provider subscription URL editor, while the actual TLS/SSL polling is reserved for a dedicated Ubuntu service running on the project host.
+As of `v0.6.21`, provider certificate checks are **not** treated as a finished frontend-only feature. The UI keeps the provider subscription URL editor, while the actual TLS/SSL polling is reserved for a dedicated Ubuntu service running on the project host.

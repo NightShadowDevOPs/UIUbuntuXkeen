@@ -1,6 +1,7 @@
-import type { LANG_MESSAGE } from './en'
+import en, { type LANG_MESSAGE } from './en'
 
-const zh: LANG_MESSAGE = {
+const zh = {
+  ...en,
   setup: '配置',
   overview: '概览',
   router: '主机',
@@ -1901,6 +1902,6 @@ usersDbChanged: '已更改',
   legacyWorkspaceTasksNotice: '该页面暂时从主导航中隐藏，仅用于审计 legacy 功能，不应视为当前 Ubuntu/server 主流程的一部分。',
   legacyWorkspaceUsersNotice: '该页面目前仅为审计 legacy 逻辑而保留，并已从主导航隐藏，等待服务端重构。',
   legacyWorkspacePoliciesNotice: '该页面目前仅为审计 legacy 逻辑而保留，并已从主导航隐藏，等待服务端重构。',
-}
+} satisfies LANG_MESSAGE
 
 export default zh
