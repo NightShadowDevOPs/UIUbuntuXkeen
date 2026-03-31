@@ -28,6 +28,8 @@ export type BackendCapabilities = Partial<{
   shapeRemove: boolean
   jobs: boolean
   jobsRetry: boolean
+  usersInventory: boolean
+  usersInventoryPut: boolean
   connections: boolean
   logs: boolean
   configActive: boolean

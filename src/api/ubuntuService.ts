@@ -130,6 +130,89 @@ export const normalizeUbuntuProviderState = (payload: any): UbuntuProviderState 
   }
 }
 
+
+export const fetchUbuntuProvidersAPI = async () => {
+  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providers, silentCfg)
+  return pickList(data || {}).map((item) => ({
+    ...item,
+    name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
+    panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
+    enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
+  }))
+}
+
+export const saveUbuntuProvidersAPI = async (items: Array<{ name: string; panelUrl: string; enabled?: boolean }>) => {
+  const { data } = await axios.put(
+    UBUNTU_BACKEND_ENDPOINTS.providers,
+    { providers: items },
+    {
+      ...silentCfg,
+      timeout: 15000,
+    },
+  )
+  return pickList(data || {}).map((item) => ({
+    ...item,
+    name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
+    panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
+    enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
+  }))
+}
+
+export type UbuntuUsersInventoryRow = {
+  ip: string
+  key: string
+  mac?: string
+  label?: string
+  hostname?: string
+  source?: string
+  proxyAccess?: boolean
+  updatedAt?: string
+}
+
+export const fetchUbuntuUsersInventoryAPI = async () => {
+  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.usersInventory, silentCfg)
+  return {
+    items: pickList(data || {}).map((item) => ({
+      ip: str(getAnyFromObj(item, ['ip', 'key'])),
+      key: str(getAnyFromObj(item, ['key', 'ip'])),
+      mac: str(getAnyFromObj(item, ['mac'])),
+      label: str(getAnyFromObj(item, ['label', 'displayName', 'display_name'])),
+      hostname: str(getAnyFromObj(item, ['hostname'])),
+      source: str(getAnyFromObj(item, ['source'])),
+      proxyAccess: boolish(getAnyFromObj(item, ['proxyAccess', 'proxy_access'])) ?? true,
+      updatedAt: str(getAnyFromObj(item, ['updatedAt', 'updated_at'])),
+    })),
+    policyMode: str(getAnyFromObj(data || {}, ['policyMode', 'policy_mode'])) || 'allowAll',
+  }
+}
+
+export const saveUbuntuUsersInventoryAPI = async (
+  items: Array<{ ip: string; mac?: string; label?: string; hostname?: string; source?: string; proxyAccess?: boolean }>,
+  policyMode: string,
+) => {
+  const { data } = await axios.put(
+    UBUNTU_BACKEND_ENDPOINTS.usersInventory,
+    { items, policyMode },
+    {
+      ...silentCfg,
+      timeout: 15000,
+    },
+  )
+  return {
+    items: pickList(data || {}).map((item) => ({
+      ip: str(getAnyFromObj(item, ['ip', 'key'])),
+      key: str(getAnyFromObj(item, ['key', 'ip'])),
+      mac: str(getAnyFromObj(item, ['mac'])),
+      label: str(getAnyFromObj(item, ['label', 'displayName', 'display_name'])),
+      hostname: str(getAnyFromObj(item, ['hostname'])),
+      source: str(getAnyFromObj(item, ['source'])),
+      proxyAccess: boolish(getAnyFromObj(item, ['proxyAccess', 'proxy_access'])) ?? true,
+      updatedAt: str(getAnyFromObj(item, ['updatedAt', 'updated_at'])),
+    })),
+    policyMode: str(getAnyFromObj(data || {}, ['policyMode', 'policy_mode'])) || policyMode || 'allowAll',
+  }
+}
+
 export const fetchUbuntuProviderChecksAPI = async () => {
   const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providerChecks, silentCfg)
   return normalizeUbuntuProviderState(data || {})

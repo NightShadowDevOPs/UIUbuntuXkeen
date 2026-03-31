@@ -1,11 +1,9 @@
-Prepared release: v0.6.37. Build UI remains fixed, the 3x-ui panel hosts are moved into a dedicated menu section, and the Users tab is visible again.
+Prepared release: v0.6.40. The phantom standalone `ubuntu-service/` from v0.6.39 was removed from the distribution; the project must continue through the existing backend contour only.
 
-Проект: UIUbuntuXkeen
-Актуальный релиз для переноса: **v0.6.37**
+Актуальный релиз для переноса: **v0.6.40**
 
-Что сделано в `v0.6.37`
-- отдельный раздел меню **3x-ui Hosts** только для адресов панелей 3x-ui;
-- список на странице строится только из `providerPanelUrls` в общей БД;
-- видны статус сертификата, дата окончания и время последней проверки;
-- вкладка **Пользователи** снова видна в левом меню;
-- backend-опрос сертификатов: router-agent `api.sh` / `router-agent/install.sh`, автообновление каждые 4 часа + ручной запуск.
+Что сделано в `v0.6.40`
+- удалён `ubuntu-service/` из дистрибутива;
+- обновлены README / CHANGELOG / transfer docs;
+- разделы **Хосты 3x-ui** и **Пользователи** сохранены в UI;
+- жёсткая привязка к `ubuntu-service` в интерфейсе ослаблена.

@@ -1,9 +1,8 @@
-Current prepared release: v0.6.37. Build UI remains fixed, 3x-ui host certificate control is separated into its own menu section, and the Users tab is visible in the sidebar.
+Current prepared release: v0.6.40. The standalone `ubuntu-service/` from v0.6.39 has been removed; UIUbuntuXkeen must continue through its existing backend contour.
 
-# Текущий статус — v0.6.37
+# Текущий статус — v0.6.40
 
-- Текущая линия: **v0.6.37**
-- Последний подготовленный релиз: **v0.6.37**
-- Build UI: исправлен в предыдущих hotfix и не откатывался.
-- Контроль сертификатов 3x-ui: вынесен в отдельный раздел **3x-ui Hosts**, backend-опрос делает router-agent (`api.sh` / `install.sh`) автоматически каждые 4 часа и по ручной команде.
-- Пользователи: отдельная вкладка снова видна в левом меню.
+- Текущая линия: **v0.6.40**
+- Последний подготовленный релиз: **v0.6.40**
+- Отдельный `ubuntu-service/` в дистрибутив больше не входит.
+- Следующий реальный backend-шаг: встроить endpoints для 3x-ui host SSL checks и users DB в существующий backend проекта.

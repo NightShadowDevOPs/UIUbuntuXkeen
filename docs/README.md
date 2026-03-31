@@ -1,16 +1,15 @@
 # Docs index
 
-Актуально для релиза: **v0.6.27**
+Актуально для релиза: **v0.6.40**
 
-Основные файлы:
+Главные документы:
+- `project-spec.md` — общее ТЗ и архитектурный вектор.
+- `roadmap.md` — план работ.
+- `releases.md` — краткий журнал релизов.
+- `current-status.md` — текущий статус проекта.
+- `chat-transfer.md` — файл переноса в новый чат.
+- `change-requests-db.md` — база запросов на изменение.
+- `worklog-db.md` — база шагов работы.
+- `build-hotfix-v0.6.40.md` — cleanup phantom service и возврат к существующему backend-контуру.
 
-- `project-spec.md` — текущее ТЗ и рамки проекта.
-- `roadmap.md` — план развития.
-- `releases.md` — короткая релизная история.
-- `current-status.md` — текущее состояние линии.
-- `next-step.md` — следующий рекомендованный шаг.
-- `chat-transfer.md` — информация для переноса проекта в новый чат.
-- `build-hotfix-v0.6.20.md` — первый build/type-check hotfix.
-- `build-hotfix-v0.6.21.md` — второй build/type-check hotfix.
-- `build-hotfix-v0.6.22.md` — третий build/type-check hotfix.
-- `build-hotfix-v0.6.27.md` — фиксация workflow GitHub Actions для подробного лога build-падений.
+Исторические документы по v0.6.39 сохранены как след ошибочной ветки и должны читаться вместе с пометкой о rollback в v0.6.40.

@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — Ubuntu backend contract
 
-Актуальная версия документа: **v0.6.3**  
-Дата актуализации: **2026-03-30**
+Актуальная версия документа: **v0.6.40**  
+Дата актуализации: **2026-03-31**
 
 ## 1. Назначение
 
@@ -9,7 +9,10 @@
 
 Главная идея простая:
 - **прямой Mihomo API** используем там, где Mihomo уже умеет отдавать данные сам;
-- **Ubuntu service** делаем для системных, scheduled и stateful задач, которые раньше были завязаны на `router-agent`.
+- **Ubuntu service** делаем для системных, scheduled и stateful задач;
+- раздел **Хосты 3x-ui** работает только со **списком панелей 3x-ui**, а не с общим списком proxy providers из Mihomo-конфига.
+
+Важно: любые упоминания `router-agent` в старых файлах репозитория считаются историческим переходным хвостом и не должны использоваться как каноничное описание backend-а для UIUbuntuXkeen.
 
 ## 2. Режимы backend-а
 
@@ -29,11 +32,12 @@
 Должен обеспечивать:
 - host resources;
 - логи и сервисы Ubuntu;
-- SSL/TLS проверки провайдеров по provider/subscription source URL;
+- SSL/TLS проверки **панелей 3x-ui** по их panel URL;
 - scheduled jobs;
 - GEO updates;
 - QoS / shaping;
 - хранение результатов в SQLite/DB;
+- таблицу пользователей `IP / MAC / hostname / proxyAccess`;
 - в будущем safe config flow.
 
 ## 3. Каноничные пути
@@ -54,68 +58,30 @@
 - `GET /api/version`
 - `GET /api/capabilities`
 
-### Система / хост
-- `GET /api/system/metrics`
-- `GET /api/system/resources`
-- `GET /api/system/services`
-- `GET /api/system/logs?source=mihomo|service&tail=...`
-- `GET /api/system/network`
-
-### Провайдеры
+### Провайдеры / 3x-ui hosts
 - `GET /api/providers`
-- `GET /api/providers/<built-in function id>`
+- `PUT /api/providers`
 - `GET /api/providers/checks`
 - `POST /api/providers/checks/run`
 - `POST /api/providers/refresh`
 - `POST /api/providers/ssl-cache/refresh`
 - `GET /api/providers/ssl-cache/status`
 
-### GEO
-- `GET /api/geo/info`
-- `POST /api/geo/update`
-- `GET /api/geo/history`
-
-### Трафик / клиенты
-- `GET /api/traffic/overview`
-- `GET /api/traffic/clients`
-- `GET /api/traffic/clients/<built-in function id>`
-- `GET /api/traffic/topology`
-
-### QoS / shaping
-- `GET /api/qos/status`
-- `POST /api/qos/set`
-- `POST /api/qos/remove`
-- `POST /api/shape/set`
-- `POST /api/shape/remove`
+### Пользователи
+- `GET /api/users/inventory`
+- `PUT /api/users/inventory`
 
 ### Jobs
 - `GET /api/jobs`
-- `GET /api/jobs/<built-in function id>`
-- `POST /api/jobs/<built-in function id>/retry`
-
-### Safe config flow (позже)
-- `GET /api/mihomo/config/active`
-- `GET /api/mihomo/config/draft`
-- `GET /api/mihomo/config/history`
-- `POST /api/mihomo/config/validate`
-- `POST /api/mihomo/config/apply`
-- `POST /api/mihomo/config/rollback`
 
 ## 5. Scheduler / automation model
 
 Service должен уметь выполнять плановые проверки без участия UI.
 
 Минимум нужны фоновые задачи:
-- проверка SSL/TLS провайдеров по расписанию;
-- refresh SSL cache;
-- GEO update;
-- host resource snapshots;
-- сбор runtime snapshots по клиентам;
+- проверка SSL/TLS **панелей 3x-ui** по расписанию;
+- refresh SSL cache/state;
 - housekeeping старых записей.
-
-Scheduler может быть:
-- встроенным в FastAPI service;
-- либо поддерживаться через `systemd` timer как внешний trigger.
 
 Предпочтительный вариант для MVP: **встроенный scheduler + systemd unit для service**.
 
@@ -124,20 +90,17 @@ Scheduler может быть:
 Предпочтительная база на первом этапе: **SQLite**.
 
 Минимальные таблицы:
-- `providers`
+- `provider_hosts`
 - `provider_ssl_checks`
-- `provider_refresh_jobs`
-- `provider_ssl_cache`
-- `geo_updates`
-- `host_resource_snapshots`
-- `client_runtime_snapshots`
-- `qos_rules`
-- `shape_rules`
-- `job_runs`
+- `provider_ssl_state`
+- `users_inventory`
+- `service_settings`
+- `jobs`
+- `document_events`
 
 ### Что хранить в `provider_ssl_checks`
 - provider id / name
-- url
+- panel_url
 - checked_at
 - status
 - expires_at
@@ -148,71 +111,32 @@ Scheduler может быть:
 - error_text
 - raw_payload
 
-### Что хранить в `geo_updates`
-- kind (`geoip`, `geosite`, `asn`)
-- started_at
-- finished_at
-- status
+### Что хранить в `users_inventory`
+- ip
+- mac
+- display_name
+- hostname
 - source
-- path
-- size
-- error_text
-
-### Что хранить в `client_runtime_snapshots`
-- client identity (ip/mac/hostname/source)
-- traffic in/out
-- connection count
-- via (`mihomo`, `bypass`, `vpn`, `tunnel`)
-- qos profile
-- shape state
-- captured_at
+- proxy_access
+- updated_at
 
 ## 7. Capability flags
 
-UI должен запрашивать capabilities и не рисовать фальшивую готовность. В релизах `v0.6.2–v0.6.3` зафиксировано важное правило: capability для SSL/TLS проверок должны обслуживать контур раздела **«Задачи»** и provider-health flow, а сама проверка в UI должна опираться на **provider/subscription source URL**, а не на panel URL или отдельный workspace в списке провайдеров. Релиз `v0.6.3` отдельно фиксирует и build/install-стабилизацию перед продолжением этого функционального контура.
+UI должен запрашивать capabilities и не рисовать фальшивую готовность. Для MVP `v0.6.39` минимальный набор:
+- `status`
+- `health`
+- `version`
+- `capabilities`
+- `providers`
+- `providerChecks`
+- `providerChecksRun`
+- `providerRefresh`
+- `providerSslCacheRefresh`
+- `providerSslCacheStatus`
+- `usersInventory`
+- `usersInventoryPut`
 
-Минимальные capability keys:
-- `system.metrics`
-- `system.logs`
-- `system.services`
-- `providers.sslChecks`
-- `providers.sslCacheRefresh`
-- `providers.refresh`
-- `geo.info`
-- `geo.update`
-- `traffic.clients`
-- `traffic.topology`
-- `qos.status`
-- `qos.set`
-- `shape.set`
-- `shape.remove`
-- `mihomo.configFlow`
-
-## 8. Что идёт напрямую в Mihomo
-
-Без Ubuntu service UI может и должен читать напрямую:
-- прокси;
-- proxy groups;
-- rules;
-- rule providers;
-- connections;
-- часть overview/runtime-данных.
-
-Это **не** должно смешиваться с системными Ubuntu-функциями.
-
-## 9. Что обязан делать Ubuntu service
-
-Без Ubuntu service нельзя считать закрытыми такие функции:
-- провайдеры и SSL/TLS проверки по расписанию;
-- ручные действия `Обновить` и `Обновить SSL-кеш`;
-- GEO update state и history;
-- ресурсы хоста;
-- QoS / shaping;
-- runtime state клиентов на уровне хоста;
-- запись результата в БД;
-- jobs/status/history.
-
-## 10. UX-правило для UI
+## 8. UX-правило для UI
 
 Если capability нет, UI не должен делать вид, что функция работает. Он должен честно показывать одно из состояний:
 - функция доступна и данные живые;

@@ -30,7 +30,9 @@ export const refreshActiveBackendCapabilities = async (force = false) => {
   }
 
   const kind = detectBackendKind(backend)
-  if (kind !== 'ubuntu-service') {
+  const secondaryPath = String(backend.secondaryPath || '').trim()
+  const shouldProbeCapabilities = kind === 'ubuntu-service' || secondaryPath.startsWith('/api')
+  if (!shouldProbeCapabilities) {
     const fallback = buildCompatibilityBridgeCapabilities()
     activeBackendCapabilities.value = fallback
     activeBackendCapabilitiesReady.value = true

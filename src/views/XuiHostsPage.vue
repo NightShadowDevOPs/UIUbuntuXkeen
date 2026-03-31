@@ -4,7 +4,7 @@
       <div class="font-semibold">Хосты 3x-ui</div>
       <div class="mt-1 opacity-70">
         Здесь хранятся только адреса панелей 3x-ui для реальных хостов-провайдеров.
-        Опрос сертификатов делает backend router-agent (`api.sh` / `install.sh`) автоматически каждые 4 часа и по ручной кнопке.
+        Проверка сертификатов должна выполняться текущим backend-контуром проекта. Этот релиз убирает отдельный фантомный service и оставляет раздел готовым для встраивания в существующий backend.
       </div>
     </div>
 
@@ -12,7 +12,9 @@
       <div class="flex flex-wrap items-start justify-between gap-2">
         <div>
           <div class="font-semibold">Контроль сертификатов 3x-ui</div>
-          <div class="text-xs opacity-70">Дата окончания сертификата берётся из backend-опроса. Данные и время последней проверки синхронизируются через общую БД.</div>
+          <div class="text-xs opacity-70">
+            Дата окончания сертификата и время последней проверки должны приходить из существующего backend-а проекта. Автопроверка планируется раз в 4 часа, ручной запуск — по кнопке, когда backend endpoint уже доступен.
+          </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <button type="button" class="btn btn-sm" @click="runNow" :disabled="busy || !providerHealthActionsAvailable">
@@ -20,7 +22,10 @@
             <span v-else>{{ t('refreshProviderSslCache') }}</span>
           </button>
           <button type="button" class="btn btn-sm btn-ghost" @click="addRow">{{ t('add') }}</button>
-          <button type="button" class="btn btn-sm btn-primary" @click="saveRows" :disabled="!dirty">{{ t('submit') }}</button>
+          <button type="button" class="btn btn-sm btn-primary" @click="saveRows" :disabled="saving || !dirty">
+            <span v-if="saving" class="loading loading-spinner loading-xs"></span>
+            <span v-else>{{ t('submit') }}</span>
+          </button>
         </div>
       </div>
 
@@ -38,7 +43,7 @@
           <thead>
             <tr>
               <th class="w-[180px]">{{ t('provider') }}</th>
-              <th>{{ t('providerPanelUrl') }}</th>
+              <th>URL панели 3x-ui</th>
               <th class="w-[160px]">{{ t('providerSslStatus') }}</th>
               <th class="w-[180px]">Дата окончания</th>
               <th class="w-[160px]">{{ t('checkedAt') }}</th>
@@ -86,6 +91,7 @@
 import dayjs from 'dayjs'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { fetchUbuntuProvidersAPI, saveUbuntuProvidersAPI } from '@/api/ubuntuService'
 import { proxyProviderPanelUrlMap } from '@/store/settings'
 import { providerSslDbMeta, providerSslDbSnapshot } from '@/store/providerSslDb'
 import {
@@ -100,13 +106,30 @@ import {
   refreshAgentProviderSslCache,
 } from '@/store/providerHealth'
 import { getProviderSslDiagnostics } from '@/helper/providerHealth'
+import { activeBackend } from '@/store/setup'
+import { activeBackendCapabilities } from '@/store/backendCapabilities'
 
 const { t } = useI18n()
 const busy = ref(false)
+const saving = ref(false)
 const rows = ref<Array<{ id: string; name: string; url: string }>>([])
 const dirty = ref(false)
+const loadingBackendRows = ref(false)
+
+const useBackendProviders = computed(() => {
+  const caps = activeBackendCapabilities.value || {}
+  return Boolean(caps.providers || caps.providerChecks || caps.providerSslCacheStatus)
+})
+
+const normalizeUrl = (raw: string) => {
+  const value = String(raw || '').trim()
+  if (!value) return ''
+  if (/^(https?|wss):\/\//i.test(value)) return value
+  return `https://${value}`
+}
 
 const syncRowsFromStore = () => {
+  if (useBackendProviders.value) return
   rows.value = Object.entries(proxyProviderPanelUrlMap.value || {})
     .map(([name, url], idx) => ({ id: `${name || 'row'}-${idx}`, name: String(name || '').trim(), url: String(url || '').trim() }))
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -115,12 +138,44 @@ const syncRowsFromStore = () => {
 
 watch(proxyProviderPanelUrlMap, syncRowsFromStore, { immediate: true, deep: true })
 
-const normalizeUrl = (raw: string) => {
-  const value = String(raw || '').trim()
-  if (!value) return ''
-  if (/^(https?|wss):\/\//i.test(value)) return value
-  return `https://${value}`
+const reflectRowsToLocalCache = (items: Array<{ name: string; panelUrl?: string; url?: string }>) => {
+  const next: Record<string, string> = {}
+  for (const item of items) {
+    const name = String(item.name || '').trim()
+    const url = normalizeUrl(String(item.panelUrl || item.url || '').trim())
+    if (!name || !url) continue
+    next[name] = url
+  }
+  proxyProviderPanelUrlMap.value = next
 }
+
+const loadRowsFromBackend = async () => {
+  if (!useBackendProviders.value) {
+    syncRowsFromStore()
+    return
+  }
+  loadingBackendRows.value = true
+  try {
+    const items = await fetchUbuntuProvidersAPI()
+    rows.value = items
+      .map((item, idx) => ({
+        id: `${String(item.name || 'row').trim() || 'row'}-${idx}`,
+        name: String(item.name || '').trim(),
+        url: normalizeUrl(String(item.panelUrl || item.url || '').trim()),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+    reflectRowsToLocalCache(items)
+    dirty.value = false
+  } catch {
+    syncRowsFromStore()
+  } finally {
+    loadingBackendRows.value = false
+  }
+}
+
+watch(useBackendProviders, () => {
+  loadRowsFromBackend()
+}, { immediate: true })
 
 const addRow = () => {
   rows.value = [...rows.value, { id: `new-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`, name: '', url: '' }]
@@ -142,16 +197,32 @@ const setRowUrl = (id: string, value: string) => {
   dirty.value = true
 }
 
-const saveRows = () => {
-  const next: Record<string, string> = {}
-  for (const row of rows.value) {
-    const name = String(row.name || '').trim()
-    const url = normalizeUrl(row.url)
-    if (!name || !url) continue
-    next[name] = url
+const saveRows = async () => {
+  saving.value = true
+  try {
+    const next = rows.value
+      .map((row) => ({ name: String(row.name || '').trim(), panelUrl: normalizeUrl(row.url), enabled: true }))
+      .filter((row) => row.name && row.panelUrl)
+
+    if (useBackendProviders.value) {
+      const saved = await saveUbuntuProvidersAPI(next)
+      rows.value = saved
+        .map((item, idx) => ({
+          id: `${String(item.name || 'row').trim() || 'row'}-${idx}`,
+          name: String(item.name || '').trim(),
+          url: normalizeUrl(String(item.panelUrl || item.url || '').trim()),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+      reflectRowsToLocalCache(saved)
+      dirty.value = false
+      return
+    }
+
+    proxyProviderPanelUrlMap.value = Object.fromEntries(next.map((row) => [row.name, row.panelUrl]))
+    syncRowsFromStore()
+  } finally {
+    saving.value = false
   }
-  proxyProviderPanelUrlMap.value = next
-  syncRowsFromStore()
 }
 
 const fmtTs = (value?: number) => {
@@ -208,9 +279,10 @@ const rowsView = computed(() => {
 const runNow = async () => {
   busy.value = true
   try {
-    if (dirty.value) saveRows()
+    if (dirty.value) await saveRows()
     await refreshAgentProviderSslCache()
     await fetchAgentProviders(true)
+    if (useBackendProviders.value) await loadRowsFromBackend()
   } finally {
     busy.value = false
   }
@@ -219,5 +291,4 @@ const runNow = async () => {
 onMounted(() => {
   fetchAgentProviders(false)
 })
-
 </script>

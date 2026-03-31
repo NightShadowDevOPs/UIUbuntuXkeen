@@ -21,7 +21,7 @@ export const detectBackendKind = (backend?: Partial<Backend> | null): BackendKin
   }
 
   const path = normalizeSecondaryPath(backend?.secondaryPath)
-  if (path.startsWith('/api') || path.includes('/service') || path.includes('/ubuntu')) {
+  if (path.startsWith('/api') || path.includes('/ubuntu')) {
     return BACKEND_KINDS.UBUNTU_SERVICE
   }
 

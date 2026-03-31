@@ -6,3 +6,11 @@ coverage/
 # stale transpiled artifacts must not live inside src/
 src/**/*.js
 src/**/*.d.ts
+
+# Ubuntu service local state
+ubuntu-service/.venv/
+ubuntu-service/__pycache__/
+ubuntu-service/app/__pycache__/
+ubuntu-service/*.db
+ubuntu-service/*.sqlite
+ubuntu-service/*.sqlite3

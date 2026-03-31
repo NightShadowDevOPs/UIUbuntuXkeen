@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div>
         <div class="font-semibold">Контроль пользователей LAN / proxy</div>
-        <div class="text-xs opacity-70">IP, MAC, обнаруженное имя хоста и индивидуальный доступ к proxy. Данные хранятся в общей БД.</div>
+        <div class="text-xs opacity-70">IP, MAC, обнаруженное имя хоста и индивидуальный доступ к proxy. Отдельный service из релиза v0.6.39 убран; следующий шаг — встроить хранение в существующий backend проекта.</div>
       </div>
       <div class="flex items-center gap-2">
         <select v-model="proxyAccessPolicyMode" class="select select-bordered select-sm">
@@ -23,7 +23,9 @@
       <span class="badge badge-ghost badge-sm">Хосты в БД: {{ rows.length }}</span>
       <span v-if="proxyAccessLastScanAt" class="badge badge-ghost badge-sm">LAN: {{ fmtTs(proxyAccessLastScanAt) }}</span>
       <span v-if="proxyAccessLastApplyAt" class="badge badge-ghost badge-sm">Применено: {{ fmtTs(proxyAccessLastApplyAt) }}</span>
-      <span v-if="proxyAccessLastError" class="badge badge-error badge-sm">{{ proxyAccessLastError }}</span>
+      <span v-if="syncError" class="badge badge-error badge-sm">{{ syncError }}</span>
+      <span v-else-if="proxyAccessLastError" class="badge badge-error badge-sm">{{ proxyAccessLastError }}</span>
+      <span v-if="syncBusy" class="badge badge-info badge-sm">Синхронизация БД…</span>
     </div>
 
     <div class="overflow-x-auto">
@@ -75,13 +77,25 @@
 
 <script setup lang="ts">
 import dayjs from 'dayjs'
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { debounce } from 'lodash'
 import { sourceIPLabelList } from '@/store/settings'
 import { proxyAccessPolicyMode } from '@/store/proxyAccess'
 import { applyProxyAccessControlNow, proxyAccessLastApplyAt, proxyAccessLastError, proxyAccessLastScanAt, refreshProxyAccessKnownHosts } from '@/composables/proxyAccessControl'
 import type { SourceIPLabel } from '@/types'
+import { activeBackend } from '@/store/setup'
+import { activeBackendCapabilities } from '@/store/backendCapabilities'
+import { fetchUbuntuUsersInventoryAPI, saveUbuntuUsersInventoryAPI } from '@/api/ubuntuService'
 
 const busy = ref(false)
+const syncBusy = ref(false)
+const syncError = ref('')
+const suppressPersist = ref(false)
+
+const useBackendInventory = computed(() => {
+  const caps = activeBackendCapabilities.value || {}
+  return Boolean(caps.usersInventory || caps.usersInventoryPut)
+})
 
 const rows = computed(() => {
   return [...(sourceIPLabelList.value || [])]
@@ -108,18 +122,99 @@ const mutateItem = (id: string, patch: Partial<SourceIPLabel>) => {
   sourceIPLabelList.value = next as any
 }
 
+const backendRowsPayload = computed(() => {
+  return rows.value.map((item) => ({
+    ip: String((item as any)?.key || '').trim(),
+    mac: String((item as any)?.mac || '').trim(),
+    label: String((item as any)?.label || '').trim(),
+    hostname: String((item as any)?.hostname || '').trim(),
+    source: String((item as any)?.source || '').trim(),
+    proxyAccess: (item as any)?.proxyAccess === true,
+  })).filter((item) => item.ip)
+})
+
+const mergeBackendItemsIntoLocal = (items: Array<{ ip: string; key?: string; mac?: string; label?: string; hostname?: string; source?: string; proxyAccess?: boolean }>) => {
+  const next = [...(sourceIPLabelList.value || [])] as SourceIPLabel[]
+  let changed = false
+
+  for (const raw of items) {
+    const ip = String(raw.ip || raw.key || '').trim()
+    if (!ip) continue
+    const idx = next.findIndex((item) => String((item as any)?.key || '').trim() === ip)
+    const patch: SourceIPLabel = {
+      id: idx >= 0 ? String((next[idx] as any)?.id || `lan_${ip.replace(/[^0-9a-zA-Z]+/g, '_')}`) : `lan_${ip.replace(/[^0-9a-zA-Z]+/g, '_')}`,
+      key: ip,
+      label: String(raw.label || raw.hostname || ip).trim() || ip,
+      mac: String(raw.mac || '').trim().toLowerCase() || undefined,
+      hostname: String(raw.hostname || '').trim() || undefined,
+      source: String(raw.source || '').trim() || undefined,
+      proxyAccess: raw.proxyAccess === true,
+    }
+    if (idx >= 0) {
+      const current = next[idx]
+      const merged = { ...current, ...patch }
+      if (JSON.stringify(current) !== JSON.stringify(merged)) {
+        next[idx] = merged
+        changed = true
+      }
+    } else {
+      next.push(patch)
+      changed = true
+    }
+  }
+
+  if (changed) sourceIPLabelList.value = next as any
+}
+
+const loadBackendInventory = async () => {
+  if (!useBackendInventory.value) return
+  syncBusy.value = true
+  syncError.value = ''
+  suppressPersist.value = true
+  try {
+    const payload = await fetchUbuntuUsersInventoryAPI()
+    mergeBackendItemsIntoLocal(payload.items || [])
+    if (payload.policyMode) proxyAccessPolicyMode.value = payload.policyMode as any
+  } catch (e: any) {
+    syncError.value = e?.message || 'Не удалось загрузить БД пользователей'
+  } finally {
+    suppressPersist.value = false
+    syncBusy.value = false
+  }
+}
+
+const persistBackendInventory = async () => {
+  if (!useBackendInventory.value || suppressPersist.value) return
+  syncBusy.value = true
+  syncError.value = ''
+  try {
+    await saveUbuntuUsersInventoryAPI(backendRowsPayload.value, proxyAccessPolicyMode.value)
+  } catch (e: any) {
+    syncError.value = e?.message || 'Не удалось сохранить БД пользователей'
+  } finally {
+    syncBusy.value = false
+  }
+}
+
+const debouncedPersist = debounce(() => {
+  persistBackendInventory()
+}, 500)
+
 const setLabel = (id: string, value: string) => {
   mutateItem(id, { label: String(value || '').trim() || '—' })
+  debouncedPersist()
 }
 
 const setProxyAccess = (id: string, value: boolean) => {
   mutateItem(id, { proxyAccess: value })
+  debouncedPersist()
 }
 
 const refreshNow = async () => {
   busy.value = true
   try {
     await refreshProxyAccessKnownHosts(true)
+    await persistBackendInventory()
   } finally {
     busy.value = false
   }
@@ -129,11 +224,24 @@ const applyNow = async () => {
   busy.value = true
   try {
     await refreshProxyAccessKnownHosts(true)
+    await persistBackendInventory()
     await applyProxyAccessControlNow()
   } finally {
     busy.value = false
   }
 }
+
+watch(proxyAccessPolicyMode, () => {
+  debouncedPersist()
+})
+
+watch(useBackendInventory, (enabled) => {
+  if (enabled) loadBackendInventory()
+}, { immediate: true })
+
+onMounted(() => {
+  if (useBackendInventory.value) loadBackendInventory()
+})
 
 const fmtTs = (value: number) => {
   if (!value) return '—'

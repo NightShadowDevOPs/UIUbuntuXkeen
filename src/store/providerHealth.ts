@@ -4,7 +4,6 @@ import { useStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { activeBackendCapabilities } from './backendCapabilities'
 import { providerSslDbMeta, providerSslDbSnapshot } from './providerSslDb'
-import { activeBackend } from './setup'
 import { proxyProviderSubscriptionUrlMap } from './settings'
 import { proxyProviederList } from './proxies'
 
@@ -42,19 +41,16 @@ export const proxyProvidersProtoFilter = computed({
   },
 })
 
-const isUbuntuProviderServiceMode = computed(() => activeBackend.value?.kind === 'ubuntu-service')
 const hasUbuntuProviderCapability = (...keys: string[]) => {
   const caps = activeBackendCapabilities.value || {}
   return keys.some((key) => Boolean((caps as any)?.[key]))
 }
 
 export const providerHealthAvailable = computed(() => {
-  if (!isUbuntuProviderServiceMode.value) return false
   return hasUbuntuProviderCapability('providers', 'providerChecks', 'providerSslCacheStatus', 'providerChecksRun', 'providerRefresh', 'providerSslCacheRefresh')
 })
 
 export const providerHealthActionsAvailable = computed(() => {
-  if (!isUbuntuProviderServiceMode.value) return false
   return hasUbuntuProviderCapability('providerChecksRun', 'providerRefresh', 'providerSslCacheRefresh')
 })
 
@@ -142,7 +138,7 @@ const collectSavedProviderSubscriptionTargets = () => {
 
 export const fetchAgentProviders = async (force = false) => {
   if (!providerHealthAvailable.value) {
-    resetProviderRuntimeState(isUbuntuProviderServiceMode.value && Object.keys(activeBackendCapabilities.value || {}).length ? 'capability-missing' : null)
+    resetProviderRuntimeState(Object.keys(activeBackendCapabilities.value || {}).length ? 'capability-missing' : null)
     return
   }
 
