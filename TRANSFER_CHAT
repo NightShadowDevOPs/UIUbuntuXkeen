@@ -1,10 +1,10 @@
-Prepared release: v0.6.32. The GitHub Actions workflow file is replaced with a simpler log-first variant so CI finally prints the first real install/build error instead of empty `Error:` blocks.
+Prepared release: v0.6.33. The CI workflow now uses the official pnpm setup path, and provider flag badges no longer depend on SVG glob imports from node_modules.
 
 31.03.2026 UIUbuntuXkeen — сообщение для нового чата (вставь целиком)
 
 Проект: UIUbuntuXkeen
 Репозиторий: NightShadowDevOPs/UIUbuntuXkeen
-Актуальный релиз для переноса: **v0.6.32**
+Актуальный релиз для переноса: **v0.6.33**
 
 Что важно помнить
 
@@ -12,18 +12,18 @@ Prepared release: v0.6.32. The GitHub Actions workflow file is replaced with a s
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**.
 - `v0.6.17` считать ошибочным архитектурным ответвлением; линия после него возвращена к модели **статический frontend UI + выбранный backend через Setup**.
 - Проверка SSL сертификатов Провайдеров пока не считается закрытой frontend-only функцией: реальная проверка должна жить в отдельном Ubuntu service на хосте.
+- Автоматическую проверку SSL-сертификатов прокси-провайдеров не трогали и не ломали.
 
-Что сделано в `v0.6.32`
-- `.github/workflows/build-ui.yml` заменён на упрощённый workflow без шага `Check lockfile drift`.
-- `pnpm install` пишет лог в `install-deps.log` и печатает его прямо в CI при успехе и при падении.
-- `pnpm exec vite build --debug` пишет лог в `build-ui.log` и печатает его прямо в CI при успехе и при падении.
-- Цель релиза — перестать ловить пустые `Error:` в GitHub Actions и получить первую реальную install/build ошибку.
+Что сделано в `v0.6.33`
+- `.github/workflows/build-ui.yml` переведён на официальный путь `pnpm/action-setup` + `actions/setup-node@v4` с pnpm cache.
+- Шаг сборки упрощён до прямого `pnpm build --debug` с `NODE_OPTIONS=--max-old-space-size=4096`, чтобы GitHub Actions показывал первичную ошибку без лишней обвязки.
+- Badge-компонент флагов больше не зависит от `flag-icons` и `import.meta.glob('/node_modules/...')`: флаги рисуются emoji-глифами через уже встроенные шрифты `Twemoji` / `NotoEmoji`.
 
 Что поймано
-- До `v0.6.32` даже после фиксов bootstrap и YAML workflow CI продолжал показывать пустые `Error:` в шагах `Install dependencies` и `Build UI`.
-- Значит следующая полезная информация должна прийти уже из inline логов `install-deps.log` и `build-ui.log`.
+- Предыдущая линия CI была слишком хрупкой: одновременно подозрительными оставались bootstrap `pnpm` и build-path с glob-импортом SVG-флагов из `node_modules`.
+- `v0.6.33` убирает оба этих фактора, чтобы следующий прогон дал либо зелёную сборку, либо уже нормальную конкретную ошибку.
 
 Следующий шаг
 
-- Прогнать workflow из `v0.6.32` и взять первую реальную ошибку install/build, если CI ещё не зелёный.
-- После этого точечно чинить уже сам проект или lockfile/deps, а не GitHub Actions оболочку.
+- Прогнать workflow из `v0.6.33`.
+- Если CI не зелёный — брать первую явную ошибку из raw job log и чинить уже её, а не оболочку workflow.

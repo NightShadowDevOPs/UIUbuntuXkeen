@@ -6,9 +6,9 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.6.32**
+- Текущая версия линии: **v0.6.33**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
-- Текущий шаг: **cleanup-first + честная фиксация runtime-модели + нормальный CI-лог сборки**
+- Текущий шаг: **cleanup-first + честная фиксация runtime-модели + стабилизация CI/build**
 
 ## Что важно зафиксировать
 
@@ -16,21 +16,15 @@
 - Наличие `Dockerfile` и `Caddyfile` в репозитории **не означает**, что проект уже стал встроенным Ubuntu backend/service.
 - Релиз `v0.6.17` **не считать правильным**: в нём была самовольно навязана новая runtime-модель `frontend + backend`, не зафиксированная как штатная архитектура проекта.
 - Релиз `v0.6.19` убрал ложную provider SSL-проверку через legacy path и оставил только подготовку URL подписок до появления Ubuntu service на хосте.
-- Релиз `v0.6.32` заменяет `build-ui.yml` на более простой workflow: `pnpm install` и `vite build --debug` пишут логи в файлы и печатают их прямо в CI, чтобы показать первую реальную ошибку install/build.
+- Релиз `v0.6.33` переводит CI на официальный `pnpm/action-setup` + `actions/setup-node@v4` и убирает зависимость badge-флагов от `flag-icons`/`import.meta.glob('/node_modules/...')`.
 
 ## Что уже сделано в cleanup-линии
 
-### v0.6.32
-- шаг `Install dependencies` упрощён до прямого `pnpm install --no-frozen-lockfile --reporter append-only`;
-- добавлен `Check lockfile drift`, который явно печатает missing packages в importer section `pnpm-lock.yaml`;
-- цель релиза — перестать ловить пустые CI-падения и наконец увидеть реальную install/build картину.
-
-
-### v0.6.27
-- добавлен `.github/workflows/build-ui.yml`;
-- шаг `Build UI` теперь печатает полный debug-лог `vite build`;
-- при падении workflow выводится содержимое `build-ui.log` прямо в лог Actions;
-- upload artifacts намеренно не добавлялись.
+### v0.6.33
+- GitHub Actions переведён на официальный путь `pnpm/action-setup` + `actions/setup-node@v4` с pnpm cache;
+- шаг сборки упрощён до прямого `pnpm build --debug` с `NODE_OPTIONS=--max-old-space-size=4096`;
+- badge-флаги переведены на emoji-глифы через встроенные шрифты `Twemoji` / `NotoEmoji` без SVG glob из `node_modules`;
+- автоматическую проверку SSL-сертификатов прокси-провайдеров не трогали.
 
 ### v0.6.19
 - откатена ошибочная runtime-ветка `v0.6.17`;
@@ -46,15 +40,14 @@
 
 ## Ближайший правильный шаг
 
-- получить уже раскрытую реальную build-ошибку из GitHub Actions после нового workflow;
-- закрыть следующий build/blocker уже по фактической причине, а не наугад;
+- прогнать GitHub Actions на `v0.6.33`;
+- если CI ещё не зелёный — брать первую явную ошибку из raw log и чинить уже её, а не оболочку workflow;
 - продолжать page-by-page cleanup;
 - отдельно спроектировать настоящий Ubuntu server-side контур для проверок Провайдеров, истории, jobs и хранения результатов.
 
 ## Provider SSL checks
 
-As of `v0.6.27`, provider certificate checks are **not** treated as a finished frontend-only feature. The UI keeps the provider subscription URL editor, while the actual TLS/SSL polling is reserved for a dedicated Ubuntu service running on the project host.
+As of `v0.6.33`, provider certificate checks are **not** treated as a finished frontend-only feature. The UI keeps the provider subscription URL editor, while the actual TLS/SSL polling is reserved for a dedicated Ubuntu service running on the project host.
 
-
-## CI note (v0.6.32)
-The GitHub Actions workflow now installs dependencies without `--frozen-lockfile` in CI and prints lockfile drift before bootstrap, so the next failure should be a real pnpm/vite error instead of a silent workflow stumble.
+## CI note (v0.6.33)
+The GitHub Actions workflow now uses the official pnpm setup path and runs raw `pnpm install` / `pnpm build --debug`, so the next failure should be an actual install/build problem instead of bootstrap noise from the workflow shell.

@@ -8,13 +8,13 @@
   >
     <span v-if="kind === 'none'" class="opacity-70">—</span>
     <GlobeAltIcon v-else-if="kind === 'globe'" class="h-4 w-4" />
-    <img v-else-if="flagUrl" :src="flagUrl" :style="flagStyle" :alt="flagCode" />
+    <span v-else-if="flagEmoji" :class="emojiClass" :aria-label="flagCode">{{ flagEmoji }}</span>
     <span v-else class="font-mono">{{ flagCode || raw }}</span>
   </span>
 </template>
 
 <script setup lang="ts">
-import { FLAG_URLS } from '@/helper/flagIcons'
+import { countryCodeToEmoji, normalizeCountryCode } from '@/helper/flagIcons'
 import { normalizeProviderIcon } from '@/helper/providerIcon'
 import { GlobeAltIcon } from '@heroicons/vue/24/outline'
 import { computed } from 'vue'
@@ -34,15 +34,10 @@ const kind = computed<'none' | 'globe' | 'flag'>(() => {
 
 const flagCode = computed(() => {
   if (kind.value !== 'flag') return ''
-  const cc = String(raw.value || '').trim().toUpperCase()
-  return /^[A-Z]{2}$/.test(cc) ? cc : ''
+  return normalizeCountryCode(raw.value)
 })
 
-const flagUrl = computed(() => {
-  if (!flagCode.value) return ''
-  const key = `/node_modules/flag-icons/flags/4x3/${flagCode.value.toLowerCase()}.svg`
-  return (FLAG_URLS as any)[key] || ''
-})
+const flagEmoji = computed(() => countryCodeToEmoji(flagCode.value))
 
 const titleText = computed(() => {
   if (kind.value === 'none') return '—'
@@ -50,14 +45,9 @@ const titleText = computed(() => {
   return flagCode.value || raw.value
 })
 
-const flagStyle = computed(() => {
-  const w = props.size === 'sm' ? 18 : 20
-  const h = props.size === 'sm' ? 12 : 14
-  return {
-    width: `${w}px`,
-    height: `${h}px`,
-    borderRadius: '2px',
-    boxShadow: '0 0 0 1px rgba(0,0,0,0.12) inset',
-  }
-})
+const emojiClass = computed(() =>
+  props.size === 'sm'
+    ? 'text-[14px] leading-none font-["Twemoji","NotoEmoji",system-ui,sans-serif]'
+    : 'text-[16px] leading-none font-["Twemoji","NotoEmoji",system-ui,sans-serif]',
+)
 </script>

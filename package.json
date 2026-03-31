@@ -1,6 +1,6 @@
 {
   "name": "ui-ubuntu-xkeen",
-  "version": "0.6.32",
+  "version": "0.6.33",
   "description": "UIUbuntuXkeen — Ubuntu-oriented UI for Mihomo",
   "license": "MIT",
   "type": "module",
@@ -32,7 +32,6 @@
     "dayjs": "^1.11.13",
     "dompurify": "^3.2.6",
     "echarts": "^6.0.0",
-    "flag-icons": "^6.6.6",
     "ipaddr.js": "^2.2.0",
     "lodash": "^4.17.21",
     "misans": "^4.1.0",

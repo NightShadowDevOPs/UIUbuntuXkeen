@@ -1,3 +1,8 @@
+## v0.6.33
+- switch GitHub Actions to `pnpm/action-setup` + `actions/setup-node@v4` with pnpm cache and raw `pnpm build --debug` output
+- remove `flag-icons`/`import.meta.glob('/node_modules/...')` from provider badges and render country flags through emoji fonts already shipped with the UI
+- keep SSL certificate checks untouched
+
 ## v0.6.32
 - actually replace `.github/workflows/build-ui.yml` with the simplified inline-log workflow
 - remove stale `Check lockfile drift` / preflight-heavy workflow content that remained in the previous archive

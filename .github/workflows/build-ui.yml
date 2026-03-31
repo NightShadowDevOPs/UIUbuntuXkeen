@@ -14,22 +14,27 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
+        uses: actions/checkout@v4
 
       - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Versions
         shell: bash
         run: |
           set -euo pipefail
-          npm install -g pnpm@9.12.1
-          node --version
-          npm --version
-          pnpm --version
-          which pnpm
+          echo "node: $(node --version)"
+          echo "npm:  $(npm --version)"
+          echo "pnpm: $(pnpm --version)"
 
       - name: Read project version
         shell: bash
@@ -44,14 +49,7 @@ jobs:
           CI: 'true'
         run: |
           set -euo pipefail
-          pnpm install --no-frozen-lockfile --reporter=append-only > install-deps.log 2>&1 || {
-            code=$?
-            echo "===== install-deps.log ====="
-            cat install-deps.log || true
-            exit $code
-          }
-          echo "===== install-deps.log ====="
-          cat install-deps.log || true
+          pnpm install --no-frozen-lockfile --reporter=append-only
 
       - name: Type check (informational)
         continue-on-error: true
@@ -64,13 +62,7 @@ jobs:
         shell: bash
         env:
           CI: 'true'
+          NODE_OPTIONS: --max-old-space-size=4096
         run: |
           set -euo pipefail
-          pnpm exec vite build --debug > build-ui.log 2>&1 || {
-            code=$?
-            echo "===== build-ui.log ====="
-            cat build-ui.log || true
-            exit $code
-          }
-          echo "===== build-ui.log ====="
-          cat build-ui.log || true
+          pnpm build --debug
