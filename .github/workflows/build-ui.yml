@@ -11,6 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -23,54 +24,53 @@ jobs:
       - name: Setup pnpm
         shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           npm install -g pnpm@9.12.1
-          pnpm --version
-
-      - name: Preflight diagnostics
-        shell: bash
-        run: |
-          set -euxo pipefail
-          pwd
-          ls -la
           node --version
           npm --version
-          which pnpm
           pnpm --version
+          which pnpm
 
       - name: Read project version
         shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); console.log('Project version:', pkg.version ?? 'unknown')"
-
-      - name: Check lockfile drift
-        shell: bash
-        run: |
-          set -euxo pipefail
-          grep -nE '^\s{2}[^[:space:]].*:$' pnpm-lock.yaml | head -n 5 || true
-          cp pnpm-lock.yaml pnpm-lock.before.yaml
-          pnpm install --lockfile-only --ignore-scripts --reporter append-only
-          diff -u pnpm-lock.before.yaml pnpm-lock.yaml || true
-          mv pnpm-lock.before.yaml pnpm-lock.yaml
 
       - name: Install dependencies
         shell: bash
         env:
           HUSKY: '0'
+          CI: 'true'
         run: |
-          set -euxo pipefail
-          pnpm install --no-frozen-lockfile --reporter append-only
+          set -euo pipefail
+          pnpm install --no-frozen-lockfile --reporter=append-only > install-deps.log 2>&1 || {
+            code=$?
+            echo "===== install-deps.log ====="
+            cat install-deps.log || true
+            exit $code
+          }
+          echo "===== install-deps.log ====="
+          cat install-deps.log || true
 
       - name: Type check (informational)
         continue-on-error: true
         shell: bash
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           pnpm type-check
 
       - name: Build UI
         shell: bash
+        env:
+          CI: 'true'
         run: |
-          set -euxo pipefail
-          pnpm exec vite build --debug
+          set -euo pipefail
+          pnpm exec vite build --debug > build-ui.log 2>&1 || {
+            code=$?
+            echo "===== build-ui.log ====="
+            cat build-ui.log || true
+            exit $code
+          }
+          echo "===== build-ui.log ====="
+          cat build-ui.log || true

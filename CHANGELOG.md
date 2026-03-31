@@ -1,4 +1,9 @@
-## v0.6.31
+## v0.6.32
+- actually replace `.github/workflows/build-ui.yml` with the simplified inline-log workflow
+- remove stale `Check lockfile drift` / preflight-heavy workflow content that remained in the previous archive
+- keep inline `install-deps.log` and `build-ui.log` printing so GitHub Actions can finally show the first real build failure
+
+## v0.6.32
 
 - replaced the GitHub Actions `build-ui.yml` with a simplified workflow that prints `install-deps.log` and `build-ui.log` inline on failure
 - removed the noisy lockfile drift step from CI so the first real install/build error is visible
