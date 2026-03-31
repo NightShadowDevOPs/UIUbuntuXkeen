@@ -1,10 +1,10 @@
 # Roadmap
 
-Текущая версия линии: **v0.6.23**
+Текущая версия линии: **v0.6.24**
 
 ## Ближайший фокус
 
-### v0.6.23 — workflow log visibility hotfix
+### v0.6.24 — workflow log visibility hotfix
 
 - Добавить GitHub Actions workflow в репозиторий.
 - Раскрывать полный лог `vite build --debug` при падении шага `Build UI`.

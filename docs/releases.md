@@ -1,4 +1,4 @@
-## v0.6.23 — workflow log visibility hotfix
+## v0.6.24 — workflow log visibility hotfix
 
 - Добавлен `.github/workflows/build-ui.yml`.
 - Шаг `Build UI` теперь печатает полный лог `vite build --debug` в GitHub Actions.

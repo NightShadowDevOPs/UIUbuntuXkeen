@@ -1,4 +1,4 @@
-## v0.6.23 - 2026-03-31
+## v0.6.24 - 2026-03-31
 
 - добавлен `.github/workflows/build-ui.yml`;
 - шаг `Build UI` теперь запускает `pnpm exec vite build --debug 2>&1 | tee build-ui.log`;

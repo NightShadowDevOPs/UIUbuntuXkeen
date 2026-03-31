@@ -1,6 +1,6 @@
 # Docs index
 
-Актуально для релиза: **v0.6.23**
+Актуально для релиза: **v0.6.24**
 
 Основные файлы:
 
@@ -13,4 +13,4 @@
 - `build-hotfix-v0.6.20.md` — первый build/type-check hotfix.
 - `build-hotfix-v0.6.21.md` — второй build/type-check hotfix.
 - `build-hotfix-v0.6.22.md` — третий build/type-check hotfix.
-- `build-hotfix-v0.6.23.md` — фиксация workflow GitHub Actions для подробного лога build-падений.
+- `build-hotfix-v0.6.24.md` — фиксация workflow GitHub Actions для подробного лога build-падений.
