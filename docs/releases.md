@@ -1,4 +1,5 @@
-## v0.6.29 — simplify CI install and bypass frozen lockfile drift
+- v0.6.30 — fixed invalid GitHub Actions YAML syntax in `build-ui.yml` and restored a parseable CI workflow.
+## v0.6.30 — simplify CI install and bypass frozen lockfile drift
 
 - шаг `Install dependencies` упрощён: убраны `tee`/промежуточные ловушки, чтобы GitHub Actions печатал реальную ошибку напрямую в лог
 - CI install переведён на `pnpm install --no-frozen-lockfile`, чтобы не спотыкаться о drift между `package.json` и `pnpm-lock.yaml`

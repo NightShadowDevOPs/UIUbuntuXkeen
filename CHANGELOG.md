@@ -1,3 +1,8 @@
+## v0.6.30
+- Fixed YAML syntax in `.github/workflows/build-ui.yml` after the broken `Check lockfile drift` step in v0.6.29.
+- Rewrote the workflow block with valid multiline shell commands so GitHub Actions can parse and run the file again.
+- Kept the CI diagnostics and pnpm bootstrap path from the previous hotfixes.
+
 ## v0.6.29
 
 - simplify GitHub Actions install/build steps so raw pnpm/vite errors print directly to the job log

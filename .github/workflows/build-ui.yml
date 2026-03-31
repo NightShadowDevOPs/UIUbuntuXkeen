@@ -48,22 +48,11 @@ jobs:
         shell: bash
         run: |
           set -euxo pipefail
-          node <<'NODE'
-          const fs = require('node:fs')
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
-          const lock = fs.readFileSync('pnpm-lock.yaml', 'utf8')
-          const deps = Object.keys(pkg.dependencies || {})
-          const missing = deps.filter((name) => {
-            return !lock.includes(`
-      '${name}':`) && !lock.includes(`
-      ${name}:`)
-          })
-          if (missing.length) {
-            console.log('Lockfile drift detected for dependencies:', missing.join(', '))
-          } else {
-            console.log('No dependency drift detected in pnpm-lock importer section.')
-          }
-          NODE
+          grep -nE '^\s{2}[^[:space:]].*:$' pnpm-lock.yaml | head -n 5 || true
+          cp pnpm-lock.yaml pnpm-lock.before.yaml
+          pnpm install --lockfile-only --ignore-scripts --reporter append-only
+          diff -u pnpm-lock.before.yaml pnpm-lock.yaml || true
+          mv pnpm-lock.before.yaml pnpm-lock.yaml
 
       - name: Install dependencies
         shell: bash
