@@ -6,7 +6,7 @@
 
 ## Текущий статус
 
-- Текущая версия линии: **v0.6.25**
+- Текущая версия линии: **v0.6.26**
 - Последний подтверждённо рабочий релиз на сервере: **v0.2.10**
 - Текущий шаг: **cleanup-first + честная фиксация runtime-модели + нормальный CI-лог сборки**
 
@@ -16,11 +16,11 @@
 - Наличие `Dockerfile` и `Caddyfile` в репозитории **не означает**, что проект уже стал встроенным Ubuntu backend/service.
 - Релиз `v0.6.17` **не считать правильным**: в нём была самовольно навязана новая runtime-модель `frontend + backend`, не зафиксированная как штатная архитектура проекта.
 - Релиз `v0.6.19` убрал ложную provider SSL-проверку через legacy path и оставил только подготовку URL подписок до появления Ubuntu service на хосте.
-- Релиз `v0.6.25` исправляет GitHub Actions workflow: `pnpm` теперь устанавливается отдельным шагом до install/build, а подробный вывод `vite build --debug` остаётся включённым.
+- Релиз `v0.6.26` исправляет GitHub Actions workflow: `pnpm` теперь устанавливается отдельным шагом до install/build, а подробный вывод `vite build --debug` остаётся включённым.
 
 ## Что уже сделано в cleanup-линии
 
-### v0.6.25
+### v0.6.26
 - добавлен `.github/workflows/build-ui.yml`;
 - шаг `Build UI` теперь печатает полный debug-лог `vite build`;
 - при падении workflow выводится содержимое `build-ui.log` прямо в лог Actions;
@@ -47,4 +47,4 @@
 
 ## Provider SSL checks
 
-As of `v0.6.25`, provider certificate checks are **not** treated as a finished frontend-only feature. The UI keeps the provider subscription URL editor, while the actual TLS/SSL polling is reserved for a dedicated Ubuntu service running on the project host.
+As of `v0.6.26`, provider certificate checks are **not** treated as a finished frontend-only feature. The UI keeps the provider subscription URL editor, while the actual TLS/SSL polling is reserved for a dedicated Ubuntu service running on the project host.

@@ -1,10 +1,16 @@
-## v0.6.25 — workflow early-failure diagnostics hotfix
+## v0.6.26 — GitHub Actions pnpm bootstrap and inline build log
+
+- убран `pnpm/action-setup`, который тянул deprecated Node 20 runtime warning
+- `pnpm` теперь ставится через `npm install -g pnpm@9.12.1`
+- шаг `Build UI` печатает `build-ui.log` в том же шаге при падении, чтобы первая ошибка Vite была видна сразу
+
+## v0.6.26 — workflow early-failure diagnostics hotfix
 
 - moved preflight diagnostics before project version read
 - replaced the brittle version echo with explicit `node:fs` JSON parsing
 - made the failure-log step tolerant when `build-ui.log` is missing
 
-## v0.6.25 — workflow log visibility hotfix
+## v0.6.26 — workflow log visibility hotfix
 
 - Добавлен `.github/workflows/build-ui.yml`.
 - Шаг `Build UI` теперь печатает полный лог `vite build --debug` в GitHub Actions.

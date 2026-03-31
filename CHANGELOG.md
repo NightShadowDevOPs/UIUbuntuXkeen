@@ -1,3 +1,10 @@
+## v0.6.26 - 2026-03-31
+
+- replaced `pnpm/action-setup` with explicit `npm install -g pnpm@9.12.1` in GitHub Actions
+- removed the deprecated Node 20 based pnpm action from the workflow path
+- made `Build UI` print `build-ui.log` inside the same failing step so the primary Vite error is visible immediately
+- kept preflight diagnostics and resilient project version read before install/build
+
 ## v0.6.25 - 2026-03-31
 
 - hardened GitHub Actions workflow diagnostics around the pre-build steps

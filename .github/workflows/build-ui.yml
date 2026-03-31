@@ -15,17 +15,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4.2.0
-        with:
-          version: 9.12.1
-          run_install: false
-
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: pnpm
+
+      - name: Setup pnpm
+        shell: bash
+        run: |
+          set -euxo pipefail
+          npm install -g pnpm@9.12.1
+          pnpm --version
 
       - name: Preflight diagnostics
         shell: bash
@@ -34,6 +35,7 @@ jobs:
           pwd
           ls -la
           node --version
+          npm --version
           pnpm --version
 
       - name: Read project version
@@ -52,21 +54,20 @@ jobs:
 
       - name: Type check (informational)
         continue-on-error: true
-        run: pnpm type-check
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm type-check 2>&1 | tee type-check.log
 
       - name: Build UI
         shell: bash
         run: |
-          set -o pipefail
+          set +e
           pnpm exec vite build --debug 2>&1 | tee build-ui.log
-
-      - name: Show build log on failure
-        if: failure()
-        shell: bash
-        run: |
-          if [[ -f build-ui.log ]]; then
+          status=${PIPESTATUS[0]}
+          echo "Build exit code: $status"
+          if [[ $status -ne 0 ]]; then
             echo "===== build-ui.log ====="
             cat build-ui.log
-          else
-            echo "build-ui.log not found; failure happened before Vite build started."
+            exit $status
           fi
