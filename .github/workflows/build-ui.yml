@@ -27,16 +27,25 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - name: Read project version
-        run: |
-          echo "Project version: $(node -p \"require('./package.json').version\")"
-
       - name: Preflight diagnostics
+        shell: bash
         run: |
-          node --version
-          pnpm --version
+          set -euxo pipefail
           pwd
           ls -la
+          node --version
+          pnpm --version
+
+      - name: Read project version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f package.json ]]; then
+            echo "package.json not found in $(pwd)"
+            ls -la
+            exit 1
+          fi
+          node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); console.log('Project version:', pkg.version ?? 'unknown')"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -55,5 +64,9 @@ jobs:
         if: failure()
         shell: bash
         run: |
-          echo "===== build-ui.log ====="
-          cat build-ui.log
+          if [[ -f build-ui.log ]]; then
+            echo "===== build-ui.log ====="
+            cat build-ui.log
+          else
+            echo "build-ui.log not found; failure happened before Vite build started."
+          fi

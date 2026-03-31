@@ -1,4 +1,10 @@
-## v0.6.24 — workflow log visibility hotfix
+## v0.6.25 — workflow early-failure diagnostics hotfix
+
+- moved preflight diagnostics before project version read
+- replaced the brittle version echo with explicit `node:fs` JSON parsing
+- made the failure-log step tolerant when `build-ui.log` is missing
+
+## v0.6.25 — workflow log visibility hotfix
 
 - Добавлен `.github/workflows/build-ui.yml`.
 - Шаг `Build UI` теперь печатает полный лог `vite build --debug` в GitHub Actions.
