@@ -1,0 +1,59 @@
+name: Build UI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Enable pnpm via corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.12.1 --activate
+          pnpm --version
+
+      - name: Read project version
+        run: |
+          echo "Project version: $(node -p \"require('./package.json').version\")"
+
+      - name: Preflight diagnostics
+        run: |
+          node --version
+          pnpm --version
+          pwd
+          ls -la
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check (informational)
+        continue-on-error: true
+        run: pnpm type-check
+
+      - name: Build UI
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm exec vite build --debug 2>&1 | tee build-ui.log
+
+      - name: Show build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          echo "===== build-ui.log ====="
+          cat build-ui.log
