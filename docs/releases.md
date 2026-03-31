@@ -34,3 +34,8 @@
 - Исправлены типизации в `TasksPage.vue`.
 - Добавлен локальный `sleep()` helper.
 - Китайский словарь переведён на fallback от `en.ts`.
+
+
+## v0.6.28
+- Hardened GitHub Actions `Install dependencies` step with inline log capture on failure.
+- Disabled Husky during CI install to keep workflow focused on real dependency/build errors.

@@ -20,3 +20,6 @@
 
 - Запустить новый workflow и получить уже раскрытую первую реальную build-ошибку из GitHub Actions, если bootstrap больше не падает.
 - Следующий hotfix делать только по фактическому логу Vite/Rollup.
+
+
+Current prepared release: v0.6.28 (CI install-step diagnostics hotfix).

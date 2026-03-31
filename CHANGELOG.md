@@ -1,3 +1,9 @@
+## v0.6.28
+
+- harden GitHub Actions dependency installation step with inline failure log output
+- disable Husky during CI install to avoid non-build bootstrap noise
+- keep workflow diagnostics focused on the first real install/build failure
+
 ## v0.6.27 - 2026-03-31
 
 - replaced `pnpm/action-setup` with explicit `npm install -g pnpm@9.12.1` in GitHub Actions

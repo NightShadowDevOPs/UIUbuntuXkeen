@@ -50,7 +50,18 @@ jobs:
           node -e "const fs=require('node:fs'); const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); console.log('Project version:', pkg.version ?? 'unknown')"
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        shell: bash
+        run: |
+          set +e
+          export HUSKY=0
+          pnpm install --frozen-lockfile 2>&1 | tee install-deps.log
+          status=${PIPESTATUS[0]}
+          echo "Install exit code: $status"
+          if [[ $status -ne 0 ]]; then
+            echo "===== install-deps.log ====="
+            cat install-deps.log
+            exit $status
+          fi
 
       - name: Type check (informational)
         continue-on-error: true

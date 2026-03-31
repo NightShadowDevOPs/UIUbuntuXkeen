@@ -48,3 +48,7 @@
 ## Provider SSL checks
 
 As of `v0.6.27`, provider certificate checks are **not** treated as a finished frontend-only feature. The UI keeps the provider subscription URL editor, while the actual TLS/SSL polling is reserved for a dedicated Ubuntu service running on the project host.
+
+
+## CI note (v0.6.28)
+The GitHub Actions workflow now prints dependency install logs inline and disables Husky during CI bootstrap.
