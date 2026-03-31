@@ -19,6 +19,7 @@ import RulesPage from '@/views/RulesPage.vue'
 import MihomoPage from '@/views/MihomoPage.vue'
 import SettingsPage from '@/views/SettingsPage.vue'
 import UsersPage from '@/views/UsersPage.vue'
+import XuiHostsPage from '@/views/XuiHostsPage.vue'
 import SetupPage from '@/views/SetupPage.vue'
 import { useTitle } from '@vueuse/core'
 import { watch } from 'vue'
@@ -79,6 +80,11 @@ const childrenRouter = [
     path: 'users',
     name: ROUTE_NAME.users,
     component: UsersPage,
+  },
+  {
+    path: 'xui-hosts',
+    name: ROUTE_NAME.xuiHosts,
+    component: XuiHostsPage,
   },
   {
     path: 'policies',

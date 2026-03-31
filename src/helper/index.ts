@@ -142,6 +142,8 @@ export const renderRoutes = computed(() => {
     ROUTE_NAME.subscriptions,
     ROUTE_NAME.rules,
     ROUTE_NAME.mihomo,
+    ROUTE_NAME.xuiHosts,
+    ROUTE_NAME.users,
     ROUTE_NAME.settings,
   ]
 })
@@ -169,8 +171,15 @@ export const navSections = computed(() => {
       ],
     },
     {
+      key: 'navSection3xui',
+      routes: [
+        ROUTE_NAME.xuiHosts,
+      ],
+    },
+    {
       key: 'navSectionManagement',
       routes: [
+        ROUTE_NAME.users,
         ROUTE_NAME.settings,
       ],
     },
