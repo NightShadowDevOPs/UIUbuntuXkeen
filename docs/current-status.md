@@ -1,6 +1,6 @@
-Current prepared release: v0.6.48. The project now contains a real standalone Ubuntu backend in `backend/`, but the current host will keep using the honest UI fallback mode until this backend is installed on Ubuntu and selected in `Setup`.
+Current prepared release: v0.6.49. The project now contains a real standalone Ubuntu backend in `backend/`, but the current host will keep using the honest UI fallback mode until this backend is installed on Ubuntu and selected in `Setup`.
 
-## Обновление v0.6.48
+## Обновление v0.6.49
 - после подтверждения пользователем backend-старта в репозиторий добавлен отдельный Ubuntu backend/service
 - backend не привязан к `/cgi-bin/api.sh` и не встраивается в runtime `mihomo`
 - новый backend хранит `3x-ui Hosts`, `Users inventory`, `jobs` и SSL state в SQLite

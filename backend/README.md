@@ -1,6 +1,6 @@
 # UIUbuntuXkeen backend
 
-Версия: **v0.6.48**
+Версия: **v0.6.49**
 
 Что это:
 - отдельный Ubuntu backend/service для UIUbuntuXkeen;
@@ -32,8 +32,9 @@ cd backend
 - копирует backend в `/opt/ultra-ui-ubuntu-backend`;
 - создаёт `.venv`;
 - устанавливает зависимости;
-- создаёт `/etc/ultra-ui-ubuntu/agent.env`;
-- регистрирует и запускает systemd unit `ultra-ui-ubuntu-backend.service`.
+- создаёт `/etc/ultra-ui-ubuntu/agent.env` c `ULTRA_UI_HOST=0.0.0.0`;
+- при update автоматически переводит старый `ULTRA_UI_HOST=127.0.0.1` на `0.0.0.0`;
+- регистрирует и запускает systemd unit `ultra-ui-ubuntu-backend.service` из шаблона `backend/deploy/ultra-ui-ubuntu-backend.service`.
 
 ## Главные endpoints
 

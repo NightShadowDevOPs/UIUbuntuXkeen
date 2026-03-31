@@ -1,4 +1,4 @@
-# Следующий шаг после v0.6.48
+# Следующий шаг после v0.6.49
 
 1. Поставить backend на живой Ubuntu-хост через `backend/scripts/install.sh`.
 2. Проверить `systemctl status ultra-ui-ubuntu-backend` и `curl http://127.0.0.1:18090/api/health`.

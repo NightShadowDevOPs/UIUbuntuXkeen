@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_VERSION = "0.6.48"
+APP_VERSION = "0.6.49"
 DEFAULT_CAPABILITIES = {
     "status": True,
     "health": True,
@@ -59,7 +59,7 @@ class Settings:
         return cls(
             app_name="ultra-ui-ubuntu-backend",
             app_version=APP_VERSION,
-            host=os.getenv("ULTRA_UI_HOST", "127.0.0.1"),
+            host=os.getenv("ULTRA_UI_HOST", "0.0.0.0"),
             port=int(os.getenv("ULTRA_UI_PORT", "18090")),
             db_path=db_path,
             runtime_dir=runtime_dir,

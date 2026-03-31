@@ -10,6 +10,11 @@ ENV_DIR=/etc/ultra-ui-ubuntu
 ENV_FILE=${ULTRA_UI_AGENT_ENV:-$ENV_DIR/agent.env}
 SERVICE_NAME=${ULTRA_UI_SERVICE_NAME:-ultra-ui-ubuntu-backend}
 PYTHON_BIN=${PYTHON_BIN:-/usr/bin/python3}
+SERVICE_TEMPLATE=${ULTRA_UI_SERVICE_TEMPLATE:-$BACKEND_DIR/deploy/ultra-ui-ubuntu-backend.service}
+
+if ! command -v sudo >/dev/null 2>&1; then
+  sudo() { "$@"; }
+fi
 
 sudo mkdir -p "$INSTALL_ROOT" "$RUNTIME_DIR" "$LOG_DIR" "$ENV_DIR"
 sudo rsync -a --delete "$BACKEND_DIR/" "$INSTALL_ROOT/"
@@ -23,7 +28,7 @@ sudo "$INSTALL_ROOT/.venv/bin/pip" install -r "$INSTALL_ROOT/requirements.txt"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   sudo tee "$ENV_FILE" >/dev/null <<ENV
-ULTRA_UI_HOST=127.0.0.1
+ULTRA_UI_HOST=0.0.0.0
 ULTRA_UI_PORT=18090
 ULTRA_UI_RUNTIME=$RUNTIME_DIR
 ULTRA_UI_LOG_DIR=$LOG_DIR
@@ -32,27 +37,13 @@ ULTRA_UI_SSL_CHECK_INTERVAL_SECS=14400
 ULTRA_UI_CORS_ALLOW_ALL=1
 MIHOMO_LOG_FILE=/var/log/mihomo/mihomo.log
 ENV
+else
+  if sudo grep -q '^ULTRA_UI_HOST=127\.0\.0\.1$' "$ENV_FILE"; then
+    sudo sed -i 's/^ULTRA_UI_HOST=127\.0\.0\.1$/ULTRA_UI_HOST=0.0.0.0/' "$ENV_FILE"
+  fi
 fi
 
-sudo tee "/etc/systemd/system/${SERVICE_NAME}.service" >/dev/null <<UNIT
-[Unit]
-Description=Ultra UI Ubuntu backend
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=$INSTALL_ROOT
-EnvironmentFile=-$ENV_FILE
-ExecStart=$INSTALL_ROOT/.venv/bin/uvicorn app.main:app --app-dir $INSTALL_ROOT --host \\${ULTRA_UI_HOST} --port \\${ULTRA_UI_PORT}
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-
+sudo cp "$SERVICE_TEMPLATE" "/etc/systemd/system/${SERVICE_NAME}.service"
 sudo systemctl daemon-reload
 sudo systemctl enable --now "$SERVICE_NAME"
 sudo systemctl status "$SERVICE_NAME" --no-pager || true

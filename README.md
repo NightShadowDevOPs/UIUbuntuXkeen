@@ -1,11 +1,11 @@
 # UIUbuntuXkeen
 
-- Текущая версия линии: **v0.6.48**
+- Текущая версия линии: **v0.6.49**
 - Базовый runtime текущего хоста: `mihomo`
 - Подтверждённый recovery-механизм UI: остановить `mihomo`, удалить папку UI, снова запустить `mihomo` — UI скачивается из репозитория автоматически
-- Начиная с `v0.6.48`, в репозитории снова есть **отдельный Ubuntu backend**, но он запускается **как самостоятельный systemd service**, а не внутри `mihomo`
+- Начиная с `v0.6.49`, в репозитории снова есть **отдельный Ubuntu backend**, но он запускается **как самостоятельный systemd service**, а не внутри `mihomo`
 
-## Что в v0.6.48
+## Что в v0.6.49
 
 - добавлен новый каталог `backend/` с реальным Ubuntu backend/service на **FastAPI + SQLite**
 - backend поднимает endpoints `health`, `version`, `capabilities`, `status`, `providers`, `users inventory`, `jobs`
@@ -25,4 +25,4 @@
 Этот релиз **не вшивает backend внутрь `mihomo`** и не пытается воскресить мёртвый `/cgi-bin/api.sh`.
 Новая backend-линия запускается отдельно и может развиваться независимо, не ломая текущий UI runtime.
 
-[Update v0.6.48]
+[Update v0.6.49]
