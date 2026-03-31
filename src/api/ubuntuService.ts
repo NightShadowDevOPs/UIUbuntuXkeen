@@ -2,7 +2,7 @@ import { BACKEND_KINDS, UBUNTU_BACKEND_ENDPOINTS } from '@/config/backendContrac
 import { getAnyFromObj } from '@/helper/providerHealth'
 import axios from 'axios'
 import { agentMihomoProvidersAPI, agentProviderSslCacheRefreshAPI, agentUsersDbGetAPI, agentUsersDbPutAPI } from '@/api/agent'
-import { detectBackendKind } from '@/helper/backend'
+import { detectBackendKind, getBackendEndpointPath } from '@/helper/backend'
 import { activeBackend } from '@/store/setup'
 import dayjs from 'dayjs'
 
@@ -134,6 +134,12 @@ export const normalizeUbuntuProviderState = (payload: any): UbuntuProviderState 
 }
 
 const preferCompatibilityBridge = () => detectBackendKind(activeBackend.value) !== BACKEND_KINDS.UBUNTU_SERVICE
+
+
+const ubuntuEndpoint = (endpoint: string) => {
+  if (!activeBackend.value) return endpoint
+  return getBackendEndpointPath(activeBackend.value, endpoint)
+}
 
 const decodeB64Utf8 = (value: string) => {
   const raw = String(value || '').trim()
@@ -415,7 +421,7 @@ const bridgeRefreshProviderSslCache = async () => {
 export const fetchUbuntuProvidersAPI = async () => {
   if (preferCompatibilityBridge()) return listProvidersFromUsersDb()
   try {
-    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providers, silentCfg)
+    const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers), silentCfg)
     return pickList(data || {}).map((item) => ({
       ...item,
       name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
@@ -431,7 +437,7 @@ export const saveUbuntuProvidersAPI = async (items: Array<{ name: string; panelU
   if (preferCompatibilityBridge()) return saveProvidersToUsersDb(items)
   try {
     const { data } = await axios.put(
-      UBUNTU_BACKEND_ENDPOINTS.providers,
+      ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers),
       { providers: items },
       {
         ...silentCfg,
@@ -463,7 +469,7 @@ export type UbuntuUsersInventoryRow = {
 export const fetchUbuntuUsersInventoryAPI = async () => {
   if (preferCompatibilityBridge()) return listUsersInventoryFromUsersDb()
   try {
-    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.usersInventory, silentCfg)
+    const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.usersInventory), silentCfg)
     return {
       items: pickList(data || {}).map((item) => ({
         ip: str(getAnyFromObj(item, ['ip', 'key'])),
@@ -489,7 +495,7 @@ export const saveUbuntuUsersInventoryAPI = async (
   if (preferCompatibilityBridge()) return saveUsersInventoryToUsersDb(items, policyMode)
   try {
     const { data } = await axios.put(
-      UBUNTU_BACKEND_ENDPOINTS.usersInventory,
+      ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.usersInventory),
       { items, policyMode },
       {
         ...silentCfg,
@@ -517,7 +523,7 @@ export const saveUbuntuUsersInventoryAPI = async (
 export const fetchUbuntuProviderChecksAPI = async () => {
   if (preferCompatibilityBridge()) return bridgeProviderChecks(false)
   try {
-    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providerChecks, silentCfg)
+    const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerChecks), silentCfg)
     return normalizeUbuntuProviderState(data || {})
   } catch {
     return bridgeProviderChecks(false)
@@ -527,7 +533,7 @@ export const fetchUbuntuProviderChecksAPI = async () => {
 export const runUbuntuProviderChecksAPI = async () => {
   if (preferCompatibilityBridge()) return bridgeRefreshProviderSslCache()
   try {
-    const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerChecksRun, null, {
+    const { data } = await axios.post(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerChecksRun), null, {
       ...silentCfg,
       timeout: 15000,
     })
@@ -540,7 +546,7 @@ export const runUbuntuProviderChecksAPI = async () => {
 export const refreshUbuntuProvidersAPI = async () => {
   if (preferCompatibilityBridge()) return bridgeProviderChecks(true)
   try {
-    const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerRefresh, null, {
+    const { data } = await axios.post(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerRefresh), null, {
       ...silentCfg,
       timeout: 15000,
     })
@@ -553,7 +559,7 @@ export const refreshUbuntuProvidersAPI = async () => {
 export const refreshUbuntuProviderSslCacheAPI = async () => {
   if (preferCompatibilityBridge()) return bridgeRefreshProviderSslCache()
   try {
-    const { data } = await axios.post(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheRefresh, null, {
+    const { data } = await axios.post(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheRefresh), null, {
       ...silentCfg,
       timeout: 15000,
     })
@@ -566,7 +572,7 @@ export const refreshUbuntuProviderSslCacheAPI = async () => {
 export const fetchUbuntuProviderSslCacheStatusAPI = async () => {
   if (preferCompatibilityBridge()) return bridgeProviderChecks(false)
   try {
-    const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheStatus, silentCfg)
+    const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheStatus), silentCfg)
     return normalizeUbuntuProviderState(data || {})
   } catch {
     return bridgeProviderChecks(false)
@@ -825,22 +831,22 @@ export const normalizeUbuntuSystemLogs = (payload: any, fallback: { source?: str
 }
 
 export const fetchUbuntuSystemStatusAPI = async () => {
-  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.status, silentCfg)
+  const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.status), silentCfg)
   return normalizeUbuntuSystemStatus(data || {})
 }
 
 export const fetchUbuntuSystemResourcesAPI = async () => {
-  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.resources, silentCfg)
+  const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.resources), silentCfg)
   return normalizeUbuntuSystemResources(data || {})
 }
 
 export const fetchUbuntuSystemServicesAPI = async () => {
-  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.services, silentCfg)
+  const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.services), silentCfg)
   return normalizeUbuntuSystemServices(data || {})
 }
 
 export const fetchUbuntuSystemLogsAPI = async (args?: { source?: 'mihomo' | 'service'; tail?: number }) => {
-  const { data } = await axios.get(UBUNTU_BACKEND_ENDPOINTS.logs, {
+  const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.logs), {
     ...silentCfg,
     params: {
       source: args?.source || 'mihomo',

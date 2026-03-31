@@ -1,7 +1,8 @@
-# Следующий шаг после v0.6.49
+# Следующий шаг после v0.6.50
 
-1. Поставить backend на живой Ubuntu-хост через `backend/scripts/install.sh`.
-2. Проверить `systemctl status ultra-ui-ubuntu-backend` и `curl http://127.0.0.1:18090/api/health`.
-3. В `Setup` добавить и выбрать backend `http://<IP_хоста>:18090` как `ubuntu-service`.
-4. Проверить сохранение `Хосты 3x-ui` и `Пользователи` уже через SQLite backend, а не через локальный fallback UI.
-5. После подтверждения запуска — расширять backend на `Host`, `Traffic`, `QoS`, `logs`, `resources`.
+1. Обновить UI до `v0.6.50` на живом хосте через git workflow в `/opt/UIUbuntu/app`.
+2. Повторно выполнить `backend/scripts/install.sh`, чтобы backend/runtime и документация были синхронизированы с релизом.
+3. В `Setup` оставить активным backend `ubuntu-service` с `secondaryPath=/api`.
+4. Проверить экран `Хосты 3x-ui` без fallback-плашки и `capabilities-http-404`.
+5. Подтвердить сохранение `Хосты 3x-ui` и `Пользователи` через живой SQLite backend.
+6. После подтверждения — идти в следующий backend-блок: `Host`, `Traffic`, `QoS`, `logs`, `resources`.

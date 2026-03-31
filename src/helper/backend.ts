@@ -43,6 +43,25 @@ export const normalizeBackendInput = <T extends Omit<Backend, 'uuid'>>(backend: 
 }
 
 
+
+export const getBackendEndpointPath = (backend: Pick<Backend, 'protocol' | 'host' | 'port' | 'secondaryPath'>, endpoint: string) => {
+  const secondaryPath = normalizeSecondaryPath(backend.secondaryPath)
+  const normalizedEndpoint = normalizeSecondaryPath(endpoint)
+
+  if (!secondaryPath) return normalizedEndpoint || '/'
+  if (!normalizedEndpoint) return secondaryPath
+  if (normalizedEndpoint === secondaryPath) return secondaryPath
+  if (normalizedEndpoint.startsWith(`${secondaryPath}/`)) {
+    return normalizedEndpoint.slice(secondaryPath.length) || '/'
+  }
+
+  return `${secondaryPath}${normalizedEndpoint}`
+}
+
+export const getBackendUrlForEndpoint = (backend: Pick<Backend, 'protocol' | 'host' | 'port' | 'secondaryPath'>, endpoint: string) => {
+  return `${backend.protocol}://${backend.host}:${backend.port}${getBackendEndpointPath(backend, endpoint)}`
+}
+
 export const getRecommendedSecondaryPath = (kind: BackendKind | undefined | null) => {
   return kind === BACKEND_KINDS.UBUNTU_SERVICE
     ? UBUNTU_BACKEND_FOUNDATION.endpoints.status.replace(/\/status$/, '')

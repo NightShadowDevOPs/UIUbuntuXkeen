@@ -1,11 +1,12 @@
 # Docs index
 
-Актуально для релиза: **v0.6.49**
+Актуально для релиза: **v0.6.50**
 
 Главные документы:
 - `project-spec.md` — общее ТЗ и архитектурный вектор.
 - `backend-contract.md` — контракт нового Ubuntu backend/service.
-- `backend-service-v0.6.49.md` — описание стартового backend MVP.
+- `backend-service-v0.6.48.md` — описание стартового backend MVP.
+- `backend-route-hotfix-v0.6.50.md` — hotfix фронтовой маршрутизации для standalone backend.
 - `roadmap.md` — план работ.
 - `releases.md` — краткий журнал релизов.
 - `current-status.md` — текущий статус проекта.

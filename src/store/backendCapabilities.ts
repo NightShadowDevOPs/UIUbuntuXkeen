@@ -1,7 +1,7 @@
 import { buildCompatibilityBridgeCapabilities, normalizeBackendCapabilities } from '@/helper/backendCapabilities'
 import { agentCapabilitiesAPI } from '@/api/agent'
 import { detectBackendKind } from '@/helper/backend'
-import { getUrlFromBackend } from '@/helper/utils'
+import { getUrlFromBackendEndpoint } from '@/helper/utils'
 import { activeBackend } from '@/store/setup'
 import type { BackendCapabilities } from '@/types'
 import { ref, watch } from 'vue'
@@ -49,7 +49,7 @@ export const refreshActiveBackendCapabilities = async (force = false) => {
   const controller = new AbortController()
   const timeoutId = window.setTimeout(() => controller.abort(), 5000)
   try {
-    const res = await fetch(`${getUrlFromBackend(backend)}/api/capabilities`, {
+    const res = await fetch(getUrlFromBackendEndpoint(backend, '/api/capabilities'), {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${backend.password}`,

@@ -1,6 +1,6 @@
 # UIUbuntuXkeen backend
 
-Версия: **v0.6.49**
+Версия: **v0.6.50**
 
 Что это:
 - отдельный Ubuntu backend/service для UIUbuntuXkeen;
@@ -51,3 +51,6 @@ cd backend
 - `GET /api/users/inventory`
 - `PUT /api/users/inventory`
 - `GET /api/jobs`
+
+
+Примечание `v0.6.50`: backend runtime не меняет модель запуска. Hotfix находится на стороне фронта и исправляет дублирование `/api` в UI при выбранном `secondaryPath=/api`.

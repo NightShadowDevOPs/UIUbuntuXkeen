@@ -1,18 +1,17 @@
 # UIUbuntuXkeen
 
-- Текущая версия линии: **v0.6.49**
+- Текущая версия линии: **v0.6.50**
 - Базовый runtime текущего хоста: `mihomo`
 - Подтверждённый recovery-механизм UI: остановить `mihomo`, удалить папку UI, снова запустить `mihomo` — UI скачивается из репозитория автоматически
-- Начиная с `v0.6.49`, в репозитории снова есть **отдельный Ubuntu backend**, но он запускается **как самостоятельный systemd service**, а не внутри `mihomo`
+- Начиная с `v0.6.50`, в репозитории снова есть **отдельный Ubuntu backend**, но он запускается **как самостоятельный systemd service**, а не внутри `mihomo`
 
-## Что в v0.6.49
+## Что в v0.6.50
 
-- добавлен новый каталог `backend/` с реальным Ubuntu backend/service на **FastAPI + SQLite**
-- backend поднимает endpoints `health`, `version`, `capabilities`, `status`, `providers`, `users inventory`, `jobs`
-- для `Хосты 3x-ui` добавлена серверная база `provider_hosts` и реальная SSL/TLS-проверка panel URL через Python `ssl/socket`
-- для `Пользователи` добавлена серверная база `users_inventory` и policy mode `allowAll / allowListOnly`
-- добавлены install/run-скрипты и systemd unit template для Ubuntu
-- документация, transfer-файлы и базы шагов/запросов обновлены под новый backend-этап
+- backend `ultra-ui-ubuntu-backend.service` уже подтверждён на живом Ubuntu-хосте и доступен по `0.0.0.0:18090`
+- исправлена сборка frontend URL для standalone backend при `secondaryPath=/api`: больше нет сломанного адреса вида `/api/api/...`
+- экран `Хосты 3x-ui`, чтение capabilities, provider SSL cache и остальные Ubuntu API-вызовы теперь обращаются к backend по корректным маршрутам
+- выбранный в `Setup` backend `ubuntu-service` остаётся правильным рабочим режимом — hotfix меняет только сборку endpoint-ов, а не архитектуру запуска
+- документация, transfer-файлы и базы шагов/запросов обновлены под подтверждённый live-backend и hotfix маршрутов
 
 ## Как это теперь запускается
 
@@ -25,4 +24,4 @@
 Этот релиз **не вшивает backend внутрь `mihomo`** и не пытается воскресить мёртвый `/cgi-bin/api.sh`.
 Новая backend-линия запускается отдельно и может развиваться независимо, не ломая текущий UI runtime.
 
-[Update v0.6.49]
+[Update v0.6.50]

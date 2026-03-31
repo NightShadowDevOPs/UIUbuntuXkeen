@@ -1,19 +1,20 @@
-Current prepared release: v0.6.49. The project now contains a real standalone Ubuntu backend in `backend/`, but the current host will keep using the honest UI fallback mode until this backend is installed on Ubuntu and selected in `Setup`.
+Current prepared release: v0.6.50. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
 
-## Обновление v0.6.49
-- после подтверждения пользователем backend-старта в репозиторий добавлен отдельный Ubuntu backend/service
-- backend не привязан к `/cgi-bin/api.sh` и не встраивается в runtime `mihomo`
-- новый backend хранит `3x-ui Hosts`, `Users inventory`, `jobs` и SSL state в SQLite
-- install/run flow оформлен через `backend/scripts/install.sh`, `backend/scripts/run-dev.sh` и systemd unit `ultra-ui-ubuntu-backend.service`
-- UI остаётся совместимым с fallback-режимом, пока backend не установлен и не выбран в `Setup`
+## Обновление v0.6.50
+- подтверждён живой запуск `ultra-ui-ubuntu-backend.service` на Ubuntu-хосте
+- подтверждены ответы `/api/health`, `/api/version`, `/api/capabilities`, `/api/status`
+- подтверждено подключение backend в `Setup` как `ubuntu-service` с `host:port + /api`
+- выявлен фронтовой дефект сборки URL: часть экранов строила маршрут как `/api/api/...` и падала в `capabilities-http-404`
+- в `v0.6.50` исправлена нормализация backend endpoint-ов для standalone Ubuntu backend
 
 ## Что сейчас точно есть
-- UI раздаётся самим `mihomo`
+- UI по-прежнему раздаётся самим `mihomo`
 - папка UI на сервере: `/etc/mihomo/uiubuntu`
 - recovery UI: остановить `mihomo` -> удалить папку UI -> запустить `mihomo` -> UI снова скачивается
-- в репозитории есть новый каталог `backend/` с FastAPI + SQLite backend
+- на Ubuntu-хосте уже работает `ultra-ui-ubuntu-backend.service`
+- backend слушает `0.0.0.0:18090` и использует SQLite: `/var/lib/ultra-ui-ubuntu/runtime/backend.sqlite3`
 
-## Чего ещё нет на текущем живом хосте до установки
-- подтверждённого запущенного `ultra-ui-ubuntu-backend.service`
-- подтверждённого `GET /api/health` на `127.0.0.1:18090`
-- подтверждённого live-подключения UI к backend через `Setup`
+## Что проверяется следующим шагом
+- сохранение `Хосты 3x-ui` через живой backend без fallback-плашки
+- сохранение `Users inventory` через SQLite backend
+- ручной запуск и отображение SSL-cache/SSL-check из UI без `capabilities-http-404`

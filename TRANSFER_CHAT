@@ -1,32 +1,30 @@
-Prepared release: v0.6.49. This release starts the real Ubuntu backend line for UIUbuntuXkeen as a standalone systemd service. The project no longer depends on reviving `/cgi-bin/api.sh`; instead, it now contains a separate `backend/` with FastAPI + SQLite for `3x-ui Hosts`, `Users inventory`, `jobs`, and provider SSL checks.
+Prepared release: v0.6.50. The standalone Ubuntu backend is now confirmed on the live host, and this hotfix fixes the frontend route composition bug that produced `/api/api/...` requests after selecting the backend in `Setup`.
 
-Актуальный релиз для переноса: **v0.6.49**
+Актуальный релиз для переноса: **v0.6.50**
 
-Что сделано в `v0.6.49`
-- пользователь подтвердил старт backend-этапа отдельным релизом, с обязательной актуализацией документации и фиксацией всех шагов
-- в проект добавлен каталог `backend/` с отдельным Ubuntu service на FastAPI + SQLite
-- реализованы endpoints: `/api/health`, `/api/version`, `/api/capabilities`, `/api/status`, `/api/providers`, `/api/providers/checks`, `/api/providers/ssl-cache/refresh`, `/api/users/inventory`, `/api/jobs`
-- backend хранит `3x-ui Hosts` и `Users inventory` в SQLite, а не только в локальном UI-state
-- реализована серверная SSL/TLS-проверка panel URL провайдеров через Python `ssl/socket`
-- добавлены `backend/scripts/install.sh`, `backend/scripts/run-dev.sh` и systemd unit template
-- документация `docs/*`, `TRANSFER_CHAT` и журнал запросов/шагов обновлены под новый backend-контур
+Что сделано в `v0.6.50`
+- на живом Ubuntu-хосте подтверждён запуск `ultra-ui-ubuntu-backend.service` и ответы `/api/health`, `/api/version`, `/api/capabilities`, `/api/status`
+- подтверждено подключение backend в `Setup` как `ubuntu-service` через `host:port + /api`
+- исправлена фронтовая сборка URL для standalone backend: больше нет битого маршрута `/api/api/...`
+- исправлены вызовы `capabilities`, `providers`, `provider checks`, `provider SSL cache`, `users inventory`, `status/resources/services/logs`
+- документация `docs/*`, `TRANSFER_CHAT` и журнал запросов/шагов обновлены под live-backend и hotfix маршрутов
 
 Что важно понимать
 - UI по-прежнему раздаётся самим `mihomo`
 - новый backend запускается отдельно как `ultra-ui-ubuntu-backend.service`
-- backend не встроен в `mihomo` и не использует `/cgi-bin/api.sh` как каноничный runtime
-- пока backend не установлен на хосте и не выбран в `Setup`, UI продолжит честный fallback-режим
+- backend `ubuntu-service` в `Setup` остаётся правильным активным режимом; назад на `direct` уходить не нужно
+- secondary path `/api` — это нормальная настройка, проблема была именно в фронтовой сборке endpoint-ов
 
 Что делать дальше на сервере
 1. Залить релиз в репозиторий.
-2. На Ubuntu-хосте выполнить установку backend через `backend/scripts/install.sh`.
-3. Проверить `http://127.0.0.1:18090/api/health`.
-4. В UI открыть `Setup`, добавить backend `http://<IP_хоста>:18090` и выбрать его как `ubuntu-service`.
-5. Проверить экраны `Хосты 3x-ui` и `Пользователи` уже через живой backend.
+2. На Ubuntu-хосте выполнить `git pull --ff-only` в `/opt/UIUbuntu/app`.
+3. Повторно запустить `backend/scripts/install.sh`, чтобы backend версия и файлы были синхронизированы с релизом.
+4. В UI оставить выбранным backend `ubuntu-service`.
+5. Проверить экран `Хосты 3x-ui` уже без `capabilities-http-404` и без fallback-плашки.
 
-Что следующим шагом после `v0.6.49`
-- подтвердить первый запуск backend на живом хосте;
-- проверить сохранение `3x-ui Hosts` и `Users inventory` через UI;
-- расширить backend на `Host`, `Traffic`, `QoS`, `logs`, `resources`.
+Что следующим шагом после `v0.6.50`
+- подтвердить сохранение `3x-ui Hosts` через backend;
+- подтвердить сохранение `Users inventory`;
+- добавить следующий backend-блок: `Host / resources / services / logs`.
 
-[Update v0.6.49]
+[Update v0.6.50]
