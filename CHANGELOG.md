@@ -1,3 +1,11 @@
+## v0.6.20 - 2026-03-31
+
+- исправлен build/type-check hotfix для `Array.prototype.at()` в `src/composables/uiBuild.ts`;
+- исправлены TypeScript-претензии к `UserTrafficStats.vue`: безопасный доступ к `shaperBadge` в шаблоне и нормализация `trafficLimitBytes` при открытии лимитов;
+- исправлен `ProxyProvider.vue`: `sslExpireBadge` больше не падает на `info.days === null`;
+- расширен тип `UbuntuSystemStatus`: добавлен `uptimeSec` для `HostRuntimeCard.vue`;
+- `tsconfig.app.json` поднят до `ES2022`, чтобы сборка не спотыкалась о современные стандартные API.
+
 ## v0.6.19 - 2026-03-31
 
 - честно отключён legacy provider SSL fallback через router-agent / compatibility path;

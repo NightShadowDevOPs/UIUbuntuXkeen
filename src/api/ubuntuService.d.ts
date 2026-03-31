@@ -39,6 +39,7 @@ export type UbuntuSystemStatus = {
     kernel?: string;
     arch?: string;
     startedAtSec?: number;
+    uptimeSec?: number;
     updatedAtSec?: number;
     mihomoLogPath?: string;
     error?: string;

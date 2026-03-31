@@ -515,16 +515,16 @@
                     <template v-if="shaperBadge[row.user]">
                       <span
                         class="inline-flex items-center justify-center px-1"
-                        :title="shaperBadge[row.user].title"
+                        :title="shaperBadge[row.user]?.title || ''"
                       >
                         <component
-                          :is="shaperBadge[row.user].icon"
+                          :is="shaperBadge[row.user]?.icon || QuestionMarkCircleIcon"
                           class="h-4 w-4"
-                          :class="shaperBadge[row.user].cls"
+                          :class="shaperBadge[row.user]?.cls || ''"
                         />
                       </span>
                       <button
-                        v-if="shaperBadge[row.user].showReapply"
+                        v-if="shaperBadge[row.user]?.showReapply"
                         type="button"
                         class="btn btn-ghost btn-circle btn-xs relative z-20"
                         :disabled="applyingShaperUser === row.user"
@@ -2508,9 +2508,10 @@ const openLimits = (user: string, displayUser = user) => {
   draftMac.value = (l.mac || '').toString().trim().toLowerCase()
   macCandidates.value = draftMac.value ? [draftMac.value] : []
   draftPeriod.value = l.trafficPeriod
-  draftTrafficUnit.value = (l.trafficLimitUnit as any) || (l.trafficLimitBytes >= 1_000_000_000 ? 'GB' : 'MB')
+  const trafficLimitBytes = Number(l.trafficLimitBytes || 0)
+  draftTrafficUnit.value = (l.trafficLimitUnit as any) || (trafficLimitBytes >= 1_000_000_000 ? 'GB' : 'MB')
   const factor = draftTrafficUnit.value === 'GB' ? 1_000_000_000 : 1_000_000
-  draftTrafficValue.value = l.trafficLimitBytes ? +(l.trafficLimitBytes / factor).toFixed(2) : 0
+  draftTrafficValue.value = trafficLimitBytes ? +(trafficLimitBytes / factor).toFixed(2) : 0
   draftBandwidthMbps.value = l.bandwidthLimitBps ? +(((l.bandwidthLimitBps * 8) / 1_000_000)).toFixed(2) : 0
   limitsDialogOpen.value = true
 }

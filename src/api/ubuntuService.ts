@@ -216,6 +216,7 @@ export type UbuntuSystemStatus = {
   kernel?: string
   arch?: string
   startedAtSec?: number
+  uptimeSec?: number
   updatedAtSec?: number
   mihomoLogPath?: string
   error?: string
@@ -296,6 +297,7 @@ export const normalizeUbuntuSystemStatus = (payload: any): UbuntuSystemStatus =>
     kernel: str(firstNonEmpty(hostSources, ['kernel', 'kernelVersion', 'kernel_version'])),
     arch: str(firstNonEmpty(hostSources, ['arch', 'architecture'])),
     startedAtSec: toSec(firstNonEmpty(serviceSources, ['startedAtSec', 'started_at_sec', 'startedAt', 'started_at'])),
+    uptimeSec: numOrUndef(firstNonEmpty(hostSources, ['uptimeSec', 'uptime_sec', 'uptime'])),
     updatedAtSec: toSec(firstNonEmpty(hostSources, ['updatedAtSec', 'updated_at_sec', 'updatedAt', 'updated_at', 'ts'])),
     mihomoLogPath: str(firstNonEmpty(mihomoSources, ['logPath', 'log_path', 'path'])) || '/var/log/mihomo/mihomo.log',
     error: str(payload?.error || payload?.message),

@@ -1,3 +1,9 @@
+## v0.6.20 — build unblock hotfix
+
+- исправлены ошибки сборки из CI/Actions: `Array.prototype.at`, nullable `info.days`, nullable `trafficLimitBytes`, nullable `shaperBadge` и отсутствующий `uptimeSec` в `UbuntuSystemStatus`;
+- `tsconfig.app.json` поднят до `ES2022`, чтобы линия не ломалась на стандартных методах JS/TS;
+- релиз не меняет продуктовую архитектуру: provider SSL checks по-прежнему остаются целевой серверной функцией Ubuntu-хоста, а не fake frontend-only поведением.
+
 ## v0.6.19 — honest provider SSL staging
 
 - provider SSL checks через legacy router-agent / compatibility fallback больше не считаются рабочими внутри Ubuntu-линии;

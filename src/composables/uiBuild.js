@@ -21,7 +21,7 @@ const normalizeAssetUrl = (raw) => {
 const basename = (path) => {
     const clean = path.split('?')[0] || path;
     const parts = clean.split('/').filter(Boolean);
-    return parts.at(-1) || clean || '—';
+    return (parts.length ? parts[parts.length - 1] : clean) || '—';
 };
 const formatBundleTag = (entries) => {
     if (!entries.length)

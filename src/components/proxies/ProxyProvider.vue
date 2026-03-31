@@ -840,14 +840,16 @@ const sslExpireBadge = computed(() => {
   const info = sslExpireInfo.value
   if (!info) return null
 
-  if (!Number.isFinite(info.days)) {
+  const days = typeof info.days === 'number' && Number.isFinite(info.days) ? info.days : Number.NaN
+
+  if (!Number.isFinite(days)) {
     if ((info as any)?.isRefreshing) {
       return { badgeCls: 'badge-info badge-outline', text: t('providerSslRefreshing'), tip: info.tip }
     }
     return { badgeCls: 'badge-ghost', text: 'SSL —', tip: info.tip }
   }
 
-  const level = info.days < 0 ? 'error' : info.days <= sslWarnDays.value ? 'warning' : 'success'
+  const level = days < 0 ? 'error' : days <= sslWarnDays.value ? 'warning' : 'success'
   const badgeCls =
     level === 'error'
       ? 'badge-error'
@@ -855,7 +857,7 @@ const sslExpireBadge = computed(() => {
         ? 'badge-warning'
         : 'badge-success'
 
-  const text = info.days < 0 ? t('providerSslStatusExpired') : `SSL ${info.days}${t('daysShort')}`
+  const text = days < 0 ? t('providerSslStatusExpired') : `SSL ${days}${t('daysShort')}`
   return { badgeCls, text, tip: info.tip }
 })
 
