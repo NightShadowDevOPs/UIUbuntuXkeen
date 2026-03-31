@@ -271,10 +271,29 @@ const saveUsersDbDocument = async (payload: any, rev: number) => {
 
 const listProvidersFromUsersDb = async () => {
   const doc = await loadUsersDbDocument()
-  return Object.entries(doc.payload.providerPanelUrls || {})
-    .map(([name, panelUrl]) => ({ name: str(name), panelUrl: str(panelUrl), enabled: true }))
-    .filter((item) => item.name && item.panelUrl)
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const byName = new Map<string, { name: string; panelUrl: string; enabled: boolean }>()
+
+  for (const [nameRaw, panelUrlRaw] of Object.entries(doc.payload.providerPanelUrls || {})) {
+    const name = str(nameRaw)
+    const panelUrl = str(panelUrlRaw)
+    if (!name) continue
+    byName.set(name, { name, panelUrl, enabled: true })
+  }
+
+  try {
+    const remote = await agentMihomoProvidersAPI(false)
+    for (const item of remote?.providers || []) {
+      const name = str((item as any)?.name)
+      if (!name) continue
+      const current = byName.get(name)
+      const panelUrl = str((item as any)?.panelUrl) || current?.panelUrl || ''
+      byName.set(name, { name, panelUrl, enabled: true })
+    }
+  } catch {
+    // keep users-db snapshot only
+  }
+
+  return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name))
 }
 
 const saveProvidersToUsersDb = async (items: Array<{ name: string; panelUrl: string; enabled?: boolean }>) => {

@@ -1,3 +1,7 @@
+## v0.6.46
+- fixed 3x-ui Hosts data bridge: the page now merges real Mihomo provider names with saved panel URLs instead of showing an empty list when `providerPanelUrls` is blank;
+- XuiHosts page now reuses provider names already visible in Proxy Providers and lets saved URLs flow into the shared DB.
+
 ## v0.6.45
 
 - включён рабочий capability-fallback на существующий `api.sh`, чтобы `Хосты 3x-ui` и `Пользователи` реально считались backend-доступными даже без отдельного `/api/capabilities`;

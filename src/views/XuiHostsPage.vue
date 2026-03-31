@@ -128,11 +128,34 @@ const normalizeUrl = (raw: string) => {
   return `https://${value}`
 }
 
+const buildMergedRows = (sources: Array<Array<{ name?: string; panelUrl?: string; url?: string }>>) => {
+  const byName = new Map<string, { id: string; name: string; url: string }>()
+
+  for (const source of sources) {
+    for (const item of source || []) {
+      const name = String(item?.name || '').trim()
+      if (!name) continue
+      const nextUrl = normalizeUrl(String(item?.panelUrl || item?.url || '').trim())
+      const current = byName.get(name)
+      byName.set(name, {
+        id: current?.id || `${name}-${byName.size}`,
+        name,
+        url: nextUrl || current?.url || '',
+      })
+    }
+  }
+
+  return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name))
+}
+
 const syncRowsFromStore = () => {
   if (useBackendProviders.value) return
-  rows.value = Object.entries(proxyProviderPanelUrlMap.value || {})
-    .map(([name, url], idx) => ({ id: `${name || 'row'}-${idx}`, name: String(name || '').trim(), url: String(url || '').trim() }))
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const localRows = Object.entries(proxyProviderPanelUrlMap.value || {}).map(([name, url]) => ({ name, url }))
+  const agentRows = Object.keys(agentProviderByName.value || {}).map((name) => ({
+    name,
+    panelUrl: String((agentProviderByName.value as any)?.[name]?.panelUrl || '').trim(),
+  }))
+  rows.value = buildMergedRows([agentRows, localRows])
   dirty.value = false
 }
 
@@ -157,14 +180,13 @@ const loadRowsFromBackend = async () => {
   loadingBackendRows.value = true
   try {
     const items = await fetchUbuntuProvidersAPI()
-    rows.value = items
-      .map((item, idx) => ({
-        id: `${String(item.name || 'row').trim() || 'row'}-${idx}`,
-        name: String(item.name || '').trim(),
-        url: normalizeUrl(String(item.panelUrl || item.url || '').trim()),
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name))
-    reflectRowsToLocalCache(items)
+    const localRows = Object.entries(proxyProviderPanelUrlMap.value || {}).map(([name, url]) => ({ name, url }))
+    const agentRows = Object.keys(agentProviderByName.value || {}).map((name) => ({
+      name,
+      panelUrl: String((agentProviderByName.value as any)?.[name]?.panelUrl || '').trim(),
+    }))
+    rows.value = buildMergedRows([agentRows, items as any[], localRows])
+    reflectRowsToLocalCache(rows.value as any[])
     dirty.value = false
   } catch {
     syncRowsFromStore()
@@ -176,6 +198,11 @@ const loadRowsFromBackend = async () => {
 watch(useBackendProviders, () => {
   loadRowsFromBackend()
 }, { immediate: true })
+
+watch(agentProvidersAt, () => {
+  if (dirty.value || loadingBackendRows.value) return
+  loadRowsFromBackend()
+})
 
 const addRow = () => {
   rows.value = [...rows.value, { id: `new-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`, name: '', url: '' }]
@@ -206,14 +233,12 @@ const saveRows = async () => {
 
     if (useBackendProviders.value) {
       const saved = await saveUbuntuProvidersAPI(next)
-      rows.value = saved
-        .map((item, idx) => ({
-          id: `${String(item.name || 'row').trim() || 'row'}-${idx}`,
-          name: String(item.name || '').trim(),
-          url: normalizeUrl(String(item.panelUrl || item.url || '').trim()),
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name))
-      reflectRowsToLocalCache(saved)
+      const agentRows = Object.keys(agentProviderByName.value || {}).map((name) => ({
+        name,
+        panelUrl: String((agentProviderByName.value as any)?.[name]?.panelUrl || '').trim(),
+      }))
+      rows.value = buildMergedRows([agentRows, saved as any[]])
+      reflectRowsToLocalCache(rows.value as any[])
       dirty.value = false
       return
     }
@@ -288,7 +313,8 @@ const runNow = async () => {
   }
 }
 
-onMounted(() => {
-  fetchAgentProviders(false)
+onMounted(async () => {
+  await fetchAgentProviders(false)
+  await loadRowsFromBackend()
 })
 </script>
