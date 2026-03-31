@@ -1,18 +1,11 @@
-# База шагов и хода работ
+# Журнал шагов
 
-Актуально для релиза: **v0.6.46**
+Актуально для релиза: **v0.6.47**
 
-## Выполненные шаги
-1. Проверен текущий contour `v0.6.44`: выяснено, что UI capability-store ломается на отсутствии `/api/capabilities`.
-2. Добавлена server-side команда `cmd=capabilities` в существующий `api.sh`.
-3. Добавлен UI fallback: `/api/capabilities` -> `cgi-bin/api.sh?cmd=capabilities` -> compatibility fallback.
-4. Обновлены capability-флаги compatibility bridge (`providerChecksRun`, `providerRefresh`, `usersInventory`, `usersInventoryPut`).
-5. Уточнены тексты экранов `Хосты 3x-ui` и `Пользователи` под реальный backend contour.
-
-## Что сознательно не делалось
-- не добавлялся новый standalone service;
-- не ломался recovery/update path через `mihomo`;
-- не вносились непроверенные server-side firewall/policy изменения для `proxyAccess`.
-
-## Шаг v0.6.46
-- Исправлена склейка источников для `Хосты 3x-ui`: страница теперь объединяет `mihomo providers`, shared users DB и локальную карту `proxyProviderPanelUrlMap`.
+## Шаги v0.6.47
+1. По живому хосту подтверждено, что `192.168.5.23:9090/cgi-bin/api.sh?...` отвечает `404 page not found` на `capabilities`, `mihomo_providers`, `ssl_cache_refresh` и `users_db_get`.
+2. После этого зафиксировано, что server-side backend route на текущем runtime не подключён.
+3. В `src/store/backendCapabilities.ts` убран ложный fallback, который включал fake-capabilities даже при отсутствии реального backend route.
+4. В `src/store/providerHealth.ts` ошибка capability probing теперь пробрасывается наверх как реальная backend-route ошибка.
+5. В `Хосты 3x-ui` и `Пользователи` добавлены предупреждения и честный локальный fallback-режим.
+6. Убраны старые package scripts, которые всё ещё ссылались на фантомный `ubuntu-service`.

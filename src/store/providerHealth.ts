@@ -2,7 +2,7 @@ import { fetchUbuntuProviderChecksAPI, fetchUbuntuProviderSslCacheStatusAPI, ref
 import { normalizeProxyProtoKey } from '@/helper/proxyProto'
 import { useStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
-import { activeBackendCapabilities } from './backendCapabilities'
+import { activeBackendCapabilities, activeBackendCapabilitiesError } from './backendCapabilities'
 import { activeBackend } from './setup'
 import { providerSslDbMeta, providerSslDbSnapshot } from './providerSslDb'
 import { proxyProviderSubscriptionUrlMap } from './settings'
@@ -139,7 +139,7 @@ const collectSavedProviderSubscriptionTargets = () => {
 
 export const fetchAgentProviders = async (force = false) => {
   if (!providerHealthAvailable.value) {
-    resetProviderRuntimeState(Object.keys(activeBackendCapabilities.value || {}).length ? 'capability-missing' : null)
+    resetProviderRuntimeState(activeBackendCapabilitiesError.value || (Object.keys(activeBackendCapabilities.value || {}).length ? 'capability-missing' : null))
     return
   }
 

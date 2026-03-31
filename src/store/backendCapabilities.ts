@@ -81,12 +81,11 @@ export const refreshActiveBackendCapabilities = async (force = false) => {
       // handled by compatibility fallback below
     }
 
-    const fallback = buildCompatibilityBridgeCapabilities()
-    activeBackendCapabilities.value = fallback
+    activeBackendCapabilities.value = {}
     activeBackendCapabilitiesReady.value = true
-    activeBackendCapabilitiesError.value = ''
+    activeBackendCapabilitiesError.value = e?.message || 'backend-route-unavailable'
     activeBackendCapabilitiesUpdatedAt.value = Date.now()
-    return fallback
+    return {}
   } finally {
     clearTimeout(timeoutId)
   }

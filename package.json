@@ -1,6 +1,6 @@
 {
   "name": "ui-ubuntu-xkeen",
-  "version": "0.6.46",
+  "version": "0.6.47",
   "description": "UIUbuntuXkeen — Ubuntu-oriented UI for Mihomo",
   "license": "MIT",
   "type": "module",
@@ -17,9 +17,7 @@
     "lint": "eslint . --fix",
     "prepare": "husky",
     "preview": "vite preview",
-    "type-check": "vue-tsc --build --force",
-    "backend:dev": "cd ubuntu-service && uvicorn app.main:app --host 0.0.0.0 --port 9087",
-    "backend:smoke": "cd ubuntu-service && python3 - <<'PY'\nfrom fastapi.testclient import TestClient\nfrom app.main import app\nwith TestClient(app) as client:\n    assert client.get('/api/version').status_code == 200\n    assert client.get('/api/capabilities').status_code == 200\nprint('ubuntu-service smoke ok')\nPY"
+    "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
     "@eslint/plugin-kit": "^0.3.4",

@@ -1,27 +1,23 @@
-Prepared release: v0.6.46. This release fixes the 3x-ui Hosts backend bridge so the page no longer stays empty when panel URLs already exist in Proxy Providers and the Mihomo provider list is already known.
+Prepared release: v0.6.47. This release is a stabilizing honesty fix: the UI no longer fakes a working backend when the current Ubuntu host does not expose `/api/capabilities` or `/cgi-bin/api.sh`. `3x-ui Hosts` and `Users` now fall back to local UI data and show an explicit warning instead of a misleading network-driven pseudo-state.
 
-Актуальный релиз для переноса: **v0.6.46**
+Актуальный релиз для переноса: **v0.6.47**
 
-Что сделано в `v0.6.46`
+Что сделано в `v0.6.47`
+- подтверждено по живому хосту, что `http://192.168.5.23:9090/cgi-bin/api.sh?...` сейчас отвечает `404 page not found`; значит server-side backend route в текущем runtime не подключён
+- убран ложный capability fallback: если `/api/capabilities` и `cgi-bin/api.sh?cmd=capabilities` отсутствуют, UI больше не включает фальшивые backend-возможности
+- `Хосты 3x-ui` теперь честно переходят в локальный fallback-режим и показывают предупреждение о недоступном backend route
+- `Пользователи` делают то же самое, не изображая подключённую server-side БД
+- в package.json убраны старые scripts `backend:dev` и `backend:smoke`, которые тянули фантомный `ubuntu-service`
 
-- добавлена серверная команда `cmd=capabilities` в `api.sh`;
-- capability-store UI теперь проверяет `/api/capabilities`, затем `cgi-bin/api.sh?cmd=capabilities`, и только потом включает compatibility fallback;
-- `Хосты 3x-ui` и `Пользователи` теперь могут реально работать через текущий contour `Mihomo + api.sh + shared users DB`;
-- compatibility bridge теперь честно объявляет `providerChecksRun`, `providerRefresh`, `usersInventory`, `usersInventoryPut`;
-- `api.sh` поднят до `0.6.24`.
+Что подтверждено по серверу
+- UI обслуживается самим `mihomo`
+- текущая папка UI на сервере: `/etc/mihomo/uiubuntu`
+- аварийное восстановление работает штатно через перезапуск `mihomo` с удалением папки UI
+- route `/cgi-bin/api.sh` на текущем хосте **не активен** и возвращает `404 page not found`
 
-Подтверждённый recovery-механизм UI
+Что делать дальше
+1. Не строить новые UI-зависимости на `api.sh`, пока на сервере реально не появится рабочий route.
+2. Если нужен настоящий backend для `3x-ui Hosts` / `Users`, сначала определить, где он должен жить в реальном runtime Mihomo на Ubuntu.
+3. После появления реального server-side route — только тогда включать живую SSL-проверку и shared DB режим.
 
-- остановить `mihomo`;
-- удалить папку UI;
-- запустить `mihomo`;
-- `mihomo` сам заново скачает UI из репозитория.
-
-Следующий шаг
-
-- backend-only полировка server-side применения `proxyAccess`;
-- при необходимости — отдельные точечные команды в `api.sh` под `3x-ui Hosts` / `Users`, но без нового отдельного сервиса.
-
-[Update v0.6.46]
-
-- `Хосты 3x-ui` теперь заполняются не только из `providerPanelUrls`, но и из реального списка Mihomo providers; сохранённые URL панелей накладываются сверху и могут быть сохранены обратно в shared users DB.
+[Update v0.6.47]

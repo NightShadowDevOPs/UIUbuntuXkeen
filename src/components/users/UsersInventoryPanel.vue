@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div>
         <div class="font-semibold">Контроль пользователей LAN / proxy</div>
-        <div class="text-xs opacity-70">IP, MAC, обнаруженное имя хоста и индивидуальный доступ к proxy. Экран работает через текущий серверный contour проекта: Mihomo + api.sh + shared users DB, без отдельной фантомной сущности.</div>
+        <div class="text-xs opacity-70">IP, MAC, обнаруженное имя хоста и индивидуальный доступ к proxy. Если server-side backend route недоступен, экран работает в локальном режиме и не притворяется, что БД на сервере уже подключена.</div>
       </div>
       <div class="flex items-center gap-2">
         <select v-model="proxyAccessPolicyMode" class="select select-bordered select-sm">
@@ -16,6 +16,10 @@
         </button>
         <button type="button" class="btn btn-sm btn-primary" @click="applyNow" :disabled="busy">Применить доступ</button>
       </div>
+    </div>
+
+    <div v-if="backendRouteError" class="alert alert-warning text-sm">
+      <span>Server-side backend route для Users сейчас недоступен: {{ backendRouteError }}. Экран работает только с локальными данными UI.</span>
     </div>
 
     <div class="flex flex-wrap gap-2 text-[11px]">
@@ -84,7 +88,7 @@ import { proxyAccessPolicyMode } from '@/store/proxyAccess'
 import { applyProxyAccessControlNow, proxyAccessLastApplyAt, proxyAccessLastError, proxyAccessLastScanAt, refreshProxyAccessKnownHosts } from '@/composables/proxyAccessControl'
 import type { SourceIPLabel } from '@/types'
 import { activeBackend } from '@/store/setup'
-import { activeBackendCapabilities } from '@/store/backendCapabilities'
+import { activeBackendCapabilities, activeBackendCapabilitiesError } from '@/store/backendCapabilities'
 import { fetchUbuntuUsersInventoryAPI, saveUbuntuUsersInventoryAPI } from '@/api/ubuntuService'
 
 const busy = ref(false)
@@ -96,6 +100,8 @@ const useBackendInventory = computed(() => {
   const caps = activeBackendCapabilities.value || {}
   return Boolean(caps.usersInventory || caps.usersInventoryPut)
 })
+
+const backendRouteError = computed(() => String(activeBackendCapabilitiesError.value || '').trim())
 
 const rows = computed(() => {
   return [...(sourceIPLabelList.value || [])]

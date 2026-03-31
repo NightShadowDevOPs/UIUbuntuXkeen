@@ -4,8 +4,12 @@
       <div class="font-semibold">Хосты 3x-ui</div>
       <div class="mt-1 opacity-70">
         Здесь хранятся только адреса панелей 3x-ui для реальных хостов-провайдеров.
-        Список 3x-ui хостов хранится и читается через текущий серверный contour проекта: Mihomo + api.sh + shared users DB. Здесь должны быть только реальные панели 3x-ui хостов-провайдеров.
+        Если server-side backend-маршрут недоступен, экран работает в локальном fallback-режиме: показывает сохранённые URL панелей из UI и не делает вид, что SSL-проверка уже подключена.
       </div>
+    </div>
+
+    <div v-if="backendRouteError" class="alert alert-warning text-sm">
+      <span>Server-side backend route для 3x-ui Hosts сейчас недоступен: {{ backendRouteError }}. Экран работает в локальном режиме, без живой SSL-проверки.</span>
     </div>
 
     <div class="card gap-3 p-3">
@@ -107,7 +111,7 @@ import {
 } from '@/store/providerHealth'
 import { getProviderSslDiagnostics } from '@/helper/providerHealth'
 import { activeBackend } from '@/store/setup'
-import { activeBackendCapabilities } from '@/store/backendCapabilities'
+import { activeBackendCapabilities, activeBackendCapabilitiesError } from '@/store/backendCapabilities'
 
 const { t } = useI18n()
 const busy = ref(false)
@@ -120,6 +124,8 @@ const useBackendProviders = computed(() => {
   const caps = activeBackendCapabilities.value || {}
   return Boolean(caps.providers || caps.providerChecks || caps.providerSslCacheStatus)
 })
+
+const backendRouteError = computed(() => String(activeBackendCapabilitiesError.value || '').trim())
 
 const normalizeUrl = (raw: string) => {
   const value = String(raw || '').trim()
