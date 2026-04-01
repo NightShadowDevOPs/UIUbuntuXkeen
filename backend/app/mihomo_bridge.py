@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import socket
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -141,6 +142,15 @@ def _proxy_headers(secret: str, content_type: str = '') -> dict[str, str]:
     return headers
 
 
+def _is_transient_connect_error(reason: object) -> bool:
+    message = str(reason or '').lower()
+    if 'connection refused' in message:
+        return True
+    if 'timed out' in message:
+        return True
+    return isinstance(reason, (TimeoutError, socket.timeout, ConnectionRefusedError))
+
+
 def proxy_http_request(
     controller: MihomoController,
     *,
@@ -152,27 +162,34 @@ def proxy_http_request(
     timeout: float = 8.0,
 ) -> tuple[int, bytes, str]:
     attempted: list[dict[str, str]] = []
+    retry_delays = (0.0, 0.35, 0.8)
     for base_url in (controller.http_base, *controller.extra_http_bases):
         url = controller.build_http_url(path, query_items, base_url=base_url)
-        request = urllib.request.Request(
-            url,
-            data=body if body else None,
-            headers=_proxy_headers(controller.secret, content_type),
-            method=str(method or 'GET').upper(),
-        )
-        try:
-            with urllib.request.urlopen(request, timeout=timeout) as response:
-                payload = response.read()
-                media_type = response.headers.get_content_type() or response.headers.get('Content-Type', 'application/json')
-                return int(getattr(response, 'status', 200) or 200), payload, media_type
-        except urllib.error.HTTPError as exc:
-            payload = exc.read()
-            media_type = exc.headers.get_content_type() if exc.headers else 'application/json'
-            return int(exc.code), payload, media_type or 'application/json'
-        except urllib.error.URLError as exc:
-            reason = getattr(exc, 'reason', exc)
-            attempted.append({'url': url, 'error': str(reason)})
-            continue
+        for attempt_index, delay in enumerate(retry_delays, start=1):
+            if delay > 0:
+                import time
+                time.sleep(delay)
+            request = urllib.request.Request(
+                url,
+                data=body if body else None,
+                headers=_proxy_headers(controller.secret, content_type),
+                method=str(method or 'GET').upper(),
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=timeout) as response:
+                    payload = response.read()
+                    media_type = response.headers.get_content_type() or response.headers.get('Content-Type', 'application/json')
+                    return int(getattr(response, 'status', 200) or 200), payload, media_type
+            except urllib.error.HTTPError as exc:
+                payload = exc.read()
+                media_type = exc.headers.get_content_type() if exc.headers else 'application/json'
+                return int(exc.code), payload, media_type or 'application/json'
+            except urllib.error.URLError as exc:
+                reason = getattr(exc, 'reason', exc)
+                attempted.append({'url': url, 'error': str(reason), 'attempt': str(attempt_index)})
+                if _is_transient_connect_error(reason) and attempt_index < len(retry_delays):
+                    continue
+                break
 
     last = attempted[-1] if attempted else {'url': controller.build_http_url(path, query_items), 'error': 'unknown'}
     payload = encode_json_bytes({

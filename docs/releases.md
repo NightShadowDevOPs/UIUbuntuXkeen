@@ -1,3 +1,7 @@
+## v0.6.68
+- backend Mihomo bridge now retries transient connect-refused/timeouts for controller API calls right after controller restart, reducing false 502 on `/api/providers/proxies`.
+- 502 payload keeps per-attempt diagnostics so startup races are visible instead of looking random.
+
 ## v0.6.67
 - fixed ubuntu-service Mihomo bridge controller resolution: backend now loads both the env-pinned controller URL and the current `/etc/mihomo/config.yaml` `external-controller`, prefers the config address when a stale loopback value is left behind, and retries proxy HTTP requests across controller candidates before returning `502`.
 - improved failed bridge diagnostics: `mihomo-controller-connect-failed` responses now include attempted controller URLs/errors instead of only the final dead endpoint, which makes stale `127.0.0.1:9090` leftovers obvious during smoke checks.

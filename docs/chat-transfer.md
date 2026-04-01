@@ -1,17 +1,7 @@
-Prepared release: v0.6.67. The active contour stays on `ubuntu-service`; this hotfix hardens Mihomo controller resolution so stale `MIHOMO_CONTROLLER_URL=http://127.0.0.1:9090` no longer overrides the live `external-controller` from `/etc/mihomo/config.yaml`.
-Актуальный релиз для переноса: **v0.6.67**
+Prepared release: v0.6.68. The active contour stays on `ubuntu-service`; this hotfix adds short retries for transient Mihomo controller startup races, so `/api/providers/proxies` stops throwing false 502 right after `mihomo` restart.
+Актуальный релиз для переноса: **v0.6.68**
 
-## Update v0.6.67
-- backend bridge now builds controller candidates from both `agent.env` and `/etc/mihomo/config.yaml`, preferring the live config address when env still contains an old loopback controller.
-- proxy HTTP requests retry across controller candidates before returning `502`, and the error payload now includes every attempted URL/error pair.
-- `backend/scripts/install.sh` now parses `MIHOMO_ACTIVE_CONFIG` from env files correctly before reading Mihomo YAML values.
-
-## Quick verification
-
-```bash
-clear
-grep -E '^(MIHOMO_ACTIVE_CONFIG|MIHOMO_CONTROLLER_URL|MIHOMO_CONTROLLER_SECRET)=' /etc/ultra-ui-ubuntu/agent.env || true
-echo
-curl -s http://127.0.0.1:18090/api/providers/proxies | head -c 800
-echo
-```
+## Update v0.6.68
+- backend bridge retries transient `Connection refused` / timeout errors against the live Mihomo controller before returning 502
+- retry diagnostics are preserved in the 502 payload for easier troubleshooting
+- previous controller-resolution hardening from v0.6.67 stays in place
