@@ -3,11 +3,12 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import Settings
 from .service import BackendService
+from .live_runtime import stream_connections, stream_logs, stream_memory, stream_traffic
 
 settings = Settings.from_env()
 service = BackendService(settings)
@@ -137,3 +138,42 @@ def api_put_users_inventory(payload: dict):
 @app.get("/api/jobs")
 def api_jobs():
     return {"ok": True, "jobs": service.list_jobs(), "items": service.list_jobs()}
+
+@app.websocket("/traffic")
+@app.websocket("/api/traffic")
+@app.websocket("/api/api/traffic")
+async def ws_traffic(websocket: WebSocket):
+    try:
+        await stream_traffic(websocket)
+    except WebSocketDisconnect:
+        return
+
+
+@app.websocket("/memory")
+@app.websocket("/api/memory")
+@app.websocket("/api/api/memory")
+async def ws_memory(websocket: WebSocket):
+    try:
+        await stream_memory(websocket)
+    except WebSocketDisconnect:
+        return
+
+
+@app.websocket("/connections")
+@app.websocket("/api/connections")
+@app.websocket("/api/api/connections")
+async def ws_connections(websocket: WebSocket):
+    try:
+        await stream_connections(websocket)
+    except WebSocketDisconnect:
+        return
+
+
+@app.websocket("/logs")
+@app.websocket("/api/logs")
+@app.websocket("/api/api/logs")
+async def ws_logs(websocket: WebSocket):
+    try:
+        await stream_logs(websocket, settings.mihomo_log_file, websocket.query_params.get("level", "info"))
+    except WebSocketDisconnect:
+        return

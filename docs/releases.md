@@ -1,3 +1,4 @@
+- v0.6.53 — added realtime WebSocket endpoints for `traffic`, `memory`, `connections`, and `logs` to the standalone Ubuntu backend so overview charts can keep working on `ubuntu-service`, with lightweight host telemetry sourced from `/proc` and `ss`.
 - v0.6.52 — added distinct UI actions for provider SSL checks (`Проверить сейчас` and `Обновить SSL-кэш`) and fixed backend install/update so `backend/scripts/install.sh` explicitly restarts a running `ultra-ui-ubuntu-backend.service`.
 - v0.6.51 — fixed frontend route composition for the standalone Ubuntu backend when `secondaryPath=/api`; `capabilities`, `3x-ui Hosts`, provider SSL cache, `Users inventory`, and Ubuntu system API calls no longer hit broken `/api/api/...` paths.
 - v0.6.49 — started the real standalone Ubuntu backend line: added `backend/` with FastAPI + SQLite, server-side `3x-ui Hosts`, `Users inventory`, `jobs`, provider SSL checks, install script, and systemd service template.

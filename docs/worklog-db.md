@@ -1,6 +1,6 @@
 # Журнал шагов
 
-Актуально для релиза: **v0.6.52**
+Актуально для релиза: **v0.6.53**
 
 ## Шаги v0.6.49
 1. Зафиксирован новый запрос пользователя: начать backend-этап релизами, по ходу объяснять действия на сервере, постоянно актуализировать документацию и фиксировать каждый шаг.
@@ -37,3 +37,12 @@
 4. В статусные бейджи `Хосты 3x-ui` добавлены ближайшая проверка и состояние последнего job.
 5. `backend/scripts/install.sh` изменён так, чтобы обновление backend не оставляло в памяти старый процесс: если сервис уже запущен, скрипт теперь делает явный `systemctl restart`.
 6. Обновлены README, current-status, transfer-файлы, changelog, request log и отдельная заметка `docs/backend-ssl-actions-v0.6.52.md`.
+
+## Шаги v0.6.53
+1. После живого переключения на `ubuntu-service` пользователь подтвердил, что диаграмма трафика в UI перестаёт работать, хотя backend для settings/providers уже подключён.
+2. По live-логам backend установлено, что UI пытается открыть WebSocket-маршруты `/api/traffic`, `/api/memory`, `/api/connections`, `/api/logs`, а backend отвечает `403`, потому что realtime-контур ещё не реализован.
+3. В standalone backend добавлен модуль realtime sampler: чтение памяти из `/proc/meminfo`, суммарного трафика из `/proc/net/dev` и best-effort списка активных соединений через `ss -tunH`.
+4. В `backend/app/main.py` добавлены WebSocket endpoints и совместимые alias-пути для `traffic`, `memory`, `connections`, `logs`.
+5. В capability payload backend добавлены `connections` и `logs`, чтобы live Ubuntu contour честно заявлял эти возможности.
+6. Выполнен локальный smoke-check: `python -m uvicorn app.main:app`, HTTP `/api/version`, `/api/capabilities`, WebSocket-подключения к `/api/traffic`, `/api/memory`, `/api/connections` подтвердили, что backend теперь отдаёт live payload вместо `403`.
+7. Обновлены CHANGELOG, current-status, releases, transfer-файлы, request log и отдельная заметка `docs/backend-realtime-v0.6.53.md`.

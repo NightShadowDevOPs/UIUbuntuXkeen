@@ -30,3 +30,9 @@ Prepared release: v0.6.52. The live Ubuntu backend contour is now stable enough 
 - идти в следующий backend-блок: `Host / resources / services / logs`.
 
 [Update v0.6.52]
+
+
+## Update v0.6.53
+- `ubuntu-service` stays the active backend mode.
+- Added standalone backend WebSocket routes for `/api/traffic`, `/api/memory`, `/api/connections`, `/api/logs`.
+- Goal of this release: restore live overview/traffic telemetry on the Ubuntu backend without falling back to `direct`.

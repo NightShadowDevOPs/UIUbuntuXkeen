@@ -1,3 +1,9 @@
+## v0.6.53
+- added realtime WebSocket endpoints to the standalone Ubuntu backend for `/api/traffic`, `/api/memory`, `/api/connections`, and `/api/logs` (plus compatibility aliases) so `ubuntu-service` no longer loses the overview charts immediately with `403`;
+- added lightweight host-side runtime samplers: memory usage from `/proc/meminfo`, aggregate traffic from `/proc/net/dev`, and best-effort active socket snapshots from `ss -tunH` for the connections store;
+- expanded backend capability payload with `connections` and `logs` for the live Ubuntu contour;
+- updated release docs, transfer docs, current status, and request/work logs for the first realtime telemetry step on `ubuntu-service`.
+
 ## v0.6.52
 - added separate UI actions for provider SSL checks: `Проверить сейчас` and `Обновить SSL-кэш` on `Хосты 3x-ui` and the provider SSL workspace card;
 - surfaced next-check and last-job status badges on `Хосты 3x-ui` so the screen shows whether backend work actually ran;

@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_VERSION = "0.6.52"
+APP_VERSION = "0.6.53"
 DEFAULT_CAPABILITIES = {
     "status": True,
     "health": True,
@@ -19,6 +19,8 @@ DEFAULT_CAPABILITIES = {
     "usersInventory": True,
     "usersInventoryPut": True,
     "jobs": True,
+    "connections": True,
+    "logs": True,
 }
 
 
