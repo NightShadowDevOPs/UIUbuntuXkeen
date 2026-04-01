@@ -1,3 +1,11 @@
+Prepared release: v0.6.59. The live Ubuntu backend contour stays on `ubuntu-service`, and this hotfix fixes `Хосты 3x-ui` so provider SSL buttons stop depending on stale capability state and call backend action endpoints directly.
+Актуальный релиз для переноса: **v0.6.59**
+
+## Update v0.6.59
+- `Хосты 3x-ui` больше не держат ложный `capability-missing` на активном `ubuntu-service`;
+- `Проверить сейчас` и `Обновить SSL-кэш` вызывают backend action endpoints напрямую из страницы и после запуска опрашивают runtime до завершения job;
+- после завершения действия UI перечитывает строки хостов и SSL-детали без ручного перезахода.
+
 Prepared release: v0.6.58. The live Ubuntu backend contour stays on `ubuntu-service`, and this hotfix fixes the missing provider SSL actions by routing frontend REST calls to the real standalone backend origin instead of relative Mihomo UI `/api/...` paths.
 Актуальный релиз для переноса: **v0.6.58**
 

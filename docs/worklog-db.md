@@ -1,3 +1,9 @@
+## Шаги v0.6.59
+1. После live-проверки `v0.6.58` подтверждено, что backend bridge уже жив (`GET /api/capabilities`, `/api/configs`, `/api/proxies`, `/api/providers/proxies`, `/api/rules` отвечают `200`), но `Хосты 3x-ui` по-прежнему не отправляют action POST на SSL endpoints.
+2. В `XuiHostsPage.vue` убран stale gating для `ubuntu-service`: добавлен явный `providerActionEnabled`, скрыт ложный `capability-missing`, а SSL actions больше не зависят от застрявшего store-state.
+3. `Проверить сейчас` и `Обновить SSL-кэш` теперь на странице сами обновляют capabilities, вызывают backend action endpoint (`run` / `ssl-cache-refresh`), ждут завершения job опросом provider state и затем перечитывают строки/детали.
+4. Версии и release docs обновлены до `v0.6.59`, подготовлены чистые архивы без `.git/`.
+
 ## Шаги v0.6.58
 1. После live-проверки `v0.6.57` подтверждено, что `Хосты 3x-ui` не отправляют backend POST actions: в `journalctl` есть только `GET /api/providers/checks`, но нет `POST /api/providers/checks/run` / `POST /api/providers/ssl-cache/refresh`.
 2. Зафиксирована корневая причина: frontend helper `ubuntuEndpoint()` возвращал относительный путь `/api/...`, поэтому axios на `ubuntu-service` бился в origin Mihomo UI вместо standalone backend `http://host:18090/api/...`.

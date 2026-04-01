@@ -1,3 +1,8 @@
+## v0.6.59
+- fixed `Хосты 3x-ui` action buttons for `ubuntu-service`: provider SSL actions now call the standalone backend directly from the page runtime instead of relying on stale provider-health gating state;
+- removed the false `capability-missing` badge on `ubuntu-service` when backend capabilities already answer `200 OK`;
+- provider SSL action flow now refreshes capabilities, starts the backend action, polls provider state until the job settles, then refreshes rows and SSL details in-place.
+
 ## v0.6.58
 - fixed the standalone Ubuntu frontend API client so provider SSL actions call the real `ubuntu-service` origin (`http://host:18090/api/...`) instead of accidentally posting to the Mihomo UI origin with relative `/api/...` URLs;
 - `Хосты 3x-ui` now treats the selected `ubuntu-service` backend as a real provider runtime immediately, so the page no longer self-blocks its SSL actions behind stale capability state;

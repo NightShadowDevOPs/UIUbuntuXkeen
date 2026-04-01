@@ -21,11 +21,11 @@
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <button type="button" class="btn btn-sm" @click="runChecksNow" :disabled="checksBusy || (!providerHealthActionsAvailable && !useBackendProviders)">
+          <button type="button" class="btn btn-sm" @click="runChecksNow" :disabled="checksBusy || saving || !providerActionEnabled">
             <span v-if="checksBusy" class="loading loading-spinner loading-xs"></span>
             <span v-else>{{ t('providerSslChecksRunNow') }}</span>
           </button>
-          <button type="button" class="btn btn-sm btn-outline" @click="refreshCacheNow" :disabled="cacheBusy || (!providerHealthActionsAvailable && !useBackendProviders)">
+          <button type="button" class="btn btn-sm btn-outline" @click="refreshCacheNow" :disabled="cacheBusy || saving || !providerActionEnabled">
             <span v-if="cacheBusy" class="loading loading-spinner loading-xs"></span>
             <span v-else>{{ t('refreshProviderSslCache') }}</span>
           </button>
@@ -50,7 +50,7 @@
         <span class="badge badge-sm" :class="agentProvidersSslCacheFresh ? 'badge-success' : 'badge-warning'">{{ agentProvidersSslCacheFresh ? 'Кэш свежий' : 'Кэш ожидает обновления' }}</span>
         <span v-if="agentProvidersJobStatus" class="badge badge-sm" :class="agentProvidersJobStatus === 'ok' ? 'badge-success' : agentProvidersJobStatus === 'running' ? 'badge-info' : agentProvidersJobStatus === 'error' ? 'badge-error' : 'badge-ghost'">job: {{ agentProvidersJobStatus }}</span>
         <span v-if="agentProvidersSslRefreshing" class="badge badge-info badge-sm">{{ t('providerSslRefreshing') }}</span>
-        <span v-if="agentProvidersError" class="badge badge-error badge-sm">{{ agentProvidersError }}</span>
+        <span v-if="visibleAgentProvidersError" class="badge badge-error badge-sm">{{ visibleAgentProvidersError }}</span>
       </div>
 
       <div class="overflow-x-auto">
@@ -204,7 +204,14 @@
 import dayjs from 'dayjs'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { fetchUbuntuProviderChecksHistoryAPI, fetchUbuntuProvidersAPI, saveUbuntuProvidersAPI } from '@/api/ubuntuService'
+import {
+  fetchUbuntuProviderChecksHistoryAPI,
+  fetchUbuntuProviderChecksAPI,
+  fetchUbuntuProvidersAPI,
+  refreshUbuntuProviderSslCacheAPI,
+  runUbuntuProviderChecksAPI,
+  saveUbuntuProvidersAPI,
+} from '@/api/ubuntuService'
 import { proxyProviderPanelUrlMap, sslNearExpiryDaysDefault } from '@/store/settings'
 import { providerSslDbMeta, providerSslDbSnapshot } from '@/store/providerSslDb'
 import {
@@ -250,6 +257,21 @@ const useBackendProviders = computed(() => {
 const backendRouteError = computed(() => {
   if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) return ''
   return String(activeBackendCapabilitiesError.value || '').trim()
+})
+
+const providerActionEnabled = computed(() => {
+  if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) return true
+  if (useBackendProviders.value) return true
+  if (providerHealthActionsAvailable.value) return true
+  const caps = activeBackendCapabilities.value || {}
+  return Boolean((caps as any)?.providerChecksRun || (caps as any)?.providerSslCacheRefresh || (caps as any)?.providerRefresh)
+})
+
+const visibleAgentProvidersError = computed(() => {
+  const raw = String(agentProvidersError.value || '').trim()
+  if (!raw) return ''
+  if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE && raw === 'capability-missing') return ''
+  return raw
 })
 
 const normalizeUrl = (raw: string) => {
@@ -514,14 +536,75 @@ const reloadDetailsHistory = async () => {
   await loadProviderHistory(detailsOpenName.value)
 }
 
+const hasProviderSslSnapshot = () => {
+  return Array.isArray(agentProviders.value) && agentProviders.value.some((item: any) => {
+    const expires = String((item as any)?.panelSslNotAfter || '').trim()
+    const issuer = String((item as any)?.panelSslIssuer || '').trim()
+    const status = String((item as any)?.panelSslStatus || '').trim()
+    const error = String((item as any)?.panelSslError || '').trim()
+    return Boolean(expires || issuer || error || (status && status !== 'unknown'))
+  })
+}
+
+const waitForProviderRuntimeSettlement = async (timeoutMs = 90000, intervalMs = 1500) => {
+  const startedAt = Date.now()
+  let sawBusy = false
+  while (Date.now() - startedAt < timeoutMs) {
+    await fetchAgentProviders(true)
+    const busy = Boolean(agentProvidersSslRefreshing.value || agentProvidersSslRefreshPending.value || agentProvidersJobStatus.value === 'running')
+    if (busy) sawBusy = true
+    if (sawBusy) {
+      if (!busy) break
+    } else if (hasProviderSslSnapshot() || agentProvidersJobStatus.value === 'ok' || visibleAgentProvidersError.value) {
+      break
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, intervalMs))
+  }
+}
+
+const refreshProviderRuntimeView = async (force = true) => {
+  await refreshActiveBackendCapabilities(true)
+  if (useBackendProviders.value) {
+    try {
+      if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) {
+        await fetchUbuntuProviderChecksAPI()
+      }
+    } catch {
+      // state is refreshed below via store fetch
+    }
+  }
+  await fetchAgentProviders(force)
+  if (useBackendProviders.value) await loadRowsFromBackend()
+  if (detailsOpenName.value) await loadProviderHistory(detailsOpenName.value)
+}
+
+const invokeProviderRuntimeAction = async (mode: 'checks' | 'cache') => {
+  if (dirty.value) await saveRows()
+  await refreshActiveBackendCapabilities(true)
+
+  if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) {
+    if (mode === 'checks') {
+      await runUbuntuProviderChecksAPI()
+    } else {
+      await refreshUbuntuProviderSslCacheAPI()
+    }
+    await waitForProviderRuntimeSettlement()
+    await refreshProviderRuntimeView(true)
+    return
+  }
+
+  if (mode === 'checks') {
+    await runAgentProviderChecks()
+  } else {
+    await refreshAgentProviderSslCache()
+  }
+  await refreshProviderRuntimeView(true)
+}
+
 const runChecksNow = async () => {
   checksBusy.value = true
   try {
-    if (dirty.value) await saveRows()
-    await runAgentProviderChecks()
-    await fetchAgentProviders(true)
-    if (useBackendProviders.value) await loadRowsFromBackend()
-    if (detailsOpenName.value) await loadProviderHistory(detailsOpenName.value)
+    await invokeProviderRuntimeAction('checks')
   } finally {
     checksBusy.value = false
   }
@@ -530,23 +613,16 @@ const runChecksNow = async () => {
 const refreshCacheNow = async () => {
   cacheBusy.value = true
   try {
-    if (dirty.value) await saveRows()
-    await refreshAgentProviderSslCache()
-    await fetchAgentProviders(true)
-    if (useBackendProviders.value) await loadRowsFromBackend()
-    if (detailsOpenName.value) await loadProviderHistory(detailsOpenName.value)
+    await invokeProviderRuntimeAction('cache')
   } finally {
     cacheBusy.value = false
   }
 }
 
 onMounted(async () => {
-  await refreshActiveBackendCapabilities(true)
-  await fetchAgentProviders(false)
-  await loadRowsFromBackend()
+  await refreshProviderRuntimeView(false)
   if (useBackendProviders.value && rows.value.length && !lastCheckedAtMs.value) {
-    await refreshAgentProviderSslCache()
-    await fetchAgentProviders(true)
+    await invokeProviderRuntimeAction('cache')
   }
 })
 </script>

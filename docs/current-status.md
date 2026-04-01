@@ -1,3 +1,11 @@
+Current prepared release: v0.6.59. The standalone Ubuntu backend stays on `ubuntu-service`; this hotfix removes the stale provider SSL gating in `Хосты 3x-ui` and sends SSL actions directly to the backend action endpoints from the page runtime.
+
+## Обновление v0.6.59
+- после live-проверки `v0.6.58` подтверждено, что кнопки `Проверить сейчас` / `Обновить SSL-кэш` так и не доходили до backend: в `journalctl` были только `GET /api/capabilities`, `GET /api/configs`, `GET /api/proxies`, `GET /api/providers/proxies`, `GET /api/rules`, но не было `POST /api/providers/checks/run` или `POST /api/providers/ssl-cache/refresh`;
+- `Хосты 3x-ui` теперь не полагаются на застрявший `providerHealth` gating для активного `ubuntu-service`: page runtime сам обновляет capabilities, запускает backend action endpoint и потом опрашивает provider state до завершения job;
+- ложный badge `capability-missing` для активного `ubuntu-service` скрыт, если backend capabilities уже отвечают `200 OK`;
+- после завершения SSL action UI перечитывает строки хостов и `SSL-детали` без ручного перезахода на экран.
+
 Current prepared release: v0.6.58. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
 
 ## Обновление v0.6.58
