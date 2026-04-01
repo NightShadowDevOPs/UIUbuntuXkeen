@@ -41,3 +41,5 @@
 - После живого перехода на `ubuntu-service` пользователь подтвердил новый дефект: в этом режиме не работает диаграмма трафика и связанные realtime-виджеты.
 - Требование по сути: не возвращать пользователя на `direct`, а довести realtime-контур именно на standalone Ubuntu backend.
 - В ответ `v0.6.53` добавляет WebSocket-маршруты и базовую host telemetry для `traffic`, `memory`, `connections`, `logs`, чтобы overview и traffic-экран перестали терять live-данные на `ubuntu-service`.
+
+- 2026-04-01 — v0.6.54: added Mihomo bridge routes for configs/proxies/providers/rules and switched ubuntu-service `/api/connections` to relay the real Mihomo WebSocket when available.

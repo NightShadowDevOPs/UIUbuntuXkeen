@@ -1,4 +1,4 @@
-Current prepared release: v0.6.53. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
+Current prepared release: v0.6.54. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
 
 ## Обновление v0.6.52
 - подтверждено, что backend `ubuntu-service` остаётся рабочим активным режимом в `Setup`
@@ -12,6 +12,13 @@ Current prepared release: v0.6.53. The standalone Ubuntu backend is already conf
 - в standalone backend добавлены WebSocket endpoints `/api/traffic`, `/api/memory`, `/api/connections`, `/api/logs` и совместимые alias-пути
 - backend теперь отдаёт базовую live-телеметрию хоста: память из `/proc/meminfo`, суммарный трафик из `/proc/net/dev`, best-effort список активных соединений через `ss -tunH`
 - режим `ubuntu-service` сохраняется как основной; следующий live-check — подтвердить, что диаграмма трафика и overview-виджеты снова двигаются без возврата на `direct`
+
+
+## Обновление v0.6.54
+- подтверждён следующий реальный хвост `ubuntu-service`: realtime websocket-каналы уже открывались, но `Обзор / Топология соединений` всё ещё не видел реальные клиенты и прокси-цепочки, потому что backend не проксировал базовые Mihomo endpoints (`/configs`, `/proxies`, `/providers/proxies`, `/rules`) и отдавал только локальный host-side snapshot;
+- в standalone backend добавлен bridge к локальному Mihomo controller: `GET /api/configs`, `GET /api/proxies`, `GET /api/providers/proxies`, `GET /api/providers/rules`, `GET /api/rules`;
+- websocket `/api/connections` на `ubuntu-service` теперь пытается relay-ить настоящий поток Mihomo connections, чтобы `Обзор` и диаграммы видели реальные хосты, правила и прокси-цепочки, а не только сам Ubuntu-хост;
+- backend автоматически читает `external-controller` и `secret` из `MIHOMO_ACTIVE_CONFIG` (`/etc/mihomo/config.yaml`) или использует env overrides `MIHOMO_CONTROLLER_URL` / `MIHOMO_CONTROLLER_SECRET`;
 
 ## Что сейчас точно есть
 - UI по-прежнему раздаётся самим `mihomo`

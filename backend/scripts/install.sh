@@ -36,10 +36,14 @@ ULTRA_UI_DB_PATH=$RUNTIME_DIR/backend.sqlite3
 ULTRA_UI_SSL_CHECK_INTERVAL_SECS=14400
 ULTRA_UI_CORS_ALLOW_ALL=1
 MIHOMO_LOG_FILE=/var/log/mihomo/mihomo.log
+MIHOMO_ACTIVE_CONFIG=/etc/mihomo/config.yaml
 ENV
 else
   if sudo grep -q '^ULTRA_UI_HOST=127\.0\.0\.1$' "$ENV_FILE"; then
     sudo sed -i 's/^ULTRA_UI_HOST=127\.0\.0\.1$/ULTRA_UI_HOST=0.0.0.0/' "$ENV_FILE"
+  fi
+  if ! sudo grep -q '^MIHOMO_ACTIVE_CONFIG=' "$ENV_FILE"; then
+    echo 'MIHOMO_ACTIVE_CONFIG=/etc/mihomo/config.yaml' | sudo tee -a "$ENV_FILE" >/dev/null
   fi
 fi
 

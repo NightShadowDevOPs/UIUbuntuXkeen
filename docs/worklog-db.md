@@ -46,3 +46,5 @@
 5. В capability payload backend добавлены `connections` и `logs`, чтобы live Ubuntu contour честно заявлял эти возможности.
 6. Выполнен локальный smoke-check: `python -m uvicorn app.main:app`, HTTP `/api/version`, `/api/capabilities`, WebSocket-подключения к `/api/traffic`, `/api/memory`, `/api/connections` подтвердили, что backend теперь отдаёт live payload вместо `403`.
 7. Обновлены CHANGELOG, current-status, releases, transfer-файлы, request log и отдельная заметка `docs/backend-realtime-v0.6.53.md`.
+
+- 2026-04-01 — v0.6.54: added Mihomo bridge routes for configs/proxies/providers/rules and switched ubuntu-service `/api/connections` to relay the real Mihomo WebSocket when available.

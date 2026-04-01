@@ -1,7 +1,7 @@
 # UIUbuntuXkeen — Ubuntu backend contract
 
-Актуальная версия документа: **v0.6.50**  
-Дата актуализации: **2026-03-31**
+Актуальная версия документа: **v0.6.54**  
+Дата актуализации: **2026-04-01**
 
 ## 1. Назначение
 
@@ -31,12 +31,13 @@
 - `ULTRA_UI_CONFIG_STATE=/var/lib/ultra-ui-ubuntu/config`
 - `ULTRA_UI_LOG_DIR=/var/log/ultra-ui-ubuntu`
 - `MIHOMO_LOG_FILE=/var/log/mihomo/mihomo.log`
+- `MIHOMO_ACTIVE_CONFIG=/etc/mihomo/config.yaml`
 - `ULTRA_UI_AGENT_ENV=/etc/ultra-ui-ubuntu/agent.env`
 - default backend listen: `127.0.0.1:18090`
 
 ## 4. Базовый endpoint set
 
-### Реализовано в `v0.6.50`
+### Реализовано в `v0.6.54`
 - `GET /api/status`
 - `GET /api/health`
 - `GET /api/version`
@@ -51,6 +52,12 @@
 - `GET /api/users/inventory`
 - `PUT /api/users/inventory`
 - `GET /api/jobs`
+- `GET /api/configs`
+- `GET /api/proxies`
+- `GET /api/providers/proxies`
+- `GET /api/providers/rules`
+- `GET /api/rules`
+- `WebSocket /api/connections` -> Mihomo relay when available
 
 ### Следующие backend-блоки
 - `GET /api/system/metrics`
@@ -84,6 +91,8 @@ Service выполняет плановые проверки без участи
 - `users_inventory`
 - `service_settings`
 - `jobs`
+- `configActive`
+- `trafficTopology`
 - `document_events`
 
 ## 7. Capability flags
@@ -102,6 +111,8 @@ Service выполняет плановые проверки без участи
 - `usersInventory`
 - `usersInventoryPut`
 - `jobs`
+- `configActive`
+- `trafficTopology`
 
 ## 8. UX-правило для UI
 

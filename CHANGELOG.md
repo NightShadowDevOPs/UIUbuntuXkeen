@@ -1,3 +1,9 @@
+## v0.6.54
+- added a Mihomo bridge layer to the standalone Ubuntu backend for `GET /api/configs`, `GET /api/proxies`, `GET /api/providers/proxies`, `GET /api/providers/rules`, and `GET /api/rules`, so `ubuntu-service` can fetch the same core model data that the overview and proxy topology expect;
+- switched `/api/connections` on `ubuntu-service` from a host-local socket snapshot to a WebSocket relay into the real Mihomo controller when it is available, while keeping the lightweight local fallback only for bridge failures;
+- added environment/config autodetection for the local Mihomo controller through `MIHOMO_ACTIVE_CONFIG` (default `/etc/mihomo/config.yaml`) plus optional overrides `MIHOMO_CONTROLLER_URL` and `MIHOMO_CONTROLLER_SECRET`;
+- updated install/runtime docs, transfer docs, and step logs for the first Mihomo bridge release on the Ubuntu backend.
+
 ## v0.6.53
 - added realtime WebSocket endpoints to the standalone Ubuntu backend for `/api/traffic`, `/api/memory`, `/api/connections`, and `/api/logs` (plus compatibility aliases) so `ubuntu-service` no longer loses the overview charts immediately with `403`;
 - added lightweight host-side runtime samplers: memory usage from `/proc/meminfo`, aggregate traffic from `/proc/net/dev`, and best-effort active socket snapshots from `ss -tunH` for the connections store;

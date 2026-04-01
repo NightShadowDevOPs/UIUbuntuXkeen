@@ -3,16 +3,26 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from .config import Settings
-from .service import BackendService
 from .live_runtime import stream_connections, stream_logs, stream_memory, stream_traffic
+from .mihomo_bridge import load_mihomo_controller, proxy_http_request, relay_websocket_to_mihomo
+from .service import BackendService
 
 settings = Settings.from_env()
 service = BackendService(settings)
 _scheduler_task: asyncio.Task | None = None
+
+
+def _mihomo_controller():
+    return load_mihomo_controller(
+        settings.mihomo_active_config,
+        settings.mihomo_controller_url,
+        settings.mihomo_controller_secret,
+    )
 
 
 async def _scheduler_loop() -> None:
@@ -24,7 +34,6 @@ async def _scheduler_loop() -> None:
                 from datetime import datetime
 
                 last_run_sec = int(datetime.fromisoformat(last_run_at.replace("Z", "+00:00")).timestamp())
-            now_sec = int(asyncio.get_running_loop().time())
             should_run = not last_run_sec or (int(__import__("time").time()) - last_run_sec) >= settings.ssl_interval_secs
             if should_run and not service.is_provider_checks_running():
                 await asyncio.to_thread(service.run_provider_checks, "scheduler")
@@ -44,6 +53,29 @@ async def lifespan(app: FastAPI):
             await _scheduler_task
         except asyncio.CancelledError:
             pass
+
+
+async def _proxy_mihomo(request: Request, path: str) -> Response:
+    controller = _mihomo_controller()
+    if not controller:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "message": "mihomo-controller-unavailable",
+                "path": path,
+            },
+        )
+    body = await request.body()
+    status, payload, media_type = await asyncio.to_thread(
+        proxy_http_request,
+        controller,
+        method=request.method,
+        path=path,
+        query_items=list(request.query_params.multi_items()),
+        body=body,
+        content_type=request.headers.get("content-type", ""),
+    )
+    return Response(content=payload, status_code=status, media_type=media_type)
 
 
 app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
@@ -83,6 +115,55 @@ def api_capabilities():
 @app.get("/api/api/status")
 def api_status():
     return service.status_payload()
+
+
+@app.api_route("/configs", methods=["GET", "PATCH", "PUT"])
+@app.api_route("/api/configs", methods=["GET", "PATCH", "PUT"])
+@app.api_route("/api/api/configs", methods=["GET", "PATCH", "PUT"])
+async def proxy_configs(request: Request):
+    return await _proxy_mihomo(request, "/configs")
+
+
+@app.api_route("/proxies", methods=["GET"])
+@app.api_route("/api/proxies", methods=["GET"])
+@app.api_route("/api/api/proxies", methods=["GET"])
+async def proxy_proxies(request: Request):
+    return await _proxy_mihomo(request, "/proxies")
+
+
+@app.api_route("/providers/proxies", methods=["GET"])
+@app.api_route("/api/providers/proxies", methods=["GET"])
+@app.api_route("/api/api/providers/proxies", methods=["GET"])
+async def proxy_provider_proxies(request: Request):
+    return await _proxy_mihomo(request, "/providers/proxies")
+
+
+@app.api_route("/providers/rules", methods=["GET"])
+@app.api_route("/api/providers/rules", methods=["GET"])
+@app.api_route("/api/api/providers/rules", methods=["GET"])
+async def proxy_provider_rules(request: Request):
+    return await _proxy_mihomo(request, "/providers/rules")
+
+
+@app.api_route("/rules", methods=["GET"])
+@app.api_route("/api/rules", methods=["GET"])
+@app.api_route("/api/api/rules", methods=["GET"])
+async def proxy_rules(request: Request):
+    return await _proxy_mihomo(request, "/rules")
+
+
+@app.api_route("/connections", methods=["DELETE"])
+@app.api_route("/api/connections", methods=["DELETE"])
+@app.api_route("/api/api/connections", methods=["DELETE"])
+async def proxy_connections_delete_all(request: Request):
+    return await _proxy_mihomo(request, "/connections")
+
+
+@app.api_route("/connections/{connection_id}", methods=["DELETE"])
+@app.api_route("/api/connections/{connection_id}", methods=["DELETE"])
+@app.api_route("/api/api/connections/{connection_id}", methods=["DELETE"])
+async def proxy_connection_delete(request: Request, connection_id: str):
+    return await _proxy_mihomo(request, f"/connections/{connection_id}")
 
 
 @app.get("/api/providers")
@@ -139,6 +220,7 @@ def api_put_users_inventory(payload: dict):
 def api_jobs():
     return {"ok": True, "jobs": service.list_jobs(), "items": service.list_jobs()}
 
+
 @app.websocket("/traffic")
 @app.websocket("/api/traffic")
 @app.websocket("/api/api/traffic")
@@ -163,6 +245,15 @@ async def ws_memory(websocket: WebSocket):
 @app.websocket("/api/connections")
 @app.websocket("/api/api/connections")
 async def ws_connections(websocket: WebSocket):
+    controller = _mihomo_controller()
+    if controller:
+        try:
+            await relay_websocket_to_mihomo(websocket, controller, "/connections")
+            return
+        except WebSocketDisconnect:
+            return
+        except Exception:
+            pass
     try:
         await stream_connections(websocket)
     except WebSocketDisconnect:

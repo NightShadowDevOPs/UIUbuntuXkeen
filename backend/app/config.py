@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_VERSION = "0.6.53"
+APP_VERSION = "0.6.54"
 DEFAULT_CAPABILITIES = {
     "status": True,
     "health": True,
@@ -21,7 +21,10 @@ DEFAULT_CAPABILITIES = {
     "jobs": True,
     "connections": True,
     "logs": True,
+    "configActive": True,
+    "trafficTopology": True,
 }
+
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -42,6 +45,9 @@ class Settings:
     log_dir: Path
     env_path: Path
     mihomo_log_file: Path
+    mihomo_active_config: Path
+    mihomo_controller_url: str
+    mihomo_controller_secret: str
     ssl_interval_secs: int
     cors_allow_all: bool
     capabilities: dict[str, bool]
@@ -53,6 +59,9 @@ class Settings:
         db_path = Path(os.getenv("ULTRA_UI_DB_PATH", str(runtime_dir / "backend.sqlite3")))
         env_path = Path(os.getenv("ULTRA_UI_AGENT_ENV", "/etc/ultra-ui-ubuntu/agent.env"))
         mihomo_log_file = Path(os.getenv("MIHOMO_LOG_FILE", "/var/log/mihomo/mihomo.log"))
+        mihomo_active_config = Path(os.getenv("MIHOMO_ACTIVE_CONFIG", "/etc/mihomo/config.yaml"))
+        mihomo_controller_url = os.getenv("MIHOMO_CONTROLLER_URL", "")
+        mihomo_controller_secret = os.getenv("MIHOMO_CONTROLLER_SECRET", "")
         interval_raw = os.getenv("ULTRA_UI_SSL_CHECK_INTERVAL_SECS", "14400")
         try:
             ssl_interval_secs = max(300, int(interval_raw))
@@ -68,6 +77,9 @@ class Settings:
             log_dir=log_dir,
             env_path=env_path,
             mihomo_log_file=mihomo_log_file,
+            mihomo_active_config=mihomo_active_config,
+            mihomo_controller_url=mihomo_controller_url,
+            mihomo_controller_secret=mihomo_controller_secret,
             ssl_interval_secs=ssl_interval_secs,
             cors_allow_all=_env_bool("ULTRA_UI_CORS_ALLOW_ALL", True),
             capabilities=dict(DEFAULT_CAPABILITIES),
