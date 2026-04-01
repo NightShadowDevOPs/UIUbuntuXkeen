@@ -131,6 +131,14 @@ def proxy_http_request(
         payload = exc.read()
         media_type = exc.headers.get_content_type() if exc.headers else 'application/json'
         return int(exc.code), payload, media_type or 'application/json'
+    except urllib.error.URLError as exc:
+        reason = getattr(exc, 'reason', exc)
+        payload = encode_json_bytes({
+            'message': 'mihomo-controller-connect-failed',
+            'url': url,
+            'error': str(reason),
+        })
+        return 502, payload, 'application/json'
 
 
 async def relay_websocket_to_mihomo(client: WebSocket, controller: MihomoController, path: str) -> None:

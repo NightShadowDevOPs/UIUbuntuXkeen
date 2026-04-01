@@ -1,3 +1,7 @@
+## 2026-04-01 — request: fix ubuntu-service Mihomo bridge connection refused / traceback (v0.6.66)
+- user provided backend traceback showing `/api/providers/proxies` crashed with `ConnectionRefusedError` inside `mihomo_bridge.py`.
+- live diagnostics confirmed Mihomo controller listens on `192.168.5.23:9090`, while `127.0.0.1:9090` is closed; request: bind the backend to the real controller URL and stop throwing raw ASGI tracebacks on bridge failure.
+
 ## 2026-04-01 — provider SSL UX / routing hotfix request (v0.6.65)
 - keep provider actions working on ubuntu-service without local 404 on `providers/proxies/{name}`, health-check, rules update, and nested `/proxies/{name}/delay`.
 - keep showing the last successful certificate snapshot even when the newest TLS handshake times out.

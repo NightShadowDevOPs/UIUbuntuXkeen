@@ -1,63 +1,20 @@
-Prepared release: v0.6.65. The active contour stays on `ubuntu-service`; this hotfix restores missing provider action passthrough routes, keeps the latest successful certificate visible after timeout-heavy TLS checks, and improves dark-theme TLS badges on `Хосты 3x-ui`.
-Актуальный релиз для переноса: **v0.6.65**
+Prepared release: v0.6.66. The active contour stays on `ubuntu-service`; this hotfix pins the real Mihomo controller URL into backend env during install/update and turns upstream controller failures into structured `502` JSON instead of ASGI tracebacks.
+Актуальный релиз для переноса: **v0.6.66**
 
-## Update v0.6.65
-- added missing ubuntu-service passthrough routes for provider update/health-check and nested proxy delay actions.
-- provider SSL payload now carries the last successful certificate snapshot separately from the latest failed attempt.
-- `Хосты 3x-ui` now uses short outlined TLS badges and shows a dedicated "Последний успешный сертификат" block in details.
+## Update v0.6.66
+- `backend/scripts/install.sh` now reads `external-controller` from `/etc/mihomo/config.yaml` and writes `MIHOMO_CONTROLLER_URL` to `/etc/ultra-ui-ubuntu/agent.env`.
+- ubuntu-service proxy routes stop falling back to a dead local `127.0.0.1:9090` when Mihomo actually listens only on `192.168.5.23:9090`.
+- Mihomo bridge connection failures now return structured `502` JSON with `mihomo-controller-connect-failed` instead of crashing the request with a traceback.
 
-Prepared release: v0.6.64. The active contour stays on `ubuntu-service`; this hotfix fixes `Хосты 3x-ui` when the standalone backend is healthy but the page still renders an empty list because the frontend crashes in fallback `users_db_get` before it reaches `GET /api/providers`.
-Актуальный релиз для переноса: **v0.6.64**
+## Quick verification
 
-## Update v0.6.64
-- fixed `Хосты 3x-ui` provider loading for `ubuntu-service` when router-agent / `users_db_get` is unavailable or not configured;
-- `fetchUbuntuProvidersAPI()` now queries backend `/api/providers` first and treats users-db fallback as best-effort instead of a hard prerequisite;
-- if fallback loading fails, the page still renders backend provider rows instead of dying before the request;
-- keep `ubuntu-service` as the primary backend, `direct` only as fallback/diagnostics;
-- server deploy workflow stays canonical: `git fetch origin --prune && git reset --hard origin/main` then install/build/deploy.
-
-## Current architecture
-- main backend: `ubuntu-service`;
-- `direct` is fallback/diagnostics only;
-- server repo path: `/opt/UIUbuntu/app`;
-- backend install path: `/opt/ultra-ui-ubuntu-backend`;
-- backend runtime/db path: `/var/lib/ultra-ui-ubuntu/runtime/backend.sqlite3`;
-- UI deploy path: `/etc/mihomo/uiubuntu`;
-- backend service: `ultra-ui-ubuntu-backend.service`.
-
-## Canonical server update block
 ```bash
 clear
-cd /opt/UIUbuntu/app
-
-git fetch origin --prune
-git reset --hard origin/main
-
-chmod +x backend/scripts/install.sh
-./backend/scripts/install.sh
-
-corepack enable
-pnpm install --no-frozen-lockfile
-NODE_OPTIONS=--max-old-space-size=4096 pnpm build
-
-mkdir -p /etc/mihomo/uiubuntu
-rsync -a --delete dist/ /etc/mihomo/uiubuntu/
-systemctl restart mihomo
-
+grep -E '^(MIHOMO_ACTIVE_CONFIG|MIHOMO_CONTROLLER_URL|MIHOMO_CONTROLLER_SECRET)=' /etc/ultra-ui-ubuntu/agent.env || true
+echo
 curl -s http://127.0.0.1:18090/api/version
 echo
-curl -s http://127.0.0.1:18090/api/providers
+curl -s http://127.0.0.1:18090/api/providers/proxies | head -c 400
 echo
-
-systemctl status ultra-ui-ubuntu-backend --no-pager
-journalctl -u ultra-ui-ubuntu-backend -n 120 --no-pager
 ```
 
-## Verified diagnosis before this release
-- backend `/api/providers` could stay healthy while `Хосты 3x-ui` still rendered an empty list;
-- the frontend fetched users-db fallback before backend `/api/providers`;
-- when `users_db_get` failed, provider loading aborted before the real backend request;
-- therefore the empty list could be caused by frontend load order, not only by missing backend storage.
-
-## Next likely step after verification
-After the list renders again directly from backend `/api/providers`, continue fixing SSL action flow and certificate polling on top of the live `ubuntu-service` provider list.

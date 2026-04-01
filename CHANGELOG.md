@@ -1,3 +1,8 @@
+## v0.6.66
+- fixed ubuntu-service Mihomo bridge install/update flow so `backend/scripts/install.sh` now pins `MIHOMO_CONTROLLER_URL` from `/etc/mihomo/config.yaml` into `/etc/ultra-ui-ubuntu/agent.env`, avoiding fallback to a dead local default when the active controller listens on the host LAN IP only.
+- fixed standalone backend bridge error handling: upstream Mihomo connection failures now return structured `502` JSON (`mihomo-controller-connect-failed`) instead of crashing the ASGI request with a traceback.
+- preserved the active backend contour (`ubuntu-service`) and documented the controller-bind hotfix in transfer/current-status notes.
+
 ## v0.6.65
 - fixed missing ubuntu-service passthrough routes for provider actions: `/api/providers/proxies/{name}`, `/api/providers/proxies/{name}/healthcheck`, `/api/providers/rules/{name}`, and nested `/api/proxies/{name}/delay` now proxy to Mihomo instead of returning local 404.
 - provider SSL runtime now keeps the latest successful certificate snapshot next to the latest attempt, so cards/details can still show the last valid certificate when the newest TLS handshake times out.
