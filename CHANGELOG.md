@@ -1,3 +1,7 @@
+## v0.6.67
+- hardened ubuntu-service Mihomo controller resolution: bridge now compares env and config controller addresses, retries across candidates, and reports attempted URLs in `502` diagnostics.
+- fixed `backend/scripts/install.sh` parsing for `MIHOMO_ACTIVE_CONFIG` so install/update can resolve the real Mihomo config path from env files correctly.
+
 ## v0.6.66
 - fixed ubuntu-service Mihomo bridge install/update flow so `backend/scripts/install.sh` now pins `MIHOMO_CONTROLLER_URL` from `/etc/mihomo/config.yaml` into `/etc/ultra-ui-ubuntu/agent.env`, avoiding fallback to a dead local default when the active controller listens on the host LAN IP only.
 - fixed standalone backend bridge error handling: upstream Mihomo connection failures now return structured `502` JSON (`mihomo-controller-connect-failed`) instead of crashing the ASGI request with a traceback.

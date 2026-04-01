@@ -19,10 +19,12 @@ class MihomoController:
     http_base: str
     ws_base: str
     secret: str
+    extra_http_bases: tuple[str, ...] = ()
 
-    def build_http_url(self, path: str, query_items: Iterable[tuple[str, str]] | None = None) -> str:
+    def build_http_url(self, path: str, query_items: Iterable[tuple[str, str]] | None = None, *, base_url: str | None = None) -> str:
         normalized = '/' + str(path or '').lstrip('/')
-        url = urllib.parse.urljoin(self.http_base.rstrip('/') + '/', normalized.lstrip('/'))
+        target_base = str(base_url or self.http_base)
+        url = urllib.parse.urljoin(target_base.rstrip('/') + '/', normalized.lstrip('/'))
         if query_items:
             pairs = [(str(k), str(v)) for k, v in query_items]
             encoded = urllib.parse.urlencode(pairs, doseq=True)
@@ -70,28 +72,62 @@ def _swap_scheme(http_url: str) -> str:
     return urllib.parse.urlunsplit((scheme, parsed.netloc, parsed.path, '', ''))
 
 
+def _read_controller_from_config(active_config_path: Path) -> tuple[str, str]:
+    try:
+        with active_config_path.open('r', encoding='utf-8', errors='replace') as fh:
+            payload = yaml.safe_load(fh) or {}
+    except OSError:
+        payload = {}
+    raw_url = str(payload.get('external-controller') or '').strip()
+    secret = str(payload.get('secret') or '').strip()
+    return raw_url, secret
+
+
+def _controller_candidates(explicit_url: str, config_url: str) -> list[str]:
+    normalized_explicit = _normalize_controller_url(explicit_url)
+    normalized_config = _normalize_controller_url(config_url)
+    candidates: list[str] = []
+
+    def push(value: str) -> None:
+        if value and value not in candidates:
+            candidates.append(value)
+
+    if normalized_explicit and normalized_config:
+        explicit_host = urllib.parse.urlsplit(normalized_explicit).hostname or ''
+        config_host = urllib.parse.urlsplit(normalized_config).hostname or ''
+        if explicit_host in {'127.0.0.1', 'localhost'} and config_host not in {'127.0.0.1', 'localhost'}:
+            push(normalized_config)
+            push(normalized_explicit)
+        else:
+            push(normalized_explicit)
+            push(normalized_config)
+    else:
+        push(normalized_explicit)
+        push(normalized_config)
+
+    if not candidates:
+        candidates.append(_normalize_controller_url('http://127.0.0.1:9090'))
+    return candidates
+
+
 def load_mihomo_controller(active_config_path: Path, explicit_url: str = '', explicit_secret: str = '') -> MihomoController | None:
     secret = str(explicit_secret or '').strip()
     raw_url = str(explicit_url or '').strip()
+    config_url, config_secret = _read_controller_from_config(active_config_path)
+    if not secret:
+        secret = config_secret
 
-    if not raw_url:
-        try:
-            with active_config_path.open('r', encoding='utf-8', errors='replace') as fh:
-                payload = yaml.safe_load(fh) or {}
-        except OSError:
-            payload = {}
-        raw_url = str(payload.get('external-controller') or '').strip()
-        if not secret:
-            secret = str(payload.get('secret') or '').strip()
-
-    if not raw_url:
-        raw_url = 'http://127.0.0.1:9090'
-
-    http_base = _normalize_controller_url(raw_url)
-    if not http_base:
+    candidates = _controller_candidates(raw_url, config_url)
+    if not candidates:
         return None
 
-    return MihomoController(http_base=http_base, ws_base=_swap_scheme(http_base), secret=secret)
+    primary = candidates[0]
+    return MihomoController(
+        http_base=primary,
+        ws_base=_swap_scheme(primary),
+        secret=secret,
+        extra_http_bases=tuple(candidates[1:]),
+    )
 
 
 def _proxy_headers(secret: str, content_type: str = '') -> dict[str, str]:
@@ -115,30 +151,37 @@ def proxy_http_request(
     content_type: str = '',
     timeout: float = 8.0,
 ) -> tuple[int, bytes, str]:
-    url = controller.build_http_url(path, query_items)
-    request = urllib.request.Request(
-        url,
-        data=body if body else None,
-        headers=_proxy_headers(controller.secret, content_type),
-        method=str(method or 'GET').upper(),
-    )
-    try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            payload = response.read()
-            media_type = response.headers.get_content_type() or response.headers.get('Content-Type', 'application/json')
-            return int(getattr(response, 'status', 200) or 200), payload, media_type
-    except urllib.error.HTTPError as exc:
-        payload = exc.read()
-        media_type = exc.headers.get_content_type() if exc.headers else 'application/json'
-        return int(exc.code), payload, media_type or 'application/json'
-    except urllib.error.URLError as exc:
-        reason = getattr(exc, 'reason', exc)
-        payload = encode_json_bytes({
-            'message': 'mihomo-controller-connect-failed',
-            'url': url,
-            'error': str(reason),
-        })
-        return 502, payload, 'application/json'
+    attempted: list[dict[str, str]] = []
+    for base_url in (controller.http_base, *controller.extra_http_bases):
+        url = controller.build_http_url(path, query_items, base_url=base_url)
+        request = urllib.request.Request(
+            url,
+            data=body if body else None,
+            headers=_proxy_headers(controller.secret, content_type),
+            method=str(method or 'GET').upper(),
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = response.read()
+                media_type = response.headers.get_content_type() or response.headers.get('Content-Type', 'application/json')
+                return int(getattr(response, 'status', 200) or 200), payload, media_type
+        except urllib.error.HTTPError as exc:
+            payload = exc.read()
+            media_type = exc.headers.get_content_type() if exc.headers else 'application/json'
+            return int(exc.code), payload, media_type or 'application/json'
+        except urllib.error.URLError as exc:
+            reason = getattr(exc, 'reason', exc)
+            attempted.append({'url': url, 'error': str(reason)})
+            continue
+
+    last = attempted[-1] if attempted else {'url': controller.build_http_url(path, query_items), 'error': 'unknown'}
+    payload = encode_json_bytes({
+        'message': 'mihomo-controller-connect-failed',
+        'url': last['url'],
+        'error': last['error'],
+        'attempts': attempted,
+    })
+    return 502, payload, 'application/json'
 
 
 async def relay_websocket_to_mihomo(client: WebSocket, controller: MihomoController, path: str) -> None:

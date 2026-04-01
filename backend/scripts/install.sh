@@ -28,6 +28,16 @@ sanitize_yaml_scalar() {
   printf '%s' "$value"
 }
 
+read_env_value() {
+  local key=$1
+  local file=$2
+  [[ -f "$file" ]] || return 0
+  local line
+  line=$(sudo awk -F'=' -v key="$key" '$1 == key {print substr($0, index($0, "=") + 1); exit}' "$file" 2>/dev/null || true)
+  line=$(printf '%s' "$line" | sed 's/#.*$//' | xargs)
+  sanitize_yaml_scalar "$line"
+}
+
 read_mihomo_yaml_value() {
   local key=$1
   local file=$2
@@ -84,7 +94,7 @@ else
   fi
 fi
 
-MIHOMO_CONFIG_PATH=$(read_mihomo_yaml_value MIHOMO_ACTIVE_CONFIG "$ENV_FILE")
+MIHOMO_CONFIG_PATH=$(read_env_value MIHOMO_ACTIVE_CONFIG "$ENV_FILE")
 if [[ -z "$MIHOMO_CONFIG_PATH" ]]; then
   MIHOMO_CONFIG_PATH=$MIHOMO_CONFIG_DEFAULT
 fi
