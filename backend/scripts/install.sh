@@ -78,6 +78,9 @@ ULTRA_UI_LOG_DIR=$LOG_DIR
 ULTRA_UI_DB_PATH=$RUNTIME_DIR/backend.sqlite3
 ULTRA_UI_SSL_CHECK_INTERVAL_SECS=14400
 ULTRA_UI_SSL_WARN_DAYS=2
+ULTRA_UI_SSL_PROBE_ROUTE_MODE=forced-direct
+ULTRA_UI_SSL_PROBE_DIRECT_INTERFACE=
+ULTRA_UI_SSL_PROBE_DIRECT_SOURCE_IP=
 ULTRA_UI_CORS_ALLOW_ALL=1
 MIHOMO_LOG_FILE=/var/log/mihomo/mihomo.log
 MIHOMO_ACTIVE_CONFIG=/etc/mihomo/config.yaml
@@ -92,6 +95,27 @@ else
   if ! sudo grep -q '^ULTRA_UI_SSL_WARN_DAYS=' "$ENV_FILE"; then
     echo 'ULTRA_UI_SSL_WARN_DAYS=2' | sudo tee -a "$ENV_FILE" >/dev/null
   fi
+  if ! sudo grep -q '^ULTRA_UI_SSL_PROBE_ROUTE_MODE=' "$ENV_FILE"; then
+    echo 'ULTRA_UI_SSL_PROBE_ROUTE_MODE=forced-direct' | sudo tee -a "$ENV_FILE" >/dev/null
+  fi
+  if ! sudo grep -q '^ULTRA_UI_SSL_PROBE_DIRECT_INTERFACE=' "$ENV_FILE"; then
+    echo 'ULTRA_UI_SSL_PROBE_DIRECT_INTERFACE=' | sudo tee -a "$ENV_FILE" >/dev/null
+  fi
+  if ! sudo grep -q '^ULTRA_UI_SSL_PROBE_DIRECT_SOURCE_IP=' "$ENV_FILE"; then
+    echo 'ULTRA_UI_SSL_PROBE_DIRECT_SOURCE_IP=' | sudo tee -a "$ENV_FILE" >/dev/null
+  fi
+fi
+
+DEFAULT_ROUTE_IFACE=$(ip route show default 2>/dev/null | awk '/default/ {print $5; exit}' || true)
+DEFAULT_ROUTE_SRC=$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i <= NF; i++) if ($i == "src") {print $(i+1); exit}}' || true)
+if [[ -n "$DEFAULT_ROUTE_IFACE" ]]; then
+  ensure_env_kv ULTRA_UI_SSL_PROBE_DIRECT_INTERFACE "$DEFAULT_ROUTE_IFACE" "$ENV_FILE"
+fi
+if [[ -n "$DEFAULT_ROUTE_SRC" ]]; then
+  ensure_env_kv ULTRA_UI_SSL_PROBE_DIRECT_SOURCE_IP "$DEFAULT_ROUTE_SRC" "$ENV_FILE"
+fi
+if [[ -n "$DEFAULT_ROUTE_IFACE" || -n "$DEFAULT_ROUTE_SRC" ]]; then
+  ensure_env_kv ULTRA_UI_SSL_PROBE_ROUTE_MODE forced-direct "$ENV_FILE"
 fi
 
 MIHOMO_CONFIG_PATH=$(read_env_value MIHOMO_ACTIVE_CONFIG "$ENV_FILE")

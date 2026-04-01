@@ -78,6 +78,8 @@ export const agentProvidersJobId = ref('')
 export const agentProvidersProbeSource = ref('')
 export const agentProvidersProbeHost = ref('')
 export const agentProvidersProbeRuntime = ref('')
+export const agentProvidersProbeInterface = ref('')
+export const agentProvidersProbeSourceIp = ref('')
 
 export const panelSslNotAfterByName = ref<Record<string, string>>({})
 export const panelSslErrorByName = ref<Record<string, string>>({})
@@ -110,6 +112,8 @@ const resetProviderRuntimeState = (error: string | null = null) => {
   agentProvidersProbeSource.value = ''
   agentProvidersProbeHost.value = ''
   agentProvidersProbeRuntime.value = ''
+  agentProvidersProbeInterface.value = ''
+  agentProvidersProbeSourceIp.value = ''
   agentProvidersAt.value = Date.now()
   providerSslDbMeta.value = {
     checkedAtMs: agentProvidersAt.value,
@@ -196,6 +200,8 @@ export const fetchAgentProviders = async (force = false) => {
     agentProvidersProbeSource.value = String(checks?.probeSource || '').trim()
     agentProvidersProbeHost.value = String(checks?.probeHost || '').trim()
     agentProvidersProbeRuntime.value = String(checks?.probeRuntime || '').trim()
+    agentProvidersProbeInterface.value = String(checks?.probeInterface || '').trim()
+    agentProvidersProbeSourceIp.value = String(checks?.probeSourceIp || '').trim()
 
     const checkedAtMs = agentProvidersAt.value || Date.now()
     const snapshot: Record<string, any> = {}
@@ -282,6 +288,8 @@ const applyProviderState = (res: any, opts?: { optimisticRefreshing?: boolean })
   agentProvidersProbeSource.value = String(res?.probeSource || agentProvidersProbeSource.value || '').trim()
   agentProvidersProbeHost.value = String(res?.probeHost || agentProvidersProbeHost.value || '').trim()
   agentProvidersProbeRuntime.value = String(res?.probeRuntime || agentProvidersProbeRuntime.value || '').trim()
+  agentProvidersProbeInterface.value = String(res?.probeInterface || agentProvidersProbeInterface.value || '').trim()
+  agentProvidersProbeSourceIp.value = String(res?.probeSourceIp || agentProvidersProbeSourceIp.value || '').trim()
   panelSslProbeError.value = null
   return res
 }

@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_VERSION = "0.6.71"
+APP_VERSION = "0.6.72"
 DEFAULT_CAPABILITIES = {
     "status": True,
     "health": True,
@@ -51,6 +51,9 @@ class Settings:
     mihomo_controller_secret: str
     ssl_interval_secs: int
     ssl_warn_days: int
+    ssl_probe_route_mode: str
+    ssl_probe_direct_interface: str
+    ssl_probe_direct_source_ip: str
     cors_allow_all: bool
     capabilities: dict[str, bool]
 
@@ -74,6 +77,13 @@ class Settings:
             ssl_warn_days = max(0, int(warn_days_raw))
         except ValueError:
             ssl_warn_days = 2
+        ssl_probe_route_mode = str(os.getenv("ULTRA_UI_SSL_PROBE_ROUTE_MODE", "forced-direct")).strip().lower()
+        if ssl_probe_route_mode not in {"system-route", "forced-direct"}:
+            ssl_probe_route_mode = "forced-direct"
+        ssl_probe_direct_interface = str(os.getenv("ULTRA_UI_SSL_PROBE_DIRECT_INTERFACE", "")).strip()
+        ssl_probe_direct_source_ip = str(os.getenv("ULTRA_UI_SSL_PROBE_DIRECT_SOURCE_IP", "")).strip()
+        if ssl_probe_route_mode == "forced-direct" and not ssl_probe_direct_interface and not ssl_probe_direct_source_ip:
+            ssl_probe_route_mode = "system-route"
         return cls(
             app_name="ultra-ui-ubuntu-backend",
             app_version=APP_VERSION,
@@ -89,6 +99,9 @@ class Settings:
             mihomo_controller_secret=mihomo_controller_secret,
             ssl_interval_secs=ssl_interval_secs,
             ssl_warn_days=ssl_warn_days,
+            ssl_probe_route_mode=ssl_probe_route_mode,
+            ssl_probe_direct_interface=ssl_probe_direct_interface,
+            ssl_probe_direct_source_ip=ssl_probe_direct_source_ip,
             cors_allow_all=_env_bool("ULTRA_UI_CORS_ALLOW_ALL", True),
             capabilities=dict(DEFAULT_CAPABILITIES),
         )

@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-start justify-between gap-2">
       <div>
         <div class="font-semibold">{{ t('providerSslChecksWorkspaceTitle') }}</div>
-        <div class="text-xs opacity-70">Автопроверка провайдеров каждые 4 часа + ручной запуск по кнопке. Проверка идёт системным маршрутом текущего Ubuntu-хоста и не использует выбранную proxy-group пользователей.</div>
+        <div class="text-xs opacity-70">Автопроверка провайдеров каждые 4 часа + ручной запуск по кнопке. Проверка идёт отдельным server-side маршрутом текущего Ubuntu-хоста. В forced DIRECT backend привязывает probe к физическому интерфейсу и не использует пользовательскую proxy-group.</div>
       </div>
       <div class="flex items-center gap-2">
         <button type="button" class="btn btn-sm" @click="runChecksNow" :disabled="checksBusy || !providerHealthActionsAvailable">
@@ -26,6 +26,8 @@
       <span class="badge badge-sm" :class="agentProvidersSslCacheFresh ? 'badge-success' : 'badge-warning'">{{ agentProvidersSslCacheFresh ? t('providerSslChecksCacheFresh') : t('providerSslChecksCacheStale') }}</span>
       <span v-if="agentProvidersProbeSource" class="badge badge-ghost badge-sm">Маршрут проверки: {{ probeRouteText }}</span>
       <span v-if="agentProvidersProbeHost" class="badge badge-ghost badge-sm">Host: {{ agentProvidersProbeHost }}</span>
+      <span v-if="agentProvidersProbeInterface" class="badge badge-ghost badge-sm">iface: {{ agentProvidersProbeInterface }}</span>
+      <span v-if="agentProvidersProbeSourceIp" class="badge badge-ghost badge-sm">src: {{ agentProvidersProbeSourceIp }}</span>
       <span v-if="agentProvidersSslRefreshing" class="badge badge-info badge-sm">{{ t('providerSslRefreshing') }}</span>
       <span v-if="agentProvidersError" class="badge badge-error badge-sm">{{ agentProvidersError }}</span>
     </div>
@@ -88,6 +90,8 @@ import {
   agentProvidersAt,
   agentProvidersError,
   agentProvidersProbeHost,
+  agentProvidersProbeInterface,
+  agentProvidersProbeSourceIp,
   agentProvidersProbeSource,
   agentProvidersSslCacheFresh,
   agentProvidersSslCacheNextRefreshAtMs,
@@ -110,7 +114,7 @@ const shortTlsError = (value: any) => {
   const raw = String(value || '').trim()
   if (!raw) return ''
   const lowered = raw.toLowerCase()
-  if (lowered.includes('handshake operation timed out') || lowered.includes('ssl connection timeout') || lowered.includes('timed ot')) return 'TLS timeout с этого хоста'
+  if (lowered.includes('handshake operation timed out') || lowered.includes('ssl connection timeout') || lowered.includes('timed ot')) return 'TLS timeout'
   if (lowered.includes('certificate verify failed')) return 'Ошибка проверки сертификата'
   if (lowered.includes('wrong version number')) return 'Неверная версия TLS'
   if (lowered.includes('connection refused')) return 'Соединение отклонено'
@@ -119,16 +123,20 @@ const shortTlsError = (value: any) => {
 
 const sslStatusPillCls = (badgeCls: string) => {
   const raw = String(badgeCls || '').toLowerCase()
-  if (raw.includes('success')) return 'border-success/35 bg-success/15 text-base-content'
-  if (raw.includes('warning')) return 'border-warning/35 bg-warning/18 text-base-content'
-  if (raw.includes('error')) return 'border-error/40 bg-error/18 text-base-content'
-  if (raw.includes('info')) return 'border-info/35 bg-info/18 text-base-content'
-  return 'border-base-content/15 bg-base-200/70 text-base-content'
+  if (raw.includes('success')) return 'border-success/70 bg-success text-success-content'
+  if (raw.includes('warning')) return 'border-warning/70 bg-warning text-warning-content'
+  if (raw.includes('error')) return 'border-error/70 bg-error text-error-content'
+  if (raw.includes('info')) return 'border-info/70 bg-info text-info-content'
+  return 'border-base-content/20 bg-base-200 text-base-content'
 }
 
 const probeRouteText = computed(() => {
   const source = String(agentProvidersProbeSource.value || '').trim()
   if (!source) return '—'
+  if (source === 'forced-direct') {
+    const parts = [agentProvidersProbeInterface.value, agentProvidersProbeSourceIp.value].filter(Boolean)
+    return parts.length ? `forced DIRECT · ${parts.join(' · ')}` : 'forced DIRECT этого хоста'
+  }
   if (source === 'system-route') return 'system route этого хоста'
   return source
 })
@@ -151,7 +159,7 @@ const rows = computed(() => {
         : (fallbackExpiry ? t('providerSslSourceLastSuccess') : t('providerSslSourceUnknown'))
       const lastSuccessText = fallbackCheckedAt > 0 ? `${t('providerSslLastSuccessCheckedLabel')}: ${fmtTs(fallbackCheckedAt * 1000)}` : ''
       const statusHint = diag.error
-        ? shortTlsError(diag.error)
+        ? (String(diag.error || '').toLowerCase().includes('timed out') ? `Порт отвечает, но TLS не завершился через ${probeRouteText.value || 'этот маршрут'}` : shortTlsError(diag.error))
         : diag.status === 'healthy'
           ? 'Проверка прошла с этого хоста'
           : diag.status === 'warning'

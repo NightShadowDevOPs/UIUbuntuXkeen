@@ -327,6 +327,13 @@ class BackendService:
             "job": self.get_job("provider_ssl_checks"),
         }
 
+    def _ssl_probe_source(self) -> str:
+        if self.settings.ssl_probe_route_mode == "forced-direct" and (
+            self.settings.ssl_probe_direct_interface or self.settings.ssl_probe_direct_source_ip
+        ):
+            return "forced-direct"
+        return "system-route"
+
     def provider_checks_payload(self) -> dict[str, Any]:
         providers = self.list_providers()
         with get_conn(self.settings.db_path) as conn:
@@ -337,6 +344,7 @@ class BackendService:
         latest_success_by_name = self._latest_successful_provider_ssl()
         cache = self.provider_ssl_cache_status()
         merged: list[dict[str, Any]] = []
+        probe_source = self._ssl_probe_source()
         for provider in providers:
             state = by_name.get(provider["name"], {})
             last_success = latest_success_by_name.get(provider["name"], {})
@@ -365,16 +373,20 @@ class BackendService:
                     "panelSslLastSuccessFingerprintSha256": last_success.get("fingerprint_sha256") or "",
                     "panelSslLastSuccessVerifyError": last_success.get("verify_error") or "",
                     "panelSslLastSuccessDaysLeft": last_success.get("days_left"),
-                    "panelSslProbeRoute": "system-route",
+                    "panelSslProbeRoute": probe_source,
+                    "panelSslProbeInterface": self.settings.ssl_probe_direct_interface if probe_source == "forced-direct" else "",
+                    "panelSslProbeSourceIp": self.settings.ssl_probe_direct_source_ip if probe_source == "forced-direct" else "",
                     "jobStatus": str(cache.get("job", {}).get("status") or "").strip(),
                 }
             )
         return {
             "ok": True,
             "providers": merged,
-            "probeSource": "system-route",
+            "probeSource": probe_source,
             "probeHost": socket.gethostname(),
             "probeRuntime": self.settings.app_name,
+            "probeInterface": self.settings.ssl_probe_direct_interface if probe_source == "forced-direct" else "",
+            "probeSourceIp": self.settings.ssl_probe_direct_source_ip if probe_source == "forced-direct" else "",
             "checkedAtSec": cache["checkedAtSec"],
             "nextCheckAtSec": cache.get("sslCacheNextRefreshAtSec", 0),
             "sslCacheReady": cache["sslCacheReady"],
@@ -467,7 +479,12 @@ class BackendService:
             results: list[dict[str, Any]] = []
             with get_conn(self.settings.db_path) as conn:
                 for provider in providers:
-                    result = probe_panel_ssl(provider["panelUrl"])
+                    result = probe_panel_ssl(
+                        provider["panelUrl"],
+                        route_mode=self.settings.ssl_probe_route_mode,
+                        bind_interface=self.settings.ssl_probe_direct_interface,
+                        bind_source_ip=self.settings.ssl_probe_direct_source_ip,
+                    )
                     checked_at = str(result.get("checked_at") or utc_now())
                     conn.execute(
                         "INSERT INTO provider_ssl_checks(provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, valid_from, fingerprint_sha256, verify_error, error_text, raw_payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",

@@ -17,7 +17,7 @@
         <div>
           <div class="font-semibold">Контроль сертификатов 3x-ui</div>
           <div class="text-xs opacity-70">
-            Дата окончания сертификата и время последней проверки читаются через текущий backend-контур проекта. Проверка идёт системным маршрутом этого Ubuntu-хоста и не использует выбранную proxy-group пользователей. По умолчанию предупреждение срабатывает за {{ sslWarnDaysDefault }} дня(дней); для короткоживущих IP-сертификатов на 6 дней это и есть рабочий ранний сигнал.
+            Дата окончания сертификата и время последней проверки читаются через текущий backend-контур проекта. Проверка идёт отдельным server-side маршрутом этого Ubuntu-хоста. В forced DIRECT backend привязывает probe к физическому интерфейсу хоста и не использует пользовательскую proxy-group. По умолчанию предупреждение срабатывает за {{ sslWarnDaysDefault }} дня(дней); для короткоживущих IP-сертификатов на 6 дней это и есть рабочий ранний сигнал.
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -50,6 +50,8 @@
         <span class="badge badge-sm" :class="agentProvidersSslCacheFresh ? 'badge-success' : 'badge-warning'">{{ agentProvidersSslCacheFresh ? 'Кэш свежий' : 'Кэш ожидает обновления' }}</span>
         <span v-if="probeRouteText !== '—'" class="badge badge-ghost badge-sm">Маршрут проверки: {{ probeRouteText }}</span>
         <span v-if="agentProvidersProbeHost" class="badge badge-ghost badge-sm">Host: {{ agentProvidersProbeHost }}</span>
+        <span v-if="agentProvidersProbeInterface" class="badge badge-ghost badge-sm">iface: {{ agentProvidersProbeInterface }}</span>
+        <span v-if="agentProvidersProbeSourceIp" class="badge badge-ghost badge-sm">src: {{ agentProvidersProbeSourceIp }}</span>
         <span v-if="agentProvidersJobStatus" class="badge badge-sm" :class="agentProvidersJobStatus === 'ok' ? 'badge-success' : agentProvidersJobStatus === 'running' ? 'badge-info' : agentProvidersJobStatus === 'error' ? 'badge-error' : 'badge-ghost'">job: {{ agentProvidersJobStatus }}</span>
         <span v-if="agentProvidersSslRefreshing" class="badge badge-info badge-sm">{{ t('providerSslRefreshing') }}</span>
         <span v-if="visibleAgentProvidersError" class="badge badge-error badge-sm">{{ visibleAgentProvidersError }}</span>
@@ -249,6 +251,8 @@ import {
   agentProvidersJobStatus,
   agentProvidersNextCheckAtMs,
   agentProvidersProbeHost,
+  agentProvidersProbeInterface,
+  agentProvidersProbeSourceIp,
   agentProvidersProbeSource,
   agentProvidersSslCacheFresh,
   agentProvidersSslCacheNextRefreshAtMs,
@@ -503,7 +507,7 @@ const friendlyTlsError = (value: any) => {
   if (!raw) return ''
   const lowered = raw.toLowerCase()
   if (lowered.includes('handshake operation timed out') || lowered.includes('ssl connection timeout') || lowered.includes('handshake operation timed ot') || lowered.includes('timed out')) {
-    return 'TLS timeout — порт открыт, но рукопожатие не завершилось'
+    return 'TLS timeout'
   }
   if (lowered.includes('certificate verify failed')) return 'Ошибка проверки сертификата'
   if (lowered.includes('wrong version number')) return 'Неверная версия TLS'
@@ -512,12 +516,12 @@ const friendlyTlsError = (value: any) => {
 }
 
 const sslStatusPillCls = (kind: string) => {
-  if (kind === 'healthy') return 'border-success/35 bg-success/15 text-base-content'
-  if (kind === 'warning') return 'border-warning/35 bg-warning/18 text-base-content'
-  if (kind === 'expired') return 'border-error/40 bg-error/18 text-base-content'
-  if (kind === 'refreshing') return 'border-info/35 bg-info/18 text-base-content'
-  if (kind === 'error') return 'border-error/40 bg-error/18 text-base-content'
-  return 'border-base-content/15 bg-base-200/70 text-base-content'
+  if (kind === 'healthy') return 'border-success/70 bg-success text-success-content'
+  if (kind === 'warning') return 'border-warning/70 bg-warning text-warning-content'
+  if (kind === 'expired') return 'border-error/70 bg-error text-error-content'
+  if (kind === 'refreshing') return 'border-info/70 bg-info text-info-content'
+  if (kind === 'error') return 'border-error/70 bg-error text-error-content'
+  return 'border-base-content/20 bg-base-200 text-base-content'
 }
 
 const extractLastSuccess = (item: any) => {
@@ -542,6 +546,10 @@ const sslWarnDaysDefault = computed(() => {
 const probeRouteText = computed(() => {
   const source = String(agentProvidersProbeSource.value || '').trim()
   if (!source) return '—'
+  if (source === 'forced-direct') {
+    const parts = [agentProvidersProbeInterface.value, agentProvidersProbeSourceIp.value].filter(Boolean)
+    return parts.length ? `forced DIRECT · ${parts.join(' · ')}` : 'forced DIRECT этого хоста'
+  }
   if (source === 'system-route') return 'system route этого хоста'
   return source
 })
@@ -590,11 +598,11 @@ const rowsView = computed(() => {
     if (diag.status === 'refreshing') {
       pillCls = sslStatusPillCls('refreshing')
       text = t('providerSslRefreshing')
-      hint = 'Идёт обновление SSL-кеша'
+      hint = 'Идёт обновление SSL-кеша на backend'
     } else if (diag.status === 'healthy') {
       pillCls = sslStatusPillCls('healthy')
       text = 'OK'
-      hint = 'Проверка прошла с этого хоста'
+      hint = probeRouteText.value === '—' ? 'Проверка прошла с этого хоста' : `Проверка прошла через ${probeRouteText.value}`
     } else if (diag.status === 'warning') {
       pillCls = sslStatusPillCls('warning')
       text = 'Истекает'
@@ -605,9 +613,12 @@ const rowsView = computed(() => {
       hint = 'Сертификат уже истёк'
     } else if (diag.error) {
       pillCls = sslStatusPillCls('error')
+      const rawError = String(diag.error || '').trim().toLowerCase()
       text = friendlyError || 'Ошибка TLS'
       title = diag.error
-      hint = friendlyError || 'Ошибка TLS/SSL'
+      if (rawError.includes('timed out')) hint = `Порт отвечает, но TLS-рукопожатие не завершилось через ${probeRouteText.value || 'этот маршрут'}`
+      else if (rawError.includes('connection refused')) hint = 'Удалённый endpoint отклонил соединение'
+      else hint = friendlyError || 'Ошибка TLS/SSL'
     }
 
     return {

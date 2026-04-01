@@ -1,3 +1,8 @@
+## v0.6.72
+- backend provider SSL probe now supports `forced-direct`: TLS checks can bind to the detected default interface/source IP, so certificate reads stop inheriting the current tunnel path when the host itself is routed through a provider.
+- install/update now writes `ULTRA_UI_SSL_PROBE_ROUTE_MODE`, `ULTRA_UI_SSL_PROBE_DIRECT_INTERFACE`, and `ULTRA_UI_SSL_PROBE_DIRECT_SOURCE_IP` into `/etc/ultra-ui-ubuntu/agent.env`, defaulting to `forced-direct` when a physical default route is detected.
+- Xui Hosts and the provider SSL workspace now show the active probe route and use high-contrast dark-theme pills with short error labels instead of cramming raw timeout text into the badge.
+
 ## v0.6.71
 - fixed ubuntu-service Mihomo bridge path encoding: upstream paths are now percent-encoded segment-by-segment before hitting `urllib`, so proxy/group/rule names with spaces, Cyrillic, and emoji (for example `Остальной трафик`) stop throwing `http.client.InvalidURL`.
 - reused the same encoded-path helper for both HTTP and WebSocket upstream URLs so future contour actions stay consistent even when names are non-ASCII.
