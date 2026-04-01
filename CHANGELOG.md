@@ -1,3 +1,7 @@
+## v0.6.70
+- ubuntu-service backend now proxies additional Mihomo UI actions (`/group/*`, `/cache/*`, `/restart`, `/upgrade/ui`, `/configs/*`) and stabilizes empty backend writes, reducing backend-side `Network Error` on rule/proxy/service actions.
+- provider SSL status cards on `Хосты 3x-ui` and in the workspace now use readable dark-theme pills with short labels plus separate hints, and the UI explicitly marks checks as `system route` from the current Ubuntu host.
+
 ## v0.6.69
 - improve provider TLS probe diagnostics and fallback strategies (SNI / no-SNI / TLS 1.2 fallback) to reduce false `_ssl.c:983` timeouts on some 3x-ui panels.
 - polish dark-theme status pills on Xui Hosts and provider SSL workspace so text stays readable.

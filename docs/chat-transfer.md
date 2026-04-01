@@ -1,7 +1,11 @@
-Prepared release: v0.6.69. The active contour stays on `ubuntu-service`; this hotfix improves provider TLS probing (SNI / no-SNI / TLS 1.2 fallback attempts) and polishes dark-theme SSL status pills, so Xui Hosts explains `_ssl.c:983` timeouts more honestly and stays readable.
-Актуальный релиз для переноса: **v0.6.69**
+Prepared release: v0.6.71. The active contour stays on `ubuntu-service`; this hotfix adds missing backend proxy routes for standard Mihomo UI actions, keeps empty backend writes stable, and makes provider SSL status cards readable while explicitly marking checks as `system route` from the current Ubuntu host.
+Актуальный релиз для переноса: **v0.6.71**
 
-## Update v0.6.69
-- backend bridge retries transient `Connection refused` / timeout errors against the live Mihomo controller before returning 502
-- retry diagnostics are preserved in the 502 payload for easier troubleshooting
-- previous controller-resolution hardening from v0.6.67 stays in place
+## Update v0.6.71
+- fixed ubuntu-service Mihomo proxy path encoding for names with spaces/Cyrillic/emoji, so backend actions stop crashing on entries like `Остальной трафик`.
+- path encoding is now shared between HTTP and WebSocket upstream URL builders.
+
+## Update v0.6.70
+- backend now proxies additional Mihomo UI endpoints (`/group/*`, `/cache/*`, `/restart`, `/upgrade/ui`, `/configs/*`) so backend contour actions stop tripping over missing routes
+- empty `PUT/POST/PATCH` bridge calls are normalized before they go to Mihomo, reducing backend-side `Network Error` on action buttons
+- `Хосты 3x-ui` and provider SSL workspace now use readable dark-theme status pills and clearly label checks as `system route` from the current Ubuntu host

@@ -17,7 +17,7 @@
         <div>
           <div class="font-semibold">Контроль сертификатов 3x-ui</div>
           <div class="text-xs opacity-70">
-            Дата окончания сертификата и время последней проверки читаются через текущий backend-контур проекта. По умолчанию предупреждение срабатывает за {{ sslWarnDaysDefault }} дня(дней); для короткоживущих IP-сертификатов на 6 дней это и есть рабочий ранний сигнал.
+            Дата окончания сертификата и время последней проверки читаются через текущий backend-контур проекта. Проверка идёт системным маршрутом этого Ubuntu-хоста и не использует выбранную proxy-group пользователей. По умолчанию предупреждение срабатывает за {{ sslWarnDaysDefault }} дня(дней); для короткоживущих IP-сертификатов на 6 дней это и есть рабочий ранний сигнал.
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -48,6 +48,8 @@
         <span v-if="agentProvidersNextCheckAtMs" class="badge badge-ghost badge-sm">{{ t('providerSslChecksNextCheck') }}: {{ fmtTs(agentProvidersNextCheckAtMs) }}</span>
         <span v-if="agentProvidersSslCacheNextRefreshAtMs" class="badge badge-ghost badge-sm">Следующая автопроверка: {{ fmtTs(agentProvidersSslCacheNextRefreshAtMs) }}</span>
         <span class="badge badge-sm" :class="agentProvidersSslCacheFresh ? 'badge-success' : 'badge-warning'">{{ agentProvidersSslCacheFresh ? 'Кэш свежий' : 'Кэш ожидает обновления' }}</span>
+        <span v-if="probeRouteText !== '—'" class="badge badge-ghost badge-sm">Маршрут проверки: {{ probeRouteText }}</span>
+        <span v-if="agentProvidersProbeHost" class="badge badge-ghost badge-sm">Host: {{ agentProvidersProbeHost }}</span>
         <span v-if="agentProvidersJobStatus" class="badge badge-sm" :class="agentProvidersJobStatus === 'ok' ? 'badge-success' : agentProvidersJobStatus === 'running' ? 'badge-info' : agentProvidersJobStatus === 'error' ? 'badge-error' : 'badge-ghost'">job: {{ agentProvidersJobStatus }}</span>
         <span v-if="agentProvidersSslRefreshing" class="badge badge-info badge-sm">{{ t('providerSslRefreshing') }}</span>
         <span v-if="visibleAgentProvidersError" class="badge badge-error badge-sm">{{ visibleAgentProvidersError }}</span>
@@ -83,8 +85,11 @@
                   placeholder="https://panel.example:2053"
                 />
               </td>
-              <td>
-                <span class="inline-flex min-h-6 items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold" :class="row.status.pillCls" :title="row.status.title || row.errorText || ''">{{ row.status.text }}</span>
+              <td class="text-xs">
+                <div class="flex flex-col gap-1.5">
+                  <span class="inline-flex min-h-7 items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none shadow-sm" :class="row.status.pillCls" :title="row.status.title || row.errorText || ''">{{ row.status.text }}</span>
+                  <span class="leading-4 opacity-75">{{ row.status.hint }}</span>
+                </div>
               </td>
               <td class="text-xs">{{ row.status.expiresAt || '—' }}</td>
               <td class="text-xs">{{ row.status.checkedAt || '—' }}</td>
@@ -130,6 +135,7 @@
           <div class="rounded-lg border border-base-content/10 bg-base-200/40 px-3 py-2">
             <div class="text-[11px] uppercase opacity-60">Источник</div>
             <div class="mt-1 text-sm">{{ detailsRow.status.source || '—' }}</div>
+            <div class="text-xs opacity-70">{{ probeRouteText }}</div>
           </div>
         </div>
 
@@ -242,6 +248,8 @@ import {
   agentProvidersError,
   agentProvidersJobStatus,
   agentProvidersNextCheckAtMs,
+  agentProvidersProbeHost,
+  agentProvidersProbeSource,
   agentProvidersSslCacheFresh,
   agentProvidersSslCacheNextRefreshAtMs,
   agentProvidersSslRefreshing,
@@ -504,11 +512,11 @@ const friendlyTlsError = (value: any) => {
 }
 
 const sslStatusPillCls = (kind: string) => {
-  if (kind === 'healthy') return 'border-success/30 bg-success/15 text-success-content dark:text-success'
-  if (kind === 'warning') return 'border-warning/30 bg-warning/15 text-warning-content dark:text-warning'
-  if (kind === 'expired') return 'border-error/30 bg-error/15 text-error-content dark:text-error'
-  if (kind === 'refreshing') return 'border-info/30 bg-info/15 text-info-content dark:text-info'
-  if (kind === 'error') return 'border-error/30 bg-error/12 text-error-content dark:text-error'
+  if (kind === 'healthy') return 'border-success/35 bg-success/15 text-base-content'
+  if (kind === 'warning') return 'border-warning/35 bg-warning/18 text-base-content'
+  if (kind === 'expired') return 'border-error/40 bg-error/18 text-base-content'
+  if (kind === 'refreshing') return 'border-info/35 bg-info/18 text-base-content'
+  if (kind === 'error') return 'border-error/40 bg-error/18 text-base-content'
   return 'border-base-content/15 bg-base-200/70 text-base-content'
 }
 
@@ -530,6 +538,22 @@ const sslWarnDaysDefault = computed(() => {
   const raw = Number(sslNearExpiryDaysDefault.value || 2)
   return Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : 2
 })
+
+const probeRouteText = computed(() => {
+  const source = String(agentProvidersProbeSource.value || '').trim()
+  if (!source) return '—'
+  if (source === 'system-route') return 'system route этого хоста'
+  return source
+})
+
+const sourceLabel = (value: string, fromLastSuccess = false) => {
+  if (fromLastSuccess) return t('providerSslSourceLastSuccess')
+  if (value === 'panel-probe') return t('providerSslSourcePanelProbe')
+  if (value === 'panel') return t('providerSslSourcePanelUrl')
+  if (value === 'provider') return t('providerSslSourceProviderUrl')
+  if (value === 'subscription') return t('providerSslSourceSubscription')
+  return t('providerSslSourceUnknown')
+}
 
 const issueStatuses = new Set(['warning', 'expired', 'error'])
 
@@ -562,22 +586,28 @@ const rowsView = computed(() => {
     let pillCls = sslStatusPillCls('unknown')
     let text = 'Нет данных'
     let title = ''
+    let hint = lastSuccess ? 'Есть последний успешный сертификат' : 'Нет данных по сертификату'
     if (diag.status === 'refreshing') {
       pillCls = sslStatusPillCls('refreshing')
       text = t('providerSslRefreshing')
+      hint = 'Идёт обновление SSL-кеша'
     } else if (diag.status === 'healthy') {
       pillCls = sslStatusPillCls('healthy')
       text = 'OK'
+      hint = 'Проверка прошла с этого хоста'
     } else if (diag.status === 'warning') {
       pillCls = sslStatusPillCls('warning')
-      text = 'Скоро истекает'
+      text = 'Истекает'
+      hint = 'Сертификат скоро истекает'
     } else if (diag.status === 'expired') {
       pillCls = sslStatusPillCls('expired')
-      text = 'Просрочен'
+      text = 'Истёк'
+      hint = 'Сертификат уже истёк'
     } else if (diag.error) {
       pillCls = sslStatusPillCls('error')
       text = friendlyError || 'Ошибка TLS'
       title = diag.error
+      hint = friendlyError || 'Ошибка TLS/SSL'
     }
 
     return {
@@ -598,10 +628,11 @@ const rowsView = computed(() => {
         pillCls,
         text,
         title,
-        source: diag.source || '',
+        source: sourceLabel(String(diag.source || ''), Boolean(lastSuccess && !diag.dateTime)),
         key: diag.status || '',
         expiresAt: diag.dateTime ? diag.dateTime.replace(/^(\d{2})-(\d{2})-(\d{4})/, '$1.$2.$3') : '',
         checkedAt: diag.checkedAtMs ? fmtTs(diag.checkedAtMs) : fmtTs(lastCheckedAtMs.value),
+        hint,
       },
     }
   })

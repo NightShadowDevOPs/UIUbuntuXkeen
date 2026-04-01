@@ -75,6 +75,9 @@ export const agentProvidersSslCacheNextRefreshAtMs = ref<number>(0)
 export const agentProvidersNextCheckAtMs = ref<number>(0)
 export const agentProvidersJobStatus = ref('')
 export const agentProvidersJobId = ref('')
+export const agentProvidersProbeSource = ref('')
+export const agentProvidersProbeHost = ref('')
+export const agentProvidersProbeRuntime = ref('')
 
 export const panelSslNotAfterByName = ref<Record<string, string>>({})
 export const panelSslErrorByName = ref<Record<string, string>>({})
@@ -104,6 +107,9 @@ const resetProviderRuntimeState = (error: string | null = null) => {
   agentProvidersNextCheckAtMs.value = 0
   agentProvidersJobStatus.value = ''
   agentProvidersJobId.value = ''
+  agentProvidersProbeSource.value = ''
+  agentProvidersProbeHost.value = ''
+  agentProvidersProbeRuntime.value = ''
   agentProvidersAt.value = Date.now()
   providerSslDbMeta.value = {
     checkedAtMs: agentProvidersAt.value,
@@ -187,6 +193,9 @@ export const fetchAgentProviders = async (force = false) => {
     const job = checks?.job || cache?.job || null
     agentProvidersJobStatus.value = String(job?.status || '').trim()
     agentProvidersJobId.value = String(job?.id || '').trim()
+    agentProvidersProbeSource.value = String(checks?.probeSource || '').trim()
+    agentProvidersProbeHost.value = String(checks?.probeHost || '').trim()
+    agentProvidersProbeRuntime.value = String(checks?.probeRuntime || '').trim()
 
     const checkedAtMs = agentProvidersAt.value || Date.now()
     const snapshot: Record<string, any> = {}
@@ -270,6 +279,9 @@ const applyProviderState = (res: any, opts?: { optimisticRefreshing?: boolean })
 
   agentProvidersJobStatus.value = String(res?.job?.status || agentProvidersJobStatus.value || '').trim()
   agentProvidersJobId.value = String(res?.job?.id || agentProvidersJobId.value || '').trim()
+  agentProvidersProbeSource.value = String(res?.probeSource || agentProvidersProbeSource.value || '').trim()
+  agentProvidersProbeHost.value = String(res?.probeHost || agentProvidersProbeHost.value || '').trim()
+  agentProvidersProbeRuntime.value = String(res?.probeRuntime || agentProvidersProbeRuntime.value || '').trim()
   panelSslProbeError.value = null
   return res
 }

@@ -899,10 +899,10 @@ const sslExpireBadge = computed(() => {
   const level = days < 0 ? 'error' : days <= sslWarnDays.value ? 'warning' : 'success'
   const badgeCls =
     level === 'error'
-      ? 'badge-error'
+      ? 'border-error/40 bg-error/18 text-base-content'
       : level === 'warning'
-        ? 'badge-warning'
-        : 'badge-success'
+        ? 'border-warning/35 bg-warning/18 text-base-content'
+        : 'border-success/35 bg-success/15 text-base-content'
 
   const text = days < 0 ? t('providerSslStatusExpired') : `SSL ${days}${t('daysShort')}`
   return { badgeCls, text, tip: info.tip }

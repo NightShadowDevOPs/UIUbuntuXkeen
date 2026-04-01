@@ -159,6 +159,41 @@ async def proxy_provider_rules_item(request: Request, provider_path: str):
     return await _proxy_mihomo(request, f"/providers/rules/{provider_path}")
 
 
+@app.api_route("/group/{group_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/group/{group_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/api/group/{group_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+async def proxy_group_item(request: Request, group_path: str):
+    return await _proxy_mihomo(request, f"/group/{group_path}")
+
+
+@app.api_route("/cache/{cache_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/cache/{cache_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/api/cache/{cache_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+async def proxy_cache_item(request: Request, cache_path: str):
+    return await _proxy_mihomo(request, f"/cache/{cache_path}")
+
+
+@app.api_route("/restart", methods=["POST"])
+@app.api_route("/api/restart", methods=["POST"])
+@app.api_route("/api/api/restart", methods=["POST"])
+async def proxy_restart(request: Request):
+    return await _proxy_mihomo(request, "/restart")
+
+
+@app.api_route("/upgrade/ui", methods=["POST"])
+@app.api_route("/api/upgrade/ui", methods=["POST"])
+@app.api_route("/api/api/upgrade/ui", methods=["POST"])
+async def proxy_upgrade_ui(request: Request):
+    return await _proxy_mihomo(request, "/upgrade/ui")
+
+
+@app.api_route("/configs/{config_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/configs/{config_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/api/configs/{config_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+async def proxy_configs_item(request: Request, config_path: str):
+    return await _proxy_mihomo(request, f"/configs/{config_path}")
+
+
 @app.api_route("/rules", methods=["GET"])
 @app.api_route("/api/rules", methods=["GET"])
 @app.api_route("/api/api/rules", methods=["GET"])

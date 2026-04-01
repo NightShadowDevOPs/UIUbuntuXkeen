@@ -23,7 +23,7 @@ class MihomoController:
     extra_http_bases: tuple[str, ...] = ()
 
     def build_http_url(self, path: str, query_items: Iterable[tuple[str, str]] | None = None, *, base_url: str | None = None) -> str:
-        normalized = '/' + str(path or '').lstrip('/')
+        normalized = _encode_upstream_path(path)
         target_base = str(base_url or self.http_base)
         url = urllib.parse.urljoin(target_base.rstrip('/') + '/', normalized.lstrip('/'))
         if query_items:
@@ -34,7 +34,7 @@ class MihomoController:
         return url
 
     def build_ws_url(self, path: str, query_items: Iterable[tuple[str, str]] | None = None) -> str:
-        normalized = '/' + str(path or '').lstrip('/')
+        normalized = _encode_upstream_path(path)
         url = urllib.parse.urljoin(self.ws_base.rstrip('/') + '/', normalized.lstrip('/'))
         if query_items:
             pairs = [(str(k), str(v)) for k, v in query_items]
@@ -71,6 +71,13 @@ def _swap_scheme(http_url: str) -> str:
     parsed = urllib.parse.urlsplit(http_url)
     scheme = 'wss' if parsed.scheme == 'https' else 'ws'
     return urllib.parse.urlunsplit((scheme, parsed.netloc, parsed.path, '', ''))
+
+
+def _encode_upstream_path(path: str) -> str:
+    normalized = '/' + str(path or '').lstrip('/')
+    parts = normalized.split('/')
+    encoded_parts = [urllib.parse.quote(part, safe=":@!$&'()*+,;=-._~") for part in parts]
+    return '/'.join(encoded_parts)
 
 
 def _read_controller_from_config(active_config_path: Path) -> tuple[str, str]:
@@ -163,6 +170,8 @@ def proxy_http_request(
 ) -> tuple[int, bytes, str]:
     attempted: list[dict[str, str]] = []
     retry_delays = (0.0, 0.35, 0.8)
+    normalized_method = str(method or 'GET').upper()
+    normalized_body = body if body not in (None, b'') else (b'' if normalized_method in {'PUT', 'POST', 'PATCH'} else None)
     for base_url in (controller.http_base, *controller.extra_http_bases):
         url = controller.build_http_url(path, query_items, base_url=base_url)
         for attempt_index, delay in enumerate(retry_delays, start=1):
@@ -171,12 +180,13 @@ def proxy_http_request(
                 time.sleep(delay)
             request = urllib.request.Request(
                 url,
-                data=body if body else None,
+                data=normalized_body,
                 headers=_proxy_headers(controller.secret, content_type),
-                method=str(method or 'GET').upper(),
+                method=normalized_method,
             )
             try:
-                with urllib.request.urlopen(request, timeout=timeout) as response:
+                opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                with opener.open(request, timeout=timeout) as response:
                     payload = response.read()
                     media_type = response.headers.get_content_type() or response.headers.get('Content-Type', 'application/json')
                     return int(getattr(response, 'status', 200) or 200), payload, media_type
@@ -189,6 +199,9 @@ def proxy_http_request(
                 attempted.append({'url': url, 'error': str(reason), 'attempt': str(attempt_index)})
                 if _is_transient_connect_error(reason) and attempt_index < len(retry_delays):
                     continue
+                break
+            except Exception as exc:  # noqa: BLE001
+                attempted.append({'url': url, 'error': str(exc), 'attempt': str(attempt_index)})
                 break
 
     last = attempted[-1] if attempted else {'url': controller.build_http_url(path, query_items), 'error': 'unknown'}

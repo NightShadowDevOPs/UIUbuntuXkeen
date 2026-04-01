@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import socket
 import threading
 import time
 import uuid
@@ -364,12 +365,16 @@ class BackendService:
                     "panelSslLastSuccessFingerprintSha256": last_success.get("fingerprint_sha256") or "",
                     "panelSslLastSuccessVerifyError": last_success.get("verify_error") or "",
                     "panelSslLastSuccessDaysLeft": last_success.get("days_left"),
+                    "panelSslProbeRoute": "system-route",
                     "jobStatus": str(cache.get("job", {}).get("status") or "").strip(),
                 }
             )
         return {
             "ok": True,
             "providers": merged,
+            "probeSource": "system-route",
+            "probeHost": socket.gethostname(),
+            "probeRuntime": self.settings.app_name,
             "checkedAtSec": cache["checkedAtSec"],
             "nextCheckAtSec": cache.get("sslCacheNextRefreshAtSec", 0),
             "sslCacheReady": cache["sslCacheReady"],

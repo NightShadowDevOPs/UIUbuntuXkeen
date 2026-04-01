@@ -3,7 +3,7 @@
     <div class="flex flex-wrap items-start justify-between gap-2">
       <div>
         <div class="font-semibold">{{ t('providerSslChecksWorkspaceTitle') }}</div>
-        <div class="text-xs opacity-70">Автопроверка провайдеров каждые 4 часа + ручной запуск по кнопке. Снимок SSL и время проверки сохраняются в общей БД.</div>
+        <div class="text-xs opacity-70">Автопроверка провайдеров каждые 4 часа + ручной запуск по кнопке. Проверка идёт системным маршрутом текущего Ubuntu-хоста и не использует выбранную proxy-group пользователей.</div>
       </div>
       <div class="flex items-center gap-2">
         <button type="button" class="btn btn-sm" @click="runChecksNow" :disabled="checksBusy || !providerHealthActionsAvailable">
@@ -24,6 +24,8 @@
       <span v-if="agentProvidersAt" class="badge badge-ghost badge-sm">{{ t('checkedAt') }}: {{ fmtTs(agentProvidersAt) }}</span>
       <span v-if="agentProvidersSslCacheNextRefreshAtMs" class="badge badge-ghost badge-sm">{{ t('providerSslChecksNextCacheRefresh') }}: {{ fmtTs(agentProvidersSslCacheNextRefreshAtMs) }}</span>
       <span class="badge badge-sm" :class="agentProvidersSslCacheFresh ? 'badge-success' : 'badge-warning'">{{ agentProvidersSslCacheFresh ? t('providerSslChecksCacheFresh') : t('providerSslChecksCacheStale') }}</span>
+      <span v-if="agentProvidersProbeSource" class="badge badge-ghost badge-sm">Маршрут проверки: {{ probeRouteText }}</span>
+      <span v-if="agentProvidersProbeHost" class="badge badge-ghost badge-sm">Host: {{ agentProvidersProbeHost }}</span>
       <span v-if="agentProvidersSslRefreshing" class="badge badge-info badge-sm">{{ t('providerSslRefreshing') }}</span>
       <span v-if="agentProvidersError" class="badge badge-error badge-sm">{{ agentProvidersError }}</span>
     </div>
@@ -39,7 +41,7 @@
             <th class="w-[180px]">{{ t('provider') }}</th>
             <th>{{ t('providerPanelUrl') }}</th>
             <th>{{ t('providerSslStatus') }}</th>
-            <th class="w-[180px]">{{ t('providerSslExpiresAt') }}</th>
+            <th class="w-[220px]">{{ t('providerSslExpiresAt') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -51,13 +53,17 @@
                 <span v-if="row.url && row.panelUrl && row.url !== row.panelUrl" class="opacity-60">provider: {{ row.url }}</span>
               </div>
             </td>
-            <td>
-              <span class="inline-flex min-h-6 items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold" :class="row.pillCls">{{ row.statusText }}</span>
+            <td class="text-xs">
+              <div class="flex flex-col gap-1.5">
+                <span class="inline-flex min-h-7 items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none shadow-sm" :class="row.pillCls">{{ row.statusText }}</span>
+                <span class="leading-4 opacity-75">{{ row.statusHint }}</span>
+              </div>
             </td>
             <td class="text-xs">
               <div class="flex flex-col gap-0.5">
                 <span>{{ row.expiresAt || '—' }}</span>
                 <span class="opacity-60">{{ row.sourceText }}</span>
+                <span v-if="row.lastSuccessText" class="opacity-60">{{ row.lastSuccessText }}</span>
               </div>
             </td>
           </tr>
@@ -81,6 +87,8 @@ import {
   agentProviderByName,
   agentProvidersAt,
   agentProvidersError,
+  agentProvidersProbeHost,
+  agentProvidersProbeSource,
   agentProvidersSslCacheFresh,
   agentProvidersSslCacheNextRefreshAtMs,
   agentProvidersSslRefreshing,
@@ -98,14 +106,32 @@ const { t } = useI18n()
 const checksBusy = ref(false)
 const cacheBusy = ref(false)
 
+const shortTlsError = (value: any) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  const lowered = raw.toLowerCase()
+  if (lowered.includes('handshake operation timed out') || lowered.includes('ssl connection timeout') || lowered.includes('timed ot')) return 'TLS timeout с этого хоста'
+  if (lowered.includes('certificate verify failed')) return 'Ошибка проверки сертификата'
+  if (lowered.includes('wrong version number')) return 'Неверная версия TLS'
+  if (lowered.includes('connection refused')) return 'Соединение отклонено'
+  return raw
+}
+
 const sslStatusPillCls = (badgeCls: string) => {
   const raw = String(badgeCls || '').toLowerCase()
-  if (raw.includes('success')) return 'border-success/30 bg-success/15 text-success-content dark:text-success'
-  if (raw.includes('warning')) return 'border-warning/30 bg-warning/15 text-warning-content dark:text-warning'
-  if (raw.includes('error')) return 'border-error/30 bg-error/15 text-error-content dark:text-error'
-  if (raw.includes('info')) return 'border-info/30 bg-info/15 text-info-content dark:text-info'
+  if (raw.includes('success')) return 'border-success/35 bg-success/15 text-base-content'
+  if (raw.includes('warning')) return 'border-warning/35 bg-warning/18 text-base-content'
+  if (raw.includes('error')) return 'border-error/40 bg-error/18 text-base-content'
+  if (raw.includes('info')) return 'border-info/35 bg-info/18 text-base-content'
   return 'border-base-content/15 bg-base-200/70 text-base-content'
 }
+
+const probeRouteText = computed(() => {
+  const source = String(agentProvidersProbeSource.value || '').trim()
+  if (!source) return '—'
+  if (source === 'system-route') return 'system route этого хоста'
+  return source
+})
 
 const rows = computed(() => {
   return (proxyProviederList.value || [])
@@ -118,18 +144,33 @@ const rows = computed(() => {
       const health = getProviderHealth(provider, agent, { nearExpiryDays, sslRefreshing: agentProvidersSslRefreshing.value })
       const diag = getProviderSslDiagnostics(provider, agent, { nearExpiryDays, sslRefreshing: agentProvidersSslRefreshing.value })
       const fallbackExpiry = String(agent?.panelSslLastSuccessNotAfter || '').trim()
+      const fallbackCheckedAt = Number(agent?.panelSslLastSuccessCheckedAtSec || 0)
       const expires = diag.dateTime ? dayjs(diag.dateTime).format('DD.MM.YYYY HH:mm') : (fallbackExpiry ? dayjs(fallbackExpiry).format('DD.MM.YYYY HH:mm') : '')
       const sourceText = diag.dateTime
         ? (diag.source === 'panel-probe' ? t('providerSslSourcePanelProbe') : diag.source === 'panel' ? t('providerSslSourcePanelUrl') : diag.source === 'provider' ? t('providerSslSourceProviderUrl') : diag.source === 'subscription' ? t('providerSslSourceSubscription') : t('providerSslSourceUnknown'))
         : (fallbackExpiry ? t('providerSslSourceLastSuccess') : t('providerSslSourceUnknown'))
+      const lastSuccessText = fallbackCheckedAt > 0 ? `${t('providerSslLastSuccessCheckedLabel')}: ${fmtTs(fallbackCheckedAt * 1000)}` : ''
+      const statusHint = diag.error
+        ? shortTlsError(diag.error)
+        : diag.status === 'healthy'
+          ? 'Проверка прошла с этого хоста'
+          : diag.status === 'warning'
+            ? 'Сертификат скоро истекает'
+            : diag.status === 'expired'
+              ? 'Сертификат уже истёк'
+              : diag.status === 'refreshing'
+                ? 'Идёт обновление SSL-кеша'
+                : (fallbackExpiry ? 'Есть последний успешный снимок' : 'Нет данных по сертификату')
       return {
         name,
         url: String(agent?.url || provider?.url || '').trim(),
         panelUrl: String(agent?.panelUrl || '').trim(),
         pillCls: sslStatusPillCls(health.badgeCls),
-        statusText: t(health.labelKey as any),
+        statusText: diag.error ? shortTlsError(diag.error) || t(health.labelKey as any) : t(health.labelKey as any),
+        statusHint,
         expiresAt: expires,
-        sourceText,
+        sourceText: `${sourceText} • ${probeRouteText.value}`,
+        lastSuccessText,
       }
     })
     .sort((a, b) => a.name.localeCompare(b.name))

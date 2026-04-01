@@ -1,3 +1,12 @@
+## v0.6.71
+- fixed ubuntu-service Mihomo bridge path encoding: upstream paths are now percent-encoded segment-by-segment before hitting `urllib`, so proxy/group/rule names with spaces, Cyrillic, and emoji (for example `Остальной трафик`) stop throwing `http.client.InvalidURL`.
+- reused the same encoded-path helper for both HTTP and WebSocket upstream URLs so future contour actions stay consistent even when names are non-ASCII.
+
+## v0.6.70
+- backend `ubuntu-service` now proxies additional Mihomo UI endpoints (`/group/*`, `/cache/*`, `/restart`, `/upgrade/ui`, `/configs/*`) and normalizes empty `PUT/POST/PATCH` bodies, reducing backend-side `Network Error` when the UI performs proxy/rule/service actions.
+- SSL status pills on `Хосты 3x-ui` and the provider SSL workspace are now high-contrast in dark theme, with short state labels plus separate hints instead of stuffing raw TLS errors into the badge.
+- provider SSL workspace now explicitly labels checks as coming from the current Ubuntu host `system route`, so a timeout is shown as a route/handshake problem from this host rather than a universal certificate failure.
+
 ## v0.6.69
 - provider TLS probe now records multiple handshake attempts (verify, insecure with SNI, insecure without SNI, TLS 1.2 fallback) before declaring `_ssl.c:983: The handshake operation timed out`.
 - Xui Hosts and provider SSL workspace now use readable dark-theme status pills instead of low-contrast default badges.
