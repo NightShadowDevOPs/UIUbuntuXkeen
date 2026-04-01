@@ -1,4 +1,4 @@
-## 2026-04-01 — v0.6.60 backend provider restore and status bridge
+## 2026-04-01 — v0.6.61 backend provider restore and status bridge
 - reproduced the live issue where `/api/providers` on `ubuntu-service` returned an empty list while the browser still referenced old 3x-ui host rows;
 - added backend provider-host recovery from saved SSL state/history and guarded provider replacement against accidental empty wipes;
 - added frontend reseed logic to rebuild/save 3x-ui host rows from local/users-db fallback when backend storage is empty;

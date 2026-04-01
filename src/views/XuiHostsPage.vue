@@ -229,7 +229,7 @@ import {
   runAgentProviderChecks,
 } from '@/store/providerHealth'
 import { getProviderSslDiagnostics } from '@/helper/providerHealth'
-import { activeBackendCapabilities, activeBackendCapabilitiesError, refreshActiveBackendCapabilities } from '@/store/backendCapabilities'
+import { activeBackendCapabilities, activeBackendCapabilitiesError, activeBackendCapabilitiesUpdatedAt, refreshActiveBackendCapabilities } from '@/store/backendCapabilities'
 import { activeBackend } from '@/store/setup'
 import { detectBackendKind } from '@/helper/backend'
 import { BACKEND_KINDS } from '@/config/backendContract'
@@ -330,13 +330,24 @@ const reflectRowsToLocalCache = (items: Array<{ name: string; panelUrl?: string;
 }
 
 const loadRowsFromBackend = async () => {
-  if (!useBackendProviders.value) {
+  const activeKind = detectBackendKind(activeBackend.value)
+  if (activeKind !== BACKEND_KINDS.UBUNTU_SERVICE && !useBackendProviders.value) {
     syncRowsFromStore()
     return
   }
+
   loadingBackendRows.value = true
   try {
-    let items = await fetchUbuntuProvidersAPI()
+    const fetched = await fetchUbuntuProvidersAPI()
+    const normalizedFetched = buildMergedRows([fetched as any[]])
+
+    if (normalizedFetched.length) {
+      rows.value = normalizedFetched
+      reflectRowsToLocalCache(rows.value as any[])
+      dirty.value = false
+      return
+    }
+
     const localRows = Object.entries(proxyProviderPanelUrlMap.value || {}).map(([name, url]) => ({ name, url }))
     const agentRows = Object.keys(agentProviderByName.value || {}).map((name) => ({
       name,
@@ -346,11 +357,11 @@ const loadRowsFromBackend = async () => {
       name,
       panelUrl: String((providerSslDbSnapshot.value as any)?.[name]?.panelUrl || '').trim(),
     }))
-    let merged = buildMergedRows([agentRows, items as any[], snapshotRows, localRows])
-    if (!items.length && merged.length && detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) {
+    let merged = buildMergedRows([agentRows, snapshotRows, localRows])
+    if (!fetched.length && merged.length && activeKind === BACKEND_KINDS.UBUNTU_SERVICE) {
       try {
-        items = await saveUbuntuProvidersAPI(merged.map((row) => ({ name: row.name, panelUrl: row.url, enabled: true })))
-        merged = buildMergedRows([agentRows, items as any[], snapshotRows, localRows])
+        const saved = await saveUbuntuProvidersAPI(merged.map((row) => ({ name: row.name, panelUrl: row.url, enabled: true })))
+        merged = buildMergedRows([saved as any[]])
         await fetchAgentProviders(true)
       } catch {
         // keep merged fallback rows
@@ -369,6 +380,16 @@ const loadRowsFromBackend = async () => {
 watch(useBackendProviders, () => {
   loadRowsFromBackend()
 }, { immediate: true })
+
+watch(() => activeBackend.value?.uuid || '', () => {
+  loadRowsFromBackend()
+}, { immediate: true })
+
+watch(activeBackendCapabilitiesUpdatedAt, () => {
+  if (dirty.value || loadingBackendRows.value) return
+  if (detectBackendKind(activeBackend.value) !== BACKEND_KINDS.UBUNTU_SERVICE) return
+  loadRowsFromBackend()
+})
 
 watch(agentProvidersAt, () => {
   if (dirty.value || loadingBackendRows.value) return
@@ -638,7 +659,11 @@ const refreshCacheNow = async () => {
 }
 
 onMounted(async () => {
+  await loadRowsFromBackend()
   await refreshProviderRuntimeView(false)
+  if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE && !rows.value.length) {
+    await loadRowsFromBackend()
+  }
   if (useBackendProviders.value && rows.value.length && !lastCheckedAtMs.value) {
     await invokeProviderRuntimeAction('cache')
   }

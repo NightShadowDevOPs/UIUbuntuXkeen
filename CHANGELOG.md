@@ -1,4 +1,4 @@
-## v0.6.60
+## v0.6.61
 - fixed standalone backend provider persistence for `ubuntu-service`: when `/api/providers` is empty, the UI now restores 3x-ui host rows from local provider cache / users-db fallback and seeds them back into the backend automatically;
 - hardened backend provider storage against accidental empty overwrites and added automatic recovery of `provider_hosts` from saved SSL state/history when possible;
 - bridged legacy `agentStatusAPI()` to `/api/status` while `ubuntu-service` is active, so pages stop polling the dead `:9099/cgi-bin/api.sh?cmd=status` path as their primary status source.

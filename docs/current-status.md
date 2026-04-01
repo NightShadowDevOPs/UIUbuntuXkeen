@@ -1,4 +1,6 @@
-# Current status — v0.6.60
+# Current status — v0.6.61
+
+The active contour stays on `ubuntu-service`. `3x-ui Hosts` now forces backend row hydration from `/api/providers` and no longer depends on stale empty local fallback state to populate the table. Backend provider storage remains the source of truth.
 
 - Main runtime stays on **`ubuntu-service`**.
 - Server deploy workflow stays on **`git fetch origin --prune && git reset --hard origin/main`**.
