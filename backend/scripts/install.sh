@@ -45,5 +45,10 @@ fi
 
 sudo cp "$SERVICE_TEMPLATE" "/etc/systemd/system/${SERVICE_NAME}.service"
 sudo systemctl daemon-reload
-sudo systemctl enable --now "$SERVICE_NAME"
+sudo systemctl enable "$SERVICE_NAME"
+if sudo systemctl is-active --quiet "$SERVICE_NAME"; then
+  sudo systemctl restart "$SERVICE_NAME"
+else
+  sudo systemctl start "$SERVICE_NAME"
+fi
 sudo systemctl status "$SERVICE_NAME" --no-pager || true

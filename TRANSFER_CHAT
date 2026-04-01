@@ -1,30 +1,32 @@
-Prepared release: v0.6.51. The standalone Ubuntu backend is now confirmed on the live host, and this hotfix fixes the frontend route composition bug that produced `/api/api/...` requests after selecting the backend in `Setup`.
+Prepared release: v0.6.52. The live Ubuntu backend contour is now stable enough to stay on `ubuntu-service`, and this step adds real SSL actions in the UI plus an install/update fix that restarts the backend automatically.
 
-Актуальный релиз для переноса: **v0.6.51**
+Актуальный релиз для переноса: **v0.6.52**
 
-Что сделано в `v0.6.51`
-- на живом Ubuntu-хосте подтверждён запуск `ultra-ui-ubuntu-backend.service` и ответы `/api/health`, `/api/version`, `/api/capabilities`, `/api/status`
-- подтверждено подключение backend в `Setup` как `ubuntu-service` через `host:port + /api`
-- исправлена фронтовая сборка URL для standalone backend: больше нет битого маршрута `/api/api/...`
-- исправлены вызовы `capabilities`, `providers`, `provider checks`, `provider SSL cache`, `users inventory`, `status/resources/services/logs`
-- документация `docs/*`, `TRANSFER_CHAT` и журнал запросов/шагов обновлены под live-backend и hotfix маршрутов
+Что сделано в `v0.6.52`
+- backend `ubuntu-service` закреплён как основной рабочий режим; возвращаться на `direct` не нужно
+- на экране `Хосты 3x-ui` теперь есть два отдельных server-side действия: `Проверить сейчас` и `Обновить SSL-кэш`
+- карточка SSL-провайдеров тоже получила оба действия
+- в статусных бейджах `Хосты 3x-ui` теперь видны ближайшая проверка и последний job status
+- `backend/scripts/install.sh` теперь явно перезапускает `ultra-ui-ubuntu-backend.service`, если сервис уже был запущен
+- документация `docs/*`, `TRANSFER_CHAT` и журнал запросов/шагов обновлены под новый этап
 
 Что важно понимать
 - UI по-прежнему раздаётся самим `mihomo`
-- новый backend запускается отдельно как `ultra-ui-ubuntu-backend.service`
-- backend `ubuntu-service` в `Setup` остаётся правильным активным режимом; назад на `direct` уходить не нужно
-- secondary path `/api` — это нормальная настройка, проблема была именно в фронтовой сборке endpoint-ов
+- backend по-прежнему запускается отдельно как `ultra-ui-ubuntu-backend.service`
+- активный режим в `Setup`: **`ubuntu-service`**
+- этот релиз не меняет архитектуру запуска, а развивает уже подтверждённый backend-контур
 
 Что делать дальше на сервере
 1. Залить релиз в репозиторий.
 2. На Ubuntu-хосте выполнить `git pull --ff-only` в `/opt/UIUbuntu/app`.
-3. Повторно запустить `backend/scripts/install.sh`, чтобы backend версия и файлы были синхронизированы с релизом.
-4. В UI оставить выбранным backend `ubuntu-service`.
-5. Проверить экран `Хосты 3x-ui` уже без `capabilities-http-404` и без fallback-плашки.
+3. Запустить `backend/scripts/install.sh` — ручной `systemctl restart` после этого уже не нужен.
+4. Пересобрать и переложить UI, если менялся frontend.
+5. В UI оставить выбранным backend `ubuntu-service`.
+6. Проверить экран `Хосты 3x-ui`: обе кнопки должны работать через backend без fallback.
 
-Что следующим шагом после `v0.6.51`
-- подтвердить сохранение `3x-ui Hosts` через backend;
-- подтвердить сохранение `Users inventory`;
-- добавить следующий backend-блок: `Host / resources / services / logs`.
+Что следующим шагом после `v0.6.52`
+- подтвердить ручной SSL-check и refresh cache на живых 3x-ui хостах;
+- подтвердить сохранение `Users inventory` через backend;
+- идти в следующий backend-блок: `Host / resources / services / logs`.
 
-[Update v0.6.51]
+[Update v0.6.52]

@@ -21,12 +21,16 @@
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <button type="button" class="btn btn-sm" @click="runNow" :disabled="busy || !providerHealthActionsAvailable">
-            <span v-if="busy" class="loading loading-spinner loading-xs"></span>
+          <button type="button" class="btn btn-sm" @click="runChecksNow" :disabled="checksBusy || !providerHealthActionsAvailable">
+            <span v-if="checksBusy" class="loading loading-spinner loading-xs"></span>
+            <span v-else>{{ t('providerSslChecksRunNow') }}</span>
+          </button>
+          <button type="button" class="btn btn-sm btn-outline" @click="refreshCacheNow" :disabled="cacheBusy || !providerHealthActionsAvailable">
+            <span v-if="cacheBusy" class="loading loading-spinner loading-xs"></span>
             <span v-else>{{ t('refreshProviderSslCache') }}</span>
           </button>
           <button type="button" class="btn btn-sm btn-ghost" @click="addRow">{{ t('add') }}</button>
-          <button type="button" class="btn btn-sm btn-primary" @click="saveRows" :disabled="saving || !dirty">
+          <button type="button" class="btn btn-sm btn-primary" @click="saveRows" :disabled="saving || checksBusy || cacheBusy || !dirty">
             <span v-if="saving" class="loading loading-spinner loading-xs"></span>
             <span v-else>{{ t('submit') }}</span>
           </button>
@@ -36,8 +40,10 @@
       <div class="flex flex-wrap gap-2 text-[11px]">
         <span class="badge badge-ghost badge-sm">Хостов: {{ rows.length }}</span>
         <span v-if="lastCheckedAtMs" class="badge badge-ghost badge-sm">{{ t('checkedAt') }}: {{ fmtTs(lastCheckedAtMs) }}</span>
+        <span v-if="agentProvidersNextCheckAtMs" class="badge badge-ghost badge-sm">{{ t('providerSslChecksNextCheck') }}: {{ fmtTs(agentProvidersNextCheckAtMs) }}</span>
         <span v-if="agentProvidersSslCacheNextRefreshAtMs" class="badge badge-ghost badge-sm">Следующая автопроверка: {{ fmtTs(agentProvidersSslCacheNextRefreshAtMs) }}</span>
         <span class="badge badge-sm" :class="agentProvidersSslCacheFresh ? 'badge-success' : 'badge-warning'">{{ agentProvidersSslCacheFresh ? 'Кэш свежий' : 'Кэш ожидает обновления' }}</span>
+        <span v-if="agentProvidersJobStatus" class="badge badge-sm" :class="agentProvidersJobStatus === 'ok' ? 'badge-success' : agentProvidersJobStatus === 'running' ? 'badge-info' : agentProvidersJobStatus === 'error' ? 'badge-error' : 'badge-ghost'">job: {{ agentProvidersJobStatus }}</span>
         <span v-if="agentProvidersSslRefreshing" class="badge badge-info badge-sm">{{ t('providerSslRefreshing') }}</span>
         <span v-if="agentProvidersError" class="badge badge-error badge-sm">{{ agentProvidersError }}</span>
       </div>
@@ -102,19 +108,22 @@ import {
   agentProviderByName,
   agentProvidersAt,
   agentProvidersError,
+  agentProvidersJobStatus,
+  agentProvidersNextCheckAtMs,
   agentProvidersSslCacheFresh,
   agentProvidersSslCacheNextRefreshAtMs,
   agentProvidersSslRefreshing,
   fetchAgentProviders,
   providerHealthActionsAvailable,
   refreshAgentProviderSslCache,
+  runAgentProviderChecks,
 } from '@/store/providerHealth'
 import { getProviderSslDiagnostics } from '@/helper/providerHealth'
-import { activeBackend } from '@/store/setup'
 import { activeBackendCapabilities, activeBackendCapabilitiesError } from '@/store/backendCapabilities'
 
 const { t } = useI18n()
-const busy = ref(false)
+const checksBusy = ref(false)
+const cacheBusy = ref(false)
 const saving = ref(false)
 const rows = ref<Array<{ id: string; name: string; url: string }>>([])
 const dirty = ref(false)
@@ -307,15 +316,27 @@ const rowsView = computed(() => {
   })
 })
 
-const runNow = async () => {
-  busy.value = true
+const runChecksNow = async () => {
+  checksBusy.value = true
+  try {
+    if (dirty.value) await saveRows()
+    await runAgentProviderChecks()
+    await fetchAgentProviders(true)
+    if (useBackendProviders.value) await loadRowsFromBackend()
+  } finally {
+    checksBusy.value = false
+  }
+}
+
+const refreshCacheNow = async () => {
+  cacheBusy.value = true
   try {
     if (dirty.value) await saveRows()
     await refreshAgentProviderSslCache()
     await fetchAgentProviders(true)
     if (useBackendProviders.value) await loadRowsFromBackend()
   } finally {
-    busy.value = false
+    cacheBusy.value = false
   }
 }
 

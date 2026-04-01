@@ -1,3 +1,9 @@
+## v0.6.52
+- added separate UI actions for provider SSL checks: `Проверить сейчас` and `Обновить SSL-кэш` on `Хосты 3x-ui` and the provider SSL workspace card;
+- surfaced next-check and last-job status badges on `Хосты 3x-ui` so the screen shows whether backend work actually ran;
+- fixed `backend/scripts/install.sh` so updating the backend now explicitly restarts an already running `ultra-ui-ubuntu-backend.service` instead of leaving the old process alive;
+- updated release docs, transfer docs, request log, and worklog for the confirmed `ubuntu-service` runtime flow.
+
 ## v0.6.51
 - fixed absolute ubuntu backend endpoint composition for capabilities probes when secondaryPath is set to `/api`;
 - kept `/api` as the required recommended secondary path for ubuntu-service backend validation;
@@ -13,7 +19,7 @@
 - added a new standalone Ubuntu backend in `backend/` based on FastAPI + SQLite instead of reviving the dead `/cgi-bin/api.sh` contour
 - implemented real backend endpoints for `health`, `version`, `capabilities`, `status`, `providers`, `users inventory`, and `jobs`
 - implemented server-side storage for `3x-ui Hosts` (`provider_hosts`) and `Users inventory` (`users_inventory`)
-- added real TLS/SSL checks for provider panel URLs using Python `ssl` + `socket`, with state/history persisted in SQLite
+- implemented real TLS/SSL checks for provider panel URLs using Python `ssl` + `socket`, with state/history persisted in SQLite
 - added scheduler groundwork, install script, dev run script, and a systemd service template for Ubuntu deployment
 - updated project docs, transfer docs, change-request log, and worklog so the backend step is fully recorded
 

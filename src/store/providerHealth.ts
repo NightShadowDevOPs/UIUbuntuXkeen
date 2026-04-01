@@ -223,6 +223,61 @@ export const refreshSavedProviderSubscriptionSsl = async () => {
 
 const providerHealthUsesUbuntuService = computed(() => providerHealthAvailable.value)
 
+const applyProviderState = (res: any, opts?: { optimisticRefreshing?: boolean }) => {
+  if (!res?.ok) {
+    const nextError = String(res?.error || '').trim()
+    if (nextError) agentProvidersError.value = nextError
+    return res
+  }
+
+  agentProvidersOk.value = true
+  agentProvidersError.value = null
+  agentProvidersSslCacheReady.value = Boolean(res?.sslCacheReady)
+  agentProvidersSslCacheFresh.value = Boolean(res?.sslCacheFresh)
+  agentProvidersSslRefreshing.value = Boolean(res?.sslRefreshing ?? opts?.optimisticRefreshing ?? false)
+  agentProvidersSslRefreshPending.value = Boolean(res?.sslRefreshPending ?? opts?.optimisticRefreshing ?? false)
+
+  const ageSec = Number(res?.sslCacheAgeSec)
+  agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
+
+  const nextSec = Number(res?.sslCacheNextRefreshAtSec)
+  agentProvidersSslCacheNextRefreshAtMs.value = Number.isFinite(nextSec) && nextSec > 0 ? nextSec * 1000 : 0
+
+  const checkedAtSec = Number(res?.checkedAtSec)
+  agentProvidersAt.value = Number.isFinite(checkedAtSec) && checkedAtSec > 0 ? checkedAtSec * 1000 : Date.now()
+
+  const nextCheckSec = Number(res?.nextCheckAtSec)
+  if (Number.isFinite(nextCheckSec) && nextCheckSec > 0) {
+    agentProvidersNextCheckAtMs.value = nextCheckSec * 1000
+  }
+
+  agentProvidersJobStatus.value = String(res?.job?.status || agentProvidersJobStatus.value || '').trim()
+  agentProvidersJobId.value = String(res?.job?.id || agentProvidersJobId.value || '').trim()
+  panelSslProbeError.value = null
+  return res
+}
+
+export const runAgentProviderChecks = async () => {
+  if (!providerHealthUsesUbuntuService.value) {
+    return refreshSavedProviderSubscriptionSsl()
+  }
+
+  let res: any = { ok: false, error: 'capability-missing' }
+  try {
+    if (hasUbuntuProviderCapability('providerChecksRun')) {
+      res = await runUbuntuProviderChecksAPI()
+    } else if (hasUbuntuProviderCapability('providerSslCacheRefresh')) {
+      res = await refreshUbuntuProviderSslCacheAPI()
+    } else if (hasUbuntuProviderCapability('providerRefresh')) {
+      res = await refreshUbuntuProvidersAPI()
+    }
+  } catch (e: any) {
+    res = { ok: false, error: e?.message || 'failed' }
+  }
+
+  return applyProviderState(res, { optimisticRefreshing: true })
+}
+
 export const refreshAgentProviderSslCache = async () => {
   if (!providerHealthUsesUbuntuService.value) {
     return refreshSavedProviderSubscriptionSsl()
@@ -241,25 +296,7 @@ export const refreshAgentProviderSslCache = async () => {
     res = { ok: false, error: e?.message || 'failed' }
   }
 
-  if (res?.ok) {
-    agentProvidersSslCacheReady.value = Boolean(res?.sslCacheReady)
-    agentProvidersSslCacheFresh.value = Boolean(res?.sslCacheFresh)
-    agentProvidersSslRefreshing.value = Boolean(res?.sslRefreshing ?? true)
-    agentProvidersSslRefreshPending.value = Boolean(res?.sslRefreshPending ?? true)
-    const ageSec = Number(res?.sslCacheAgeSec)
-    agentProvidersSslCacheAgeSec.value = Number.isFinite(ageSec) ? ageSec : -1
-    const nextSec = Number(res?.sslCacheNextRefreshAtSec)
-    agentProvidersSslCacheNextRefreshAtMs.value = Number.isFinite(nextSec) && nextSec > 0 ? nextSec * 1000 : 0
-    const checkedAtSec = Number(res?.checkedAtSec)
-    agentProvidersAt.value = Number.isFinite(checkedAtSec) && checkedAtSec > 0 ? checkedAtSec * 1000 : Date.now()
-    const nextCheckSec = Number(res?.nextCheckAtSec)
-    agentProvidersNextCheckAtMs.value = Number.isFinite(nextCheckSec) && nextCheckSec > 0 ? nextCheckSec * 1000 : agentProvidersNextCheckAtMs.value
-    agentProvidersJobStatus.value = String(res?.job?.status || agentProvidersJobStatus.value || '').trim()
-    agentProvidersJobId.value = String(res?.job?.id || agentProvidersJobId.value || '').trim()
-    panelSslProbeError.value = null
-  }
-
-  return res
+  return applyProviderState(res, { optimisticRefreshing: true })
 }
 
 export const probePanelSsl = async (force = false) => {

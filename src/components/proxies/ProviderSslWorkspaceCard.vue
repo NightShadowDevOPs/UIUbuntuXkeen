@@ -6,9 +6,13 @@
         <div class="text-xs opacity-70">Автопроверка провайдеров каждые 4 часа + ручной запуск по кнопке. Снимок SSL и время проверки сохраняются в общей БД.</div>
       </div>
       <div class="flex items-center gap-2">
-        <button type="button" class="btn btn-sm" @click="runNow" :disabled="busy || !providerHealthActionsAvailable">
-          <span v-if="busy" class="loading loading-spinner loading-xs"></span>
+        <button type="button" class="btn btn-sm" @click="runChecksNow" :disabled="checksBusy || !providerHealthActionsAvailable">
+          <span v-if="checksBusy" class="loading loading-spinner loading-xs"></span>
           <span v-else>{{ t('providerSslChecksRunNow') }}</span>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline" @click="refreshCacheNow" :disabled="cacheBusy || !providerHealthActionsAvailable">
+          <span v-if="cacheBusy" class="loading loading-spinner loading-xs"></span>
+          <span v-else>{{ t('refreshProviderSslCache') }}</span>
         </button>
         <button type="button" class="btn btn-sm btn-ghost" @click="openUsers">{{ t('users') }}</button>
         <button type="button" class="btn btn-sm btn-ghost" @click="openTasks">{{ t('tasks') }}</button>
@@ -84,13 +88,15 @@ import {
   providerHealthActionsAvailable,
   providerHealthAvailable,
   refreshAgentProviderSslCache,
+  runAgentProviderChecks,
 } from '@/store/providerHealth'
 import { proxyProviderSslWarnDaysMap, sslNearExpiryDaysDefault } from '@/store/settings'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
-const busy = ref(false)
+const checksBusy = ref(false)
+const cacheBusy = ref(false)
 
 const rows = computed(() => {
   return (proxyProviederList.value || [])
@@ -122,13 +128,23 @@ const fmtTs = (value: number) => {
   return dayjs(value).format('DD.MM HH:mm')
 }
 
-const runNow = async () => {
-  busy.value = true
+const runChecksNow = async () => {
+  checksBusy.value = true
+  try {
+    await runAgentProviderChecks()
+    await fetchAgentProviders(true)
+  } finally {
+    checksBusy.value = false
+  }
+}
+
+const refreshCacheNow = async () => {
+  cacheBusy.value = true
   try {
     await refreshAgentProviderSslCache()
     await fetchAgentProviders(true)
   } finally {
-    busy.value = false
+    cacheBusy.value = false
   }
 }
 
