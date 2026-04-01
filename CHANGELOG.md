@@ -1,3 +1,8 @@
+## v0.6.62
+- fixed `Хосты 3x-ui` on `ubuntu-service` when router-agent users-db fallback is unavailable: the frontend now requests backend `/api/providers` first instead of dying in `users_db_get` before the real backend call;
+- made users-db fallback best-effort for provider loading, so a dead `cgi-bin/api.sh?cmd=users_db_get` path no longer hides a healthy backend provider list;
+- cleaned up transfer/current-status docs to distinguish backend install path from runtime SQLite path.
+
 ## v0.6.61
 - fixed standalone backend provider persistence for `ubuntu-service`: when `/api/providers` is empty, the UI now restores 3x-ui host rows from local provider cache / users-db fallback and seeds them back into the backend automatically;
 - hardened backend provider storage against accidental empty overwrites and added automatic recovery of `provider_hosts` from saved SSL state/history when possible;

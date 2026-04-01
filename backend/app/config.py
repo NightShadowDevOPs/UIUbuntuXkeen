@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_VERSION = "0.6.61"
+APP_VERSION = "0.6.62"
 DEFAULT_CAPABILITIES = {
     "status": True,
     "health": True,

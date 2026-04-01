@@ -1,3 +1,9 @@
+## 2026-04-01 — v0.6.62 xui hosts backend-first hydration hotfix
+- reproduced the failure mode where `Хосты 3x-ui` stayed empty although `ubuntu-service` backend could still be healthy;
+- found that `fetchUbuntuProvidersAPI()` awaited users-db fallback first, so a failed `users_db_get` aborted provider loading before `GET /api/providers` was sent;
+- changed provider hydration to query backend `/api/providers` first and downgraded users-db fallback to best-effort;
+- cleaned transfer/runtime docs so `/opt/ultra-ui-ubuntu-backend` (install path) is no longer confused with `/var/lib/ultra-ui-ubuntu/runtime/backend.sqlite3` (runtime DB).
+
 ## 2026-04-01 — v0.6.61 backend provider restore and status bridge
 - reproduced the live issue where `/api/providers` on `ubuntu-service` returned an empty list while the browser still referenced old 3x-ui host rows;
 - added backend provider-host recovery from saved SSL state/history and guarded provider replacement against accidental empty wipes;

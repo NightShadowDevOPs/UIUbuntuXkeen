@@ -1,10 +1,10 @@
-Prepared release: v0.6.61. The active contour stays on `ubuntu-service`; this hotfix fixes the `3x-ui Hosts` page so it actually hydrates table rows from backend `/api/providers` and retries row loading after backend/capability refresh, instead of showing an empty list while backend storage already contains provider hosts.
-Актуальный релиз для переноса: **v0.6.61**
+Prepared release: v0.6.62. The active contour stays on `ubuntu-service`; this hotfix fixes `Хосты 3x-ui` when the standalone backend is healthy but the page still renders an empty list because the frontend crashes in fallback `users_db_get` before it reaches `GET /api/providers`.
+Актуальный релиз для переноса: **v0.6.62**
 
-## Update v0.6.61
-- frontend-only fix for `Хосты 3x-ui`;
-- force backend row hydration from `/api/providers`;
-- retry provider row loading when active backend or backend capabilities refresh;
+## Update v0.6.62
+- fixed `Хосты 3x-ui` provider loading for `ubuntu-service` when router-agent / `users_db_get` is unavailable or not configured;
+- `fetchUbuntuProvidersAPI()` now queries backend `/api/providers` first and treats users-db fallback as best-effort instead of a hard prerequisite;
+- if fallback loading fails, the page still renders backend provider rows instead of dying before the request;
 - keep `ubuntu-service` as the primary backend, `direct` only as fallback/diagnostics;
 - server deploy workflow stays canonical: `git fetch origin --prune && git reset --hard origin/main` then install/build/deploy.
 
@@ -12,7 +12,8 @@ Prepared release: v0.6.61. The active contour stays on `ubuntu-service`; this ho
 - main backend: `ubuntu-service`;
 - `direct` is fallback/diagnostics only;
 - server repo path: `/opt/UIUbuntu/app`;
-- backend runtime path: `/opt/ultra-ui-ubuntu-backend`;
+- backend install path: `/opt/ultra-ui-ubuntu-backend`;
+- backend runtime/db path: `/var/lib/ultra-ui-ubuntu/runtime/backend.sqlite3`;
 - UI deploy path: `/etc/mihomo/uiubuntu`;
 - backend service: `ultra-ui-ubuntu-backend.service`.
 
@@ -45,10 +46,10 @@ journalctl -u ultra-ui-ubuntu-backend -n 120 --no-pager
 ```
 
 ## Verified diagnosis before this release
-- backend `/api/providers` returned 8 hosts;
-- SQLite `provider_hosts` contained 8 rows;
-- browser `fetch('http://192.168.5.23:18090/api/providers')` returned those rows;
-- therefore the bug was in the `Хосты 3x-ui` page binding, not in backend storage.
+- backend `/api/providers` could stay healthy while `Хосты 3x-ui` still rendered an empty list;
+- the frontend fetched users-db fallback before backend `/api/providers`;
+- when `users_db_get` failed, provider loading aborted before the real backend request;
+- therefore the empty list could be caused by frontend load order, not only by missing backend storage.
 
 ## Next likely step after verification
-After the list renders again from backend storage, continue fixing SSL action buttons and certificate polling on top of the live `ubuntu-service` provider list.
+After the list renders again directly from backend `/api/providers`, continue fixing SSL action flow and certificate polling on top of the live `ubuntu-service` provider list.

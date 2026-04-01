@@ -337,6 +337,14 @@ const listProvidersFromUsersDb = async () => {
   return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name))
 }
 
+const safeListProvidersFromUsersDb = async () => {
+  try {
+    return await listProvidersFromUsersDb()
+  } catch {
+    return [] as Array<{ name: string; panelUrl: string; enabled: boolean }>
+  }
+}
+
 const saveProvidersToUsersDb = async (items: Array<{ name: string; panelUrl: string; enabled?: boolean }>) => {
   const doc = await loadUsersDbDocument()
   const nextUrls: Record<string, string> = {}
@@ -454,10 +462,16 @@ const bridgeRefreshProviderSslCache = async () => {
 
 
 export const fetchUbuntuProvidersAPI = async () => {
-  const fallbackRows = mergeProviderRows(await listProvidersFromUsersDb(), getLocalProviderRows())
-  if (preferCompatibilityBridge()) return fallbackRows
+  const localRows = getLocalProviderRows()
+
+  if (preferCompatibilityBridge()) {
+    const fallbackRows = mergeProviderRows(await safeListProvidersFromUsersDb(), localRows)
+    return fallbackRows
+  }
+
   try {
     const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers), silentCfg)
+    const fallbackRows = mergeProviderRows(await safeListProvidersFromUsersDb(), localRows)
     const remoteRows = pickList(data || {}).map((item) => ({
       ...item,
       name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
@@ -484,7 +498,7 @@ export const fetchUbuntuProvidersAPI = async () => {
     }
     return fallbackRows
   } catch {
-    return fallbackRows
+    return mergeProviderRows(await safeListProvidersFromUsersDb(), localRows)
   }
 }
 
