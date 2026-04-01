@@ -14,20 +14,31 @@ export const normalizeSecondaryPath = (value: string | undefined | null) => {
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
 }
 
+const hasUbuntuServiceClues = (backend?: Partial<Backend> | null) => {
+  const path = normalizeSecondaryPath(backend?.secondaryPath)
+  if (path.startsWith('/api') || path.includes('/ubuntu')) return true
+
+  const host = String(backend?.host || '').trim().toLowerCase()
+  if (LOCAL_HOSTS.has(host)) return true
+
+  return false
+}
+
 export const detectBackendKind = (backend?: Partial<Backend> | null): BackendKind => {
   const explicit = backend?.kind
-  if (explicit === BACKEND_KINDS.UBUNTU_SERVICE || explicit === BACKEND_KINDS.COMPATIBILITY_BRIDGE) {
+  if (explicit === BACKEND_KINDS.UBUNTU_SERVICE) {
     return explicit
   }
 
-  const path = normalizeSecondaryPath(backend?.secondaryPath)
-  if (path.startsWith('/api') || path.includes('/ubuntu')) {
+  // Old saved profiles may still carry compatibility-bridge kind even after
+  // switching to the ubuntu-service contour. Do not let the stale explicit kind
+  // disable host-only capabilities when the path/host clearly points to /api.
+  if (hasUbuntuServiceClues(backend)) {
     return BACKEND_KINDS.UBUNTU_SERVICE
   }
 
-  const host = String(backend?.host || '').trim().toLowerCase()
-  if (LOCAL_HOSTS.has(host)) {
-    return BACKEND_KINDS.UBUNTU_SERVICE
+  if (explicit === BACKEND_KINDS.COMPATIBILITY_BRIDGE) {
+    return explicit
   }
 
   return BACKEND_KINDS.COMPATIBILITY_BRIDGE

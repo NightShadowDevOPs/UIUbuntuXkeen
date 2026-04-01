@@ -950,9 +950,24 @@ export const usersDbPullNow = async () => {
         Object.keys(localPayload.userLimits || {}).length > 0 ||
         Number(localPayload.sslNearExpiryDaysDefault) !== 2
 
+      const remoteHasProviderPanelUrls = Object.keys(remotePayload.providerPanelUrls || {}).length > 0
+      const localHasProviderPanelUrls = Object.keys(localPayload.providerPanelUrls || {}).length > 0
+      const lastSyncedHadProviderPanelUrls = Object.keys(usersDbLastSyncedProviderPanelUrls.value || {}).length > 0
+      const remoteLikelyLostProviderPanelUrls = !remoteHasProviderPanelUrls && localHasProviderPanelUrls && lastSyncedHadProviderPanelUrls
+
       if (remoteRev == 0 && remoteEmpty && localHasData) {
         const put = await usersDbPushNow(remoteRev, localPayload)
         if (put.ok) markSynced(localPayload)
+      } else if (remoteLikelyLostProviderPanelUrls) {
+        const merged = normalizePayload({
+          ...remotePayload,
+          providerPanelUrls: { ...(localPayload.providerPanelUrls || {}) },
+        })
+        suppressPushCount = 4
+        setLocalFromPayload(merged)
+        const put = await usersDbPushNow(remoteRev, merged)
+        usersDbLocalDirty.value = !put.ok
+        if (put.ok) markSynced(merged)
       } else if (!payloadEqual(remotePayload, localPayload)) {
         suppressPushCount = 4
         setLocalFromPayload(remotePayload)

@@ -1,7 +1,8 @@
-Prepared release: v0.6.63. The active contour stays on `ubuntu-service`; this hotfix fixes the case where `Хосты 3x-ui` stay empty even though backend `/api/providers` and SQLite already contain provider rows.
-Актуальный релиз для переноса: **v0.6.63**
+- Latest hotfix: v0.6.64 fixes provider panel URL loss after restart/users-db sync and auto-upgrades stale backend profiles to ubuntu-service when host path clearly points to /api.
+Prepared release: v0.6.64. The active contour stays on `ubuntu-service`; this hotfix fixes the case where `Хосты 3x-ui` stay empty even though backend `/api/providers` and SQLite already contain provider rows.
+Актуальный релиз для переноса: **v0.6.64**
 
-## Update v0.6.63
+## Update v0.6.64
 
 - Provider inventory on the `Хосты 3x-ui` page now has a same-origin fallback to `/api/providers`.
 - SSL actions and history on the same page also try same-origin `/api/*` provider endpoints.

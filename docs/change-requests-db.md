@@ -1,3 +1,7 @@
+## 2026-04-01 — request: keep provider panel URLs after restart and restore 3x-ui certificate actions
+- user confirmed that after restart panel URLs in proxy providers had slipped out, manually re-entering them made the 3x-ui host list appear again;
+- follow-up request: fix persistence/sync so panel URLs do not disappear after restart, and restore availability of `Проверить сейчас` / `Обновить SSL-кэш` for the ubuntu-service contour.
+
 ## 2026-04-01 — request: restore 3x-ui host list and stop dead 9099 polling
 - user confirmed that `3x-ui` host list disappeared, backend `/api/providers` returned `[]`, SSL actions had nothing to check, and the browser still spammed `http://192.168.5.23:9099/cgi-bin/api.sh?cmd=status` with `ERR_CONNECTION_REFUSED`;
 - requested follow-up: restore provider persistence into backend, stop relying on old direct status polling when `ubuntu-service` is active, and continue work from the standalone backend contour.

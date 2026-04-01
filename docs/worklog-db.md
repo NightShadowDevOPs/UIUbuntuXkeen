@@ -1,3 +1,9 @@
+## 2026-04-01 — v0.6.64 provider URL persistence and stale backend kind hotfix
+- reproduced the live state where 3x-ui host rows reappeared only after manual re-entry of panel URLs, which pointed to provider panel URL loss outside backend.sqlite3 itself;
+- found a second regression path: saved backend profiles could still keep `kind=compatibility-bridge` even with host `:18090` and `secondaryPath=/api`, which disabled ubuntu-service-only actions and surfaced false `capability-missing`;
+- changed backend-kind detection to auto-upgrade stale saved profiles to `ubuntu-service` when the contour clearly points to `/api` or a local host target;
+- hardened users-db pull flow so `providerPanelUrls` are not wiped locally when the remote payload comes back without provider panel URLs after restart/reset while the last synced snapshot and local cache still contain them.
+
 ## 2026-04-01 — v0.6.63 xui hosts backend-first hydration hotfix
 - reproduced the failure mode where `Хосты 3x-ui` stayed empty although `ubuntu-service` backend could still be healthy;
 - found that `fetchUbuntuProvidersAPI()` awaited users-db fallback first, so a failed `users_db_get` aborted provider loading before `GET /api/providers` was sent;
