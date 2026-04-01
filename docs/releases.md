@@ -1,3 +1,8 @@
+## v0.6.74 — provider SSL diagnostics UI polish
+- softened/dark-theme-friendly SSL status pills on `Хосты 3x-ui` and provider SSL workspace cards
+- made SSL status hints explicit about the current Ubuntu host route and the fact that checks do not depend on the user-selected proxy-group
+- kept the last successful certificate snapshot visible when the current check returns `TLS timeout` from vm03
+
 ## v0.6.73 — SSL probe default rollback
 - reverted provider SSL probe default from `forced-direct` to `system-route` because v0.6.72 produced blanket TLS timeouts on vm03
 - upgrade now force-resets `ULTRA_UI_SSL_PROBE_ROUTE_MODE=system-route` in `/etc/ultra-ui-ubuntu/agent.env` to recover existing installs

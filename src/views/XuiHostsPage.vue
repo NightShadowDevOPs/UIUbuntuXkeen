@@ -17,7 +17,7 @@
         <div>
           <div class="font-semibold">Контроль сертификатов 3x-ui</div>
           <div class="text-xs opacity-70">
-            Дата окончания сертификата и время последней проверки читаются через текущий backend-контур проекта. Проверка идёт отдельным server-side маршрутом этого Ubuntu-хоста. В forced DIRECT backend привязывает probe к физическому интерфейсу хоста и не использует пользовательскую proxy-group. По умолчанию предупреждение срабатывает за {{ sslWarnDaysDefault }} дня(дней); для короткоживущих IP-сертификатов на 6 дней это и есть рабочий ранний сигнал.
+            Дата окончания сертификата и время последней проверки читаются через текущий backend-контур проекта. Проверка идёт server-side маршрутом этого Ubuntu-хоста и не использует выбранную пользователем proxy-group. Если часть панелей отвечает, а часть уходит в TLS timeout, это уже симптом сетевого пути/источника именно этого хоста. По умолчанию предупреждение срабатывает за {{ sslWarnDaysDefault }} дня(дней); для короткоживущих IP-сертификатов на 6 дней это и есть рабочий ранний сигнал.
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -89,8 +89,9 @@
               </td>
               <td class="text-xs">
                 <div class="flex flex-col gap-1.5">
-                  <span class="inline-flex min-h-7 items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none shadow-sm" :class="row.status.pillCls" :title="row.status.title || row.errorText || ''">{{ row.status.text }}</span>
-                  <span class="leading-4 opacity-75">{{ row.status.hint }}</span>
+                  <span class="inline-flex min-h-7 items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold leading-none" :class="row.status.pillCls" :title="row.status.title || row.errorText || ''">{{ row.status.text }}</span>
+                  <span class="leading-4 text-base-content/75">{{ row.status.hint }}</span>
+                  <span v-if="row.status.routeHint" class="text-[11px] text-base-content/55">{{ row.status.routeHint }}</span>
                 </div>
               </td>
               <td class="text-xs">{{ row.status.expiresAt || '—' }}</td>
@@ -118,6 +119,10 @@
           <button type="button" class="btn btn-sm btn-ghost" @click="closeDetails">Закрыть</button>
         </div>
 
+        <div v-if="detailsRow.status.timeoutNotice" class="mt-3 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+          {{ detailsRow.status.timeoutNotice }}
+        </div>
+
         <div class="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
           <div class="rounded-lg border border-base-content/10 bg-base-200/40 px-3 py-2">
             <div class="text-[11px] uppercase opacity-60">Статус</div>
@@ -138,6 +143,7 @@
             <div class="text-[11px] uppercase opacity-60">Источник</div>
             <div class="mt-1 text-sm">{{ detailsRow.status.source || '—' }}</div>
             <div class="text-xs opacity-70">{{ probeRouteText }}</div>
+            <div v-if="detailsRow.status.routeHint" class="text-[11px] opacity-55">{{ detailsRow.status.routeHint }}</div>
           </div>
         </div>
 
@@ -516,12 +522,12 @@ const friendlyTlsError = (value: any) => {
 }
 
 const sslStatusPillCls = (kind: string) => {
-  if (kind === 'healthy') return 'border-success/70 bg-success text-success-content'
-  if (kind === 'warning') return 'border-warning/70 bg-warning text-warning-content'
-  if (kind === 'expired') return 'border-error/70 bg-error text-error-content'
-  if (kind === 'refreshing') return 'border-info/70 bg-info text-info-content'
-  if (kind === 'error') return 'border-error/70 bg-error text-error-content'
-  return 'border-base-content/20 bg-base-200 text-base-content'
+  if (kind === 'healthy') return 'border-success/35 bg-success/12 text-success'
+  if (kind === 'warning') return 'border-warning/35 bg-warning/15 text-warning'
+  if (kind === 'expired') return 'border-error/35 bg-error/15 text-error'
+  if (kind === 'refreshing') return 'border-info/35 bg-info/15 text-info'
+  if (kind === 'error') return 'border-error/35 bg-error/15 text-error'
+  return 'border-base-content/15 bg-base-200/70 text-base-content'
 }
 
 const extractLastSuccess = (item: any) => {
@@ -550,8 +556,13 @@ const probeRouteText = computed(() => {
     const parts = [agentProvidersProbeInterface.value, agentProvidersProbeSourceIp.value].filter(Boolean)
     return parts.length ? `forced DIRECT · ${parts.join(' · ')}` : 'forced DIRECT этого хоста'
   }
-  if (source === 'system-route') return 'system route этого хоста'
+  if (source === 'system-route') return 'system route этого Ubuntu-хоста'
   return source
+})
+
+const probeRouteHint = computed(() => {
+  const parts = [agentProvidersProbeHost.value ? `host ${agentProvidersProbeHost.value}` : '', agentProvidersProbeInterface.value ? `iface ${agentProvidersProbeInterface.value}` : '', agentProvidersProbeSourceIp.value ? `src ${agentProvidersProbeSourceIp.value}` : ''].filter(Boolean)
+  return parts.join(' · ')
 })
 
 const sourceLabel = (value: string, fromLastSuccess = false) => {
@@ -616,7 +627,9 @@ const rowsView = computed(() => {
       const rawError = String(diag.error || '').trim().toLowerCase()
       text = friendlyError || 'Ошибка TLS'
       title = diag.error
-      if (rawError.includes('timed out')) hint = `Порт отвечает, но TLS-рукопожатие не завершилось через ${probeRouteText.value || 'этот маршрут'}`
+      if (rawError.includes('timed out')) hint = lastSuccess
+        ? 'С этого хоста TLS-рукопожатие не завершилось, но последний успешный сертификат сохранён.'
+        : `С этого хоста TLS-рукопожатие не завершилось через ${probeRouteText.value || 'этот маршрут'}`
       else if (rawError.includes('connection refused')) hint = 'Удалённый endpoint отклонил соединение'
       else hint = friendlyError || 'Ошибка TLS/SSL'
     }
@@ -644,6 +657,12 @@ const rowsView = computed(() => {
         expiresAt: diag.dateTime ? diag.dateTime.replace(/^(\d{2})-(\d{2})-(\d{4})/, '$1.$2.$3') : '',
         checkedAt: diag.checkedAtMs ? fmtTs(diag.checkedAtMs) : fmtTs(lastCheckedAtMs.value),
         hint,
+        routeHint: probeRouteHint.value,
+        timeoutNotice: String(diag.error || '').toLowerCase().includes('timed out')
+          ? (lastSuccess
+              ? 'Эта панель уже отвечала раньше. Сейчас timeout получен именно с текущего Ubuntu-хоста, поэтому проблема может быть в сетевом пути/source IP, а не в самом сертификате.'
+              : 'Timeout получен с текущего Ubuntu-хоста. Это означает, что TCP-порт жив, но TLS-рукопожатие не завершилось по текущему сетевому пути.')
+          : '',
       },
     }
   })

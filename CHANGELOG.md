@@ -1,3 +1,8 @@
+## v0.6.74
+- polished provider SSL diagnostics in dark theme: status pills now use softer, readable contrast instead of saturated error/success fills;
+- `Хосты 3x-ui` and the provider SSL workspace now explain that checks run via the current Ubuntu host server-side route, not through the user-selected proxy-group;
+- when the current probe hits `TLS timeout` but a previous successful certificate exists, the UI keeps the last successful snapshot visible and explains that the timeout can be specific to the current host/network path.
+
 ## v0.6.73
 
 - revert provider SSL probe default route mode back to `system-route` to recover from broad TLS timeouts introduced by v0.6.72
