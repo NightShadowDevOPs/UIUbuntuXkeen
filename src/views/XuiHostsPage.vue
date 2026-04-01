@@ -17,7 +17,7 @@
         <div>
           <div class="font-semibold">Контроль сертификатов 3x-ui</div>
           <div class="text-xs opacity-70">
-            Дата окончания сертификата и время последней проверки читаются через текущий backend-контур проекта. Автопроверка идёт по TTL SSL-кеша (4 часа по умолчанию), ручной запуск — по кнопке.
+            Дата окончания сертификата и время последней проверки читаются через текущий backend-контур проекта. По умолчанию предупреждение срабатывает за {{ sslWarnDaysDefault }} дня(дней); для короткоживущих IP-сертификатов на 6 дней это и есть рабочий ранний сигнал.
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
@@ -119,8 +119,8 @@
             </div>
           </div>
           <div class="rounded-lg border border-base-content/10 bg-base-200/40 px-3 py-2">
-            <div class="text-[11px] uppercase opacity-60">Истекает</div>
-            <div class="mt-1 text-sm">{{ detailsRow.status.expiresAt || '—' }}</div>
+            <div class="text-[11px] uppercase opacity-60">Действует / истекает</div>
+            <div class="mt-1 text-sm">{{ detailsRow.validFromLabel || '—' }} → {{ detailsRow.status.expiresAt || '—' }}</div>
             <div class="text-xs opacity-70">Дней осталось: {{ detailsRow.daysLeftLabel }}</div>
           </div>
           <div class="rounded-lg border border-base-content/10 bg-base-200/40 px-3 py-2">
@@ -145,6 +145,14 @@
           <div class="rounded-lg border border-base-content/10 bg-base-200/30 px-3 py-2 md:col-span-2">
             <div class="text-[11px] uppercase opacity-60">SAN</div>
             <div class="mt-1 break-all text-xs">{{ detailsRow.sanText || '—' }}</div>
+          </div>
+          <div class="rounded-lg border border-base-content/10 bg-base-200/30 px-3 py-2 md:col-span-2">
+            <div class="text-[11px] uppercase opacity-60">Fingerprint SHA-256</div>
+            <div class="mt-1 break-all font-mono text-[11px]">{{ detailsRow.fingerprintSha256 || '—' }}</div>
+          </div>
+          <div class="rounded-lg border border-base-content/10 bg-base-200/30 px-3 py-2 md:col-span-2">
+            <div class="text-[11px] uppercase opacity-60">Проверка TLS / цепочки</div>
+            <div class="mt-1 break-all text-xs">{{ detailsRow.verifyError || '—' }}</div>
           </div>
           <div class="rounded-lg border border-base-content/10 bg-base-200/30 px-3 py-2 md:col-span-2">
             <div class="text-[11px] uppercase opacity-60">Последняя ошибка</div>
@@ -197,7 +205,7 @@ import dayjs from 'dayjs'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchUbuntuProviderChecksHistoryAPI, fetchUbuntuProvidersAPI, saveUbuntuProvidersAPI } from '@/api/ubuntuService'
-import { proxyProviderPanelUrlMap } from '@/store/settings'
+import { proxyProviderPanelUrlMap, sslNearExpiryDaysDefault } from '@/store/settings'
 import { providerSslDbMeta, providerSslDbSnapshot } from '@/store/providerSslDb'
 import {
   agentProviderByName,
@@ -362,6 +370,9 @@ const saveRows = async () => {
       rows.value = buildMergedRows([agentRows, saved as any[]])
       reflectRowsToLocalCache(rows.value as any[])
       dirty.value = false
+      await refreshAgentProviderSslCache()
+      await fetchAgentProviders(true)
+      if (detailsOpenName.value) await loadProviderHistory(detailsOpenName.value)
       return
     }
 
@@ -393,6 +404,11 @@ const normalizeSanText = (value: any) => {
   return String(value || '').trim()
 }
 
+const sslWarnDaysDefault = computed(() => {
+  const raw = Number(sslNearExpiryDaysDefault.value || 2)
+  return Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : 2
+})
+
 const issueStatuses = new Set(['warning', 'expired', 'error'])
 
 const loadProviderHistory = async (name: string) => {
@@ -416,7 +432,7 @@ const rowsView = computed(() => {
     const diag = getProviderSslDiagnostics({}, item, {
       panelUrlOverride: url,
       sslRefreshing: agentProvidersSslRefreshing.value,
-      nearExpiryDays: 7,
+      nearExpiryDays: sslWarnDaysDefault.value,
     })
 
     let badgeCls = 'badge-ghost'
@@ -444,6 +460,10 @@ const rowsView = computed(() => {
       issuer: String(item?.panelSslIssuer || '').trim(),
       subject: String(item?.panelSslSubject || '').trim(),
       sanText: normalizeSanText(item?.panelSslSan),
+      validFrom: String(item?.panelSslValidFrom || '').trim(),
+      validFromLabel: formatIsoDate(String(item?.panelSslValidFrom || '').trim()),
+      fingerprintSha256: String(item?.panelSslFingerprintSha256 || '').trim(),
+      verifyError: String(item?.panelSslVerifyError || '').trim(),
       errorText: String(item?.panelSslError || diag.error || '').trim(),
       daysLeft: Number.isFinite(Number(item?.panelSslDaysLeft)) ? Number(item?.panelSslDaysLeft) : null,
       daysLeftLabel: Number.isFinite(Number(item?.panelSslDaysLeft)) ? String(Number(item?.panelSslDaysLeft)) : '—',
@@ -516,5 +536,9 @@ const refreshCacheNow = async () => {
 onMounted(async () => {
   await fetchAgentProviders(false)
   await loadRowsFromBackend()
+  if (useBackendProviders.value && rows.value.length && !lastCheckedAtMs.value) {
+    await refreshAgentProviderSslCache()
+    await fetchAgentProviders(true)
+  }
 })
 </script>

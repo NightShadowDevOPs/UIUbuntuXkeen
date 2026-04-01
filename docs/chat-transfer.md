@@ -1,5 +1,5 @@
-Prepared release: v0.6.55. The live Ubuntu backend contour stays on `ubuntu-service`, and this step adds a Mihomo bridge for configs/proxies/rules plus a real `/api/connections` relay so overview topology can see actual hosts and chains.
-Актуальный релиз для переноса: **v0.6.55**
+Prepared release: v0.6.56. The live Ubuntu backend contour stays on `ubuntu-service`, and this step turns the 3x-ui certificate block into a real poller flow: provider save now triggers an SSL refresh, scheduler also refreshes when state is missing or URLs changed, and the default SSL warning threshold is fixed at 2 days for short-lived 6-day IP certificates.
+Актуальный релиз для переноса: **v0.6.56**
 
 Что сделано в `v0.6.52`
 - backend `ubuntu-service` закреплён как основной рабочий режим; возвращаться на `direct` не нужно

@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS provider_ssl_checks (
     issuer TEXT,
     subject TEXT,
     san TEXT,
+    valid_from TEXT,
+    fingerprint_sha256 TEXT,
+    verify_error TEXT,
     error_text TEXT,
     raw_payload TEXT
 );
@@ -45,6 +48,9 @@ CREATE TABLE IF NOT EXISTS provider_ssl_state (
     issuer TEXT,
     subject TEXT,
     san TEXT,
+    valid_from TEXT,
+    fingerprint_sha256 TEXT,
+    verify_error TEXT,
     error_text TEXT,
     raw_payload TEXT
 );
@@ -113,12 +119,26 @@ def get_conn(db_path: Path) -> Iterator[sqlite3.Connection]:
 def init_db(db_path: Path) -> None:
     with get_conn(db_path) as conn:
         conn.executescript(SCHEMA)
+        migrations = [
+            "ALTER TABLE provider_ssl_checks ADD COLUMN valid_from TEXT",
+            "ALTER TABLE provider_ssl_checks ADD COLUMN fingerprint_sha256 TEXT",
+            "ALTER TABLE provider_ssl_checks ADD COLUMN verify_error TEXT",
+            "ALTER TABLE provider_ssl_state ADD COLUMN valid_from TEXT",
+            "ALTER TABLE provider_ssl_state ADD COLUMN fingerprint_sha256 TEXT",
+            "ALTER TABLE provider_ssl_state ADD COLUMN verify_error TEXT",
+        ]
+        for sql in migrations:
+            try:
+                conn.execute(sql)
+            except sqlite3.OperationalError:
+                pass
         now = utc_now()
         defaults = {
             "users_inventory_policy_mode": "allowAll",
             "provider_checks_interval_secs": "14400",
             "provider_checks_last_run_at": "",
             "provider_checks_last_reason": "",
+            "provider_ssl_warn_days": "2",
         }
         for key, value in defaults.items():
             conn.execute(

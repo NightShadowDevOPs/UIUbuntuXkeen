@@ -1,3 +1,9 @@
+## 2026-04-01 — v0.6.56 provider SSL poller
+- закреплён рабочий SSL warning threshold по умолчанию: 2 дня;
+- backend poller теперь запускается не только по TTL, но и при отсутствии SSL state / смене panel URL;
+- `Хосты 3x-ui` после сохранения списка хостов теперь сразу инициирует SSL refresh, чтобы информация о сертификате появлялась без ручного ожидания;
+- в backend и UI добавлены поля `valid_from`, `fingerprint_sha256`, `verify_error`.
+
 - 2026-04-01 — v0.6.55: added provider SSL history/details for `ubuntu-service`, including `/api/providers/checks/history`, days-left/status fields, and richer `Хосты 3x-ui` diagnostics in UI.
 # Журнал шагов
 

@@ -31,6 +31,10 @@ class BackendService:
                 "UPDATE service_settings SET value=?, updated_at=? WHERE key='provider_checks_interval_secs'",
                 (str(self.settings.ssl_interval_secs), utc_now()),
             )
+            conn.execute(
+                "UPDATE service_settings SET value=?, updated_at=? WHERE key='provider_ssl_warn_days'",
+                (str(self.settings.ssl_warn_days), utc_now()),
+            )
         self._checks_lock = threading.Lock()
 
     def health(self) -> dict[str, Any]:
@@ -45,6 +49,7 @@ class BackendService:
             "db": {"ok": db_ok, "path": str(self.settings.db_path)},
             "scheduler": {
                 "sslIntervalSecs": self.settings.ssl_interval_secs,
+                "sslWarnDays": self.ssl_warn_days(),
                 "running": self.is_provider_checks_running(),
                 "lastRunAt": self.get_setting("provider_checks_last_run_at", ""),
                 "lastReason": self.get_setting("provider_checks_last_reason", ""),
@@ -85,8 +90,52 @@ class BackendService:
                 "usersInventory": len(users),
             },
             "sslCache": ssl_state,
+            "sslWarnDays": self.ssl_warn_days(),
             "jobs": self.list_jobs(),
         }
+
+    def ssl_warn_days(self) -> int:
+        raw = self.get_setting("provider_ssl_warn_days", str(self.settings.ssl_warn_days))
+        try:
+            return max(0, int(raw))
+        except ValueError:
+            return max(0, int(self.settings.ssl_warn_days))
+
+    def provider_checks_due(self) -> bool:
+        providers = [p for p in self.list_providers() if bool(p.get("enabled", True))]
+        if not providers:
+            return False
+        last_run_sec = _ts_to_sec(self.get_setting("provider_checks_last_run_at", ""))
+        now_sec = int(datetime.now(timezone.utc).timestamp())
+        if not last_run_sec or (now_sec - last_run_sec) >= self.settings.ssl_interval_secs:
+            return True
+        with get_conn(self.settings.db_path) as conn:
+            rows = conn.execute(
+                "SELECT provider_name, panel_url, checked_at FROM provider_ssl_state"
+            ).fetchall()
+        by_name = {str(row["provider_name"]): row_to_dict(row) for row in rows}
+        for provider in providers:
+            state = by_name.get(str(provider["name"]))
+            if not state:
+                return True
+            if str(state.get("panel_url") or "").strip() != str(provider.get("panelUrl") or "").strip():
+                return True
+            if not str(state.get("checked_at") or "").strip():
+                return True
+        return False
+
+    def _classify_ssl_status(self, *, days_left: Any, expires_at: str, error_text: str) -> str:
+        try:
+            days = int(days_left) if days_left is not None else None
+        except Exception:
+            days = None
+        if expires_at and days is not None:
+            if days < 0:
+                return "expired"
+            if days <= self.ssl_warn_days():
+                return "warning"
+            return "ok"
+        return "error" if str(error_text or "").strip() else "unknown"
 
     def list_providers(self) -> list[dict[str, Any]]:
         with get_conn(self.settings.db_path) as conn:
@@ -200,13 +249,15 @@ class BackendService:
         checked_at_sec = _ts_to_sec(last_run_at)
         age_sec = max(0, int(datetime.now(timezone.utc).timestamp()) - checked_at_sec) if checked_at_sec else -1
         fresh = bool(checked_at_sec and age_sec >= 0 and age_sec <= self.settings.ssl_interval_secs)
+        pending = self.provider_checks_due() and not self.is_provider_checks_running()
         return {
             "ok": True,
             "checkedAtSec": checked_at_sec,
             "sslCacheReady": bool((count_row["count"] if count_row else 0) >= 0),
             "sslCacheFresh": fresh,
             "sslRefreshing": self.is_provider_checks_running(),
-            "sslRefreshPending": False,
+            "sslRefreshPending": pending,
+            "sslWarnDays": self.ssl_warn_days(),
             "sslCacheAgeSec": age_sec,
             "sslCacheNextRefreshAtSec": next_run_sec,
             "job": self.get_job("provider_ssl_checks"),
@@ -216,7 +267,7 @@ class BackendService:
         providers = self.list_providers()
         with get_conn(self.settings.db_path) as conn:
             rows = conn.execute(
-                "SELECT provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, error_text FROM provider_ssl_state"
+                "SELECT provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, valid_from, fingerprint_sha256, verify_error, error_text FROM provider_ssl_state"
             ).fetchall()
         by_name = {str(row["provider_name"]): row_to_dict(row) for row in rows}
         cache = self.provider_ssl_cache_status()
@@ -233,8 +284,11 @@ class BackendService:
                     "panelSslIssuer": state.get("issuer") or "",
                     "panelSslSubject": state.get("subject") or "",
                     "panelSslSan": state.get("san") or "",
+                    "panelSslValidFrom": state.get("valid_from") or "",
+                    "panelSslFingerprintSha256": state.get("fingerprint_sha256") or "",
+                    "panelSslVerifyError": state.get("verify_error") or "",
                     "panelSslDaysLeft": state.get("days_left"),
-                    "panelSslStatus": state.get("status") or "",
+                    "panelSslStatus": self._classify_ssl_status(days_left=state.get("days_left"), expires_at=str(state.get("expires_at") or ""), error_text=str(state.get("error_text") or "")),
                     "panelSslError": state.get("error_text") or "",
                     "jobStatus": str(cache.get("job", {}).get("status") or "").strip(),
                 }
@@ -250,6 +304,7 @@ class BackendService:
             "sslRefreshPending": cache["sslRefreshPending"],
             "sslCacheAgeSec": cache["sslCacheAgeSec"],
             "sslCacheNextRefreshAtSec": cache["sslCacheNextRefreshAtSec"],
+            "sslWarnDays": self.ssl_warn_days(),
             "job": cache["job"],
         }
 
@@ -260,7 +315,7 @@ class BackendService:
         except Exception:
             limit = 20
         query = (
-            "SELECT provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, error_text FROM provider_ssl_checks "
+            "SELECT provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, valid_from, fingerprint_sha256, verify_error, error_text FROM provider_ssl_checks "
         )
         params: list[Any] = []
         if provider_name:
@@ -278,12 +333,15 @@ class BackendService:
                     "provider": str(item.get("provider_name") or "").strip(),
                     "panelUrl": item.get("panel_url") or "",
                     "checkedAtSec": _ts_to_sec(item.get("checked_at")),
-                    "status": item.get("status") or "",
+                    "status": self._classify_ssl_status(days_left=item.get("days_left"), expires_at=str(item.get("expires_at") or ""), error_text=str(item.get("error_text") or "")),
                     "expiresAt": item.get("expires_at") or "",
+                    "validFrom": item.get("valid_from") or "",
                     "daysLeft": item.get("days_left"),
                     "issuer": item.get("issuer") or "",
                     "subject": item.get("subject") or "",
                     "san": item.get("san") or "",
+                    "fingerprintSha256": item.get("fingerprint_sha256") or "",
+                    "verifyError": item.get("verify_error") or "",
                     "error": item.get("error_text") or "",
                 }
             )
@@ -311,33 +369,39 @@ class BackendService:
                     result = probe_panel_ssl(provider["panelUrl"])
                     checked_at = str(result.get("checked_at") or utc_now())
                     conn.execute(
-                        "INSERT INTO provider_ssl_checks(provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, error_text, raw_payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        "INSERT INTO provider_ssl_checks(provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, valid_from, fingerprint_sha256, verify_error, error_text, raw_payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (
                             provider["name"],
                             result.get("panel_url") or provider["panelUrl"],
                             checked_at,
-                            result.get("status") or "unknown",
+                            self._classify_ssl_status(days_left=result.get("days_left"), expires_at=str(result.get("expires_at") or ""), error_text=str(result.get("error_text") or "")),
                             result.get("expires_at") or "",
                             result.get("days_left"),
                             result.get("issuer") or "",
                             result.get("subject") or "",
                             result.get("san") or "",
+                            result.get("valid_from") or "",
+                            result.get("fingerprint_sha256") or "",
+                            result.get("verify_error") or "",
                             result.get("error_text") or "",
                             json_dumps(result.get("raw_payload") or {}),
                         ),
                     )
                     conn.execute(
-                        "INSERT INTO provider_ssl_state(provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, error_text, raw_payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(provider_name) DO UPDATE SET panel_url=excluded.panel_url, checked_at=excluded.checked_at, status=excluded.status, expires_at=excluded.expires_at, days_left=excluded.days_left, issuer=excluded.issuer, subject=excluded.subject, san=excluded.san, error_text=excluded.error_text, raw_payload=excluded.raw_payload",
+                        "INSERT INTO provider_ssl_state(provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, valid_from, fingerprint_sha256, verify_error, error_text, raw_payload) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(provider_name) DO UPDATE SET panel_url=excluded.panel_url, checked_at=excluded.checked_at, status=excluded.status, expires_at=excluded.expires_at, days_left=excluded.days_left, issuer=excluded.issuer, subject=excluded.subject, san=excluded.san, valid_from=excluded.valid_from, fingerprint_sha256=excluded.fingerprint_sha256, verify_error=excluded.verify_error, error_text=excluded.error_text, raw_payload=excluded.raw_payload",
                         (
                             provider["name"],
                             result.get("panel_url") or provider["panelUrl"],
                             checked_at,
-                            result.get("status") or "unknown",
+                            self._classify_ssl_status(days_left=result.get("days_left"), expires_at=str(result.get("expires_at") or ""), error_text=str(result.get("error_text") or "")),
                             result.get("expires_at") or "",
                             result.get("days_left"),
                             result.get("issuer") or "",
                             result.get("subject") or "",
                             result.get("san") or "",
+                            result.get("valid_from") or "",
+                            result.get("fingerprint_sha256") or "",
+                            result.get("verify_error") or "",
                             result.get("error_text") or "",
                             json_dumps(result.get("raw_payload") or {}),
                         ),

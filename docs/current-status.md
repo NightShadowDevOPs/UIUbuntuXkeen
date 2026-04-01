@@ -1,4 +1,10 @@
-Current prepared release: v0.6.55. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
+Current prepared release: v0.6.56. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
+
+## Обновление v0.6.56
+- для `ubuntu-service` включён реальный SSL poller по 3x-ui host: после сохранения списка хостов UI сразу инициирует обновление SSL-кеша, а scheduler backend теперь считает проверку обязательной не только по интервалу, но и при отсутствии state/изменении panel URL;
+- порог предупреждения по SSL закреплён по умолчанию как **2 дня** (`ULTRA_UI_SSL_WARN_DAYS=2`), что соответствует короткоживущим IP-сертификатам на 6 дней и даёт ранний сигнал до потери подписки;
+- backend теперь сохраняет и отдаёт больше информации о сертификате: `valid_from`, `expires_at`, `days_left`, `issuer`, `subject`, `SAN`, `fingerprint_sha256`, `verify_error`;
+- на экране `Хосты 3x-ui` карточка деталей сертификата расширена: окно действия сертификата, SHA-256 fingerprint и диагностика TLS-проверки цепочки;
 
 ## Обновление v0.6.55
 - после стабилизации `ubuntu-service` на живом хосте следующий практический шаг перенесён в блок Providers / SSL: на экран `Хосты 3x-ui` добавлены фильтр, режим `только проблемные`, панель детальной диагностики и история последних SSL-проверок по каждому провайдеру;

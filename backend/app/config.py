@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_VERSION = "0.6.55"
+APP_VERSION = "0.6.56"
 DEFAULT_CAPABILITIES = {
     "status": True,
     "health": True,
@@ -50,6 +50,7 @@ class Settings:
     mihomo_controller_url: str
     mihomo_controller_secret: str
     ssl_interval_secs: int
+    ssl_warn_days: int
     cors_allow_all: bool
     capabilities: dict[str, bool]
 
@@ -68,6 +69,11 @@ class Settings:
             ssl_interval_secs = max(300, int(interval_raw))
         except ValueError:
             ssl_interval_secs = 14400
+        warn_days_raw = os.getenv("ULTRA_UI_SSL_WARN_DAYS", "2")
+        try:
+            ssl_warn_days = max(0, int(warn_days_raw))
+        except ValueError:
+            ssl_warn_days = 2
         return cls(
             app_name="ultra-ui-ubuntu-backend",
             app_version=APP_VERSION,
@@ -82,6 +88,7 @@ class Settings:
             mihomo_controller_url=mihomo_controller_url,
             mihomo_controller_secret=mihomo_controller_secret,
             ssl_interval_secs=ssl_interval_secs,
+            ssl_warn_days=ssl_warn_days,
             cors_allow_all=_env_bool("ULTRA_UI_CORS_ALLOW_ALL", True),
             capabilities=dict(DEFAULT_CAPABILITIES),
         )

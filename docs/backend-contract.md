@@ -1,6 +1,6 @@
 # UIUbuntuXkeen — Ubuntu backend contract
 
-Актуальная версия документа: **v0.6.55**  
+Актуальная версия документа: **v0.6.56**  
 Дата актуализации: **2026-04-01**
 
 ## 1. Назначение
@@ -128,7 +128,14 @@ Service выполняет плановые проверки без участи
 Если backend выбран в `Setup` как `ubuntu-service` и использует `secondaryPath=/api`, фронт должен добавлять этот префикс только один раз. Релиз `v0.6.50` фиксирует именно эту нормализацию endpoint-ов.
 
 
-### Реализовано в `v0.6.55`
+### Реализовано в `v0.6.56`
 - `GET /api/providers/checks/history?name=<provider>&limit=<n>` — история последних SSL-проверок 3x-ui panel URL из SQLite backend;
 - основной payload `/api/providers/checks` дополнен полями `panelSslDaysLeft` и `panelSslStatus`;
 - UI `Хосты 3x-ui` использует эти данные для детальной карточки провайдера и истории проверок без возврата к fallback mode.
+
+
+## Provider SSL poller defaults (v0.6.56)
+- `ULTRA_UI_SSL_WARN_DAYS=2` — default warning threshold for 3x-ui host certificates;
+- `GET /api/providers/checks` provider items now also expose `panelSslValidFrom`, `panelSslFingerprintSha256`, `panelSslVerifyError`, and `panelSslStatus`;
+- `GET /api/providers/checks/history` rows now also expose `validFrom`, `fingerprintSha256`, and `verifyError`;
+- backend scheduler should rerun provider SSL checks when cached state is missing or a provider panel URL changed, even if the regular interval has not elapsed yet.

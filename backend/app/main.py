@@ -28,14 +28,7 @@ def _mihomo_controller():
 async def _scheduler_loop() -> None:
     while True:
         try:
-            last_run_at = service.get_setting("provider_checks_last_run_at", "")
-            last_run_sec = 0
-            if last_run_at:
-                from datetime import datetime
-
-                last_run_sec = int(datetime.fromisoformat(last_run_at.replace("Z", "+00:00")).timestamp())
-            should_run = not last_run_sec or (int(__import__("time").time()) - last_run_sec) >= settings.ssl_interval_secs
-            if should_run and not service.is_provider_checks_running():
+            if service.provider_checks_due() and not service.is_provider_checks_running():
                 await asyncio.to_thread(service.run_provider_checks, "scheduler")
         except Exception:
             pass
@@ -173,8 +166,10 @@ def api_providers():
 
 
 @app.put("/api/providers")
-def api_put_providers(payload: dict):
+async def api_put_providers(payload: dict):
     providers = service.replace_providers(list(payload.get("providers") or []))
+    if providers and not service.is_provider_checks_running():
+        asyncio.create_task(asyncio.to_thread(service.run_provider_checks, "providers-update"))
     return {"ok": True, "providers": providers, "items": providers}
 
 

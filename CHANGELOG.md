@@ -1,3 +1,10 @@
+## v0.6.56
+- added a real provider SSL poller flow for `ubuntu-service`: scheduler now re-runs checks not only by interval, but also when provider state is missing or panel URLs changed;
+- `Хосты 3x-ui` now triggers an immediate SSL refresh after saving providers, so certificate data appears without waiting for the next long cache TTL;
+- changed the default near-expiry threshold for 3x-ui host diagnostics to 2 days (matching the short-lived 6-day IP certificate workflow), and exposed `ULTRA_UI_SSL_WARN_DAYS=2` in backend env/install defaults;
+- improved SSL probe payload with `valid_from`, SHA-256 fingerprint, and verification diagnostics, while still extracting certificate dates even when the verified TLS handshake fails;
+- expanded the 3x-ui host details panel with certificate validity window, fingerprint, and TLS verification diagnostics.
+
 ## v0.6.55
 - added provider SSL history endpoint `/api/providers/checks/history` with per-check rows from SQLite history;
 - extended provider payload with panel SSL days-left and probe status fields, so UI can show richer per-host diagnostics;

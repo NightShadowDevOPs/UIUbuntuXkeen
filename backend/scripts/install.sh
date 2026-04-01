@@ -34,6 +34,7 @@ ULTRA_UI_RUNTIME=$RUNTIME_DIR
 ULTRA_UI_LOG_DIR=$LOG_DIR
 ULTRA_UI_DB_PATH=$RUNTIME_DIR/backend.sqlite3
 ULTRA_UI_SSL_CHECK_INTERVAL_SECS=14400
+ULTRA_UI_SSL_WARN_DAYS=2
 ULTRA_UI_CORS_ALLOW_ALL=1
 MIHOMO_LOG_FILE=/var/log/mihomo/mihomo.log
 MIHOMO_ACTIVE_CONFIG=/etc/mihomo/config.yaml
@@ -44,6 +45,9 @@ else
   fi
   if ! sudo grep -q '^MIHOMO_ACTIVE_CONFIG=' "$ENV_FILE"; then
     echo 'MIHOMO_ACTIVE_CONFIG=/etc/mihomo/config.yaml' | sudo tee -a "$ENV_FILE" >/dev/null
+  fi
+  if ! sudo grep -q '^ULTRA_UI_SSL_WARN_DAYS=' "$ENV_FILE"; then
+    echo 'ULTRA_UI_SSL_WARN_DAYS=2' | sudo tee -a "$ENV_FILE" >/dev/null
   fi
 fi
 

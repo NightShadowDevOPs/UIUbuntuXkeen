@@ -193,6 +193,15 @@ export const fetchAgentProviders = async (force = false) => {
         sslNotAfter: String((provider as any)?.sslNotAfter || '').trim(),
         panelUrl: String((provider as any)?.panelUrl || '').trim(),
         panelSslNotAfter: String((provider as any)?.panelSslNotAfter || '').trim(),
+        panelSslValidFrom: String((provider as any)?.panelSslValidFrom || '').trim(),
+        panelSslFingerprintSha256: String((provider as any)?.panelSslFingerprintSha256 || '').trim(),
+        panelSslVerifyError: String((provider as any)?.panelSslVerifyError || '').trim(),
+        panelSslStatus: String((provider as any)?.panelSslStatus || '').trim(),
+        panelSslDaysLeft: Number((provider as any)?.panelSslDaysLeft),
+        panelSslIssuer: String((provider as any)?.panelSslIssuer || '').trim(),
+        panelSslSubject: String((provider as any)?.panelSslSubject || '').trim(),
+        panelSslSan: (provider as any)?.panelSslSan,
+        panelSslError: String((provider as any)?.panelSslError || '').trim(),
         checkedAtMs,
       }
     }

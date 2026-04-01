@@ -106,7 +106,11 @@ export const normalizeUbuntuProviderState = (payload: any): UbuntuProviderState 
         panelSslIssuer: str(getAnyFromObj(item, ['panelSslIssuer', 'panel_issuer'])),
         panelSslSubject: str(getAnyFromObj(item, ['panelSslSubject', 'panel_subject'])),
         panelSslSan: getAnyFromObj(item, ['panelSslSan', 'panel_san']),
+        panelSslValidFrom: str(getAnyFromObj(item, ['panelSslValidFrom', 'panel_valid_from', 'validFrom', 'valid_from'])),
+        panelSslFingerprintSha256: str(getAnyFromObj(item, ['panelSslFingerprintSha256', 'panel_fingerprint_sha256', 'fingerprintSha256', 'fingerprint_sha256'])),
+        panelSslVerifyError: str(getAnyFromObj(item, ['panelSslVerifyError', 'panel_verify_error', 'verifyError', 'verify_error'])),
         panelSslDaysLeft: num(getAnyFromObj(item, ['panelSslDaysLeft', 'panel_days_left', 'daysLeft', 'days_left']), NaN),
+        panelSslStatus: str(getAnyFromObj(item, ['panelSslStatus', 'panel_status', 'status'])),
         panelSslError: str(getAnyFromObj(item, ['panelSslError', 'panel_error'])),
         nextCheckAtSec: toSec(getAnyFromObj(item, ['nextCheckAtSec', 'next_check_at_sec', 'nextCheckAt', 'next_check_at'])),
         jobStatus: str(getAnyFromObj(item, ['jobStatus', 'job_status', 'status'])),
@@ -536,11 +540,14 @@ export type UbuntuProviderCheckHistoryItem = {
   panelUrl: string
   checkedAtSec: number
   status: string
+  validFrom?: string
   expiresAt?: string
   daysLeft?: number
   issuer?: string
   subject?: string
   san?: string | string[]
+  fingerprintSha256?: string
+  verifyError?: string
   error?: string
 }
 
@@ -556,11 +563,14 @@ export const fetchUbuntuProviderChecksHistoryAPI = async (provider: string, limi
       panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
       checkedAtSec: toSec(getAnyFromObj(item, ['checkedAtSec', 'checked_at_sec', 'checkedAt', 'checked_at'])),
       status: str(getAnyFromObj(item, ['status'])),
+      validFrom: str(getAnyFromObj(item, ['validFrom', 'valid_from', 'panelSslValidFrom'])),
       expiresAt: str(getAnyFromObj(item, ['expiresAt', 'expires_at', 'panelSslNotAfter', 'panelSslExpiresAt'])),
       daysLeft: num(getAnyFromObj(item, ['daysLeft', 'days_left']), NaN),
       issuer: str(getAnyFromObj(item, ['issuer', 'panelSslIssuer'])),
       subject: str(getAnyFromObj(item, ['subject', 'panelSslSubject'])),
       san: getAnyFromObj(item, ['san', 'panelSslSan']),
+      fingerprintSha256: str(getAnyFromObj(item, ['fingerprintSha256', 'fingerprint_sha256', 'panelSslFingerprintSha256'])),
+      verifyError: str(getAnyFromObj(item, ['verifyError', 'verify_error', 'panelSslVerifyError'])),
       error: str(getAnyFromObj(item, ['error', 'errorText', 'error_text', 'panelSslError'])),
     }))
   } catch {

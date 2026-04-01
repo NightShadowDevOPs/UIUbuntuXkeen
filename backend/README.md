@@ -1,6 +1,6 @@
 # UIUbuntuXkeen backend
 
-Версия: **v0.6.50**
+Версия: **v0.6.56**
 
 Что это:
 - отдельный Ubuntu backend/service для UIUbuntuXkeen;
@@ -32,7 +32,7 @@ cd backend
 - копирует backend в `/opt/ultra-ui-ubuntu-backend`;
 - создаёт `.venv`;
 - устанавливает зависимости;
-- создаёт `/etc/ultra-ui-ubuntu/agent.env` c `ULTRA_UI_HOST=0.0.0.0`;
+- создаёт `/etc/ultra-ui-ubuntu/agent.env` c `ULTRA_UI_HOST=0.0.0.0` и `ULTRA_UI_SSL_WARN_DAYS=2`;
 - при update автоматически переводит старый `ULTRA_UI_HOST=127.0.0.1` на `0.0.0.0`;
 - регистрирует и запускает systemd unit `ultra-ui-ubuntu-backend.service` из шаблона `backend/deploy/ultra-ui-ubuntu-backend.service`.
 
@@ -45,6 +45,7 @@ cd backend
 - `GET /api/providers`
 - `PUT /api/providers`
 - `GET /api/providers/checks`
+- `GET /api/providers/checks/history`
 - `POST /api/providers/checks/run`
 - `POST /api/providers/ssl-cache/refresh`
 - `GET /api/providers/ssl-cache/status`
@@ -53,4 +54,4 @@ cd backend
 - `GET /api/jobs`
 
 
-Примечание `v0.6.50`: backend runtime не меняет модель запуска. Hotfix находится на стороне фронта и исправляет дублирование `/api` в UI при выбранном `secondaryPath=/api`.
+Примечание `v0.6.56`: backend работает как основной `ubuntu-service` контур. Для 3x-ui host SSL warning threshold по умолчанию закреплён как 2 дня, а сохранение списка host запускает refresh SSL state без ожидания следующего длинного TTL.
