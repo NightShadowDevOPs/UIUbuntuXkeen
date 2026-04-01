@@ -138,9 +138,36 @@ class BackendService:
             return "ok"
         return "error" if str(error_text or "").strip() else "unknown"
 
-    def list_providers(self) -> list[dict[str, Any]]:
+    def _restore_provider_hosts_from_ssl_artifacts(self) -> list[dict[str, Any]]:
+        now = utc_now()
+        recovered: list[dict[str, Any]] = []
         with get_conn(self.settings.db_path) as conn:
             rows = conn.execute(
+                "SELECT provider_name, panel_url, MAX(checked_at) AS checked_at FROM provider_ssl_state GROUP BY provider_name, panel_url ORDER BY provider_name COLLATE NOCASE ASC"
+            ).fetchall()
+            if not rows:
+                rows = conn.execute(
+                    "SELECT provider_name, panel_url, MAX(checked_at) AS checked_at FROM provider_ssl_checks GROUP BY provider_name, panel_url ORDER BY provider_name COLLATE NOCASE ASC"
+                ).fetchall()
+            for row in rows:
+                name = str(row["provider_name"] or "").strip()
+                panel_url = str(row["panel_url"] or "").strip()
+                if not name or not panel_url:
+                    continue
+                conn.execute(
+                    "INSERT OR IGNORE INTO provider_hosts(name, panel_url, enabled, created_at, updated_at) VALUES (?, ?, 1, ?, ?)",
+                    (name, panel_url, now, now),
+                )
+            if rows:
+                self._log_event(
+                    conn,
+                    "providers.restored",
+                    "providers",
+                    "provider_hosts",
+                    f"Provider hosts restored from SSL artifacts: {len(rows)}",
+                    [{"name": str(r["provider_name"] or "").strip(), "panelUrl": str(r["panel_url"] or "").strip()} for r in rows],
+                )
+            restored_rows = conn.execute(
                 "SELECT name, panel_url, enabled, created_at, updated_at FROM provider_hosts ORDER BY name COLLATE NOCASE ASC"
             ).fetchall()
         return [
@@ -151,8 +178,27 @@ class BackendService:
                 "createdAt": str(row["created_at"]),
                 "updatedAt": str(row["updated_at"]),
             }
+            for row in restored_rows
+        ]
+
+    def list_providers(self) -> list[dict[str, Any]]:
+        with get_conn(self.settings.db_path) as conn:
+            rows = conn.execute(
+                "SELECT name, panel_url, enabled, created_at, updated_at FROM provider_hosts ORDER BY name COLLATE NOCASE ASC"
+            ).fetchall()
+        providers = [
+            {
+                "name": str(row["name"]),
+                "panelUrl": str(row["panel_url"]),
+                "enabled": bool(row["enabled"]),
+                "createdAt": str(row["created_at"]),
+                "updatedAt": str(row["updated_at"]),
+            }
             for row in rows
         ]
+        if providers:
+            return providers
+        return self._restore_provider_hosts_from_ssl_artifacts()
 
     def replace_providers(self, providers: list[dict[str, Any]]) -> list[dict[str, Any]]:
         now = utc_now()
@@ -171,6 +217,9 @@ class BackendService:
                 }
             )
             seen.add(name)
+        existing = self.list_providers()
+        if not cleaned and existing:
+            return existing
         with get_conn(self.settings.db_path) as conn:
             conn.execute("DELETE FROM provider_hosts")
             for item in cleaned:

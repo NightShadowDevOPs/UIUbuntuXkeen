@@ -270,7 +270,7 @@ const providerActionEnabled = computed(() => {
 const visibleAgentProvidersError = computed(() => {
   const raw = String(agentProvidersError.value || '').trim()
   if (!raw) return ''
-  if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE && raw === 'capability-missing') return ''
+  if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE && raw.toLowerCase().includes('capability-missing')) return ''
   return raw
 })
 
@@ -308,7 +308,11 @@ const syncRowsFromStore = () => {
     name,
     panelUrl: String((agentProviderByName.value as any)?.[name]?.panelUrl || '').trim(),
   }))
-  rows.value = buildMergedRows([agentRows, localRows])
+  const snapshotRows = Object.keys(providerSslDbSnapshot.value || {}).map((name) => ({
+    name,
+    panelUrl: String((providerSslDbSnapshot.value as any)?.[name]?.panelUrl || '').trim(),
+  }))
+  rows.value = buildMergedRows([agentRows, snapshotRows, localRows])
   dirty.value = false
 }
 
@@ -332,13 +336,27 @@ const loadRowsFromBackend = async () => {
   }
   loadingBackendRows.value = true
   try {
-    const items = await fetchUbuntuProvidersAPI()
+    let items = await fetchUbuntuProvidersAPI()
     const localRows = Object.entries(proxyProviderPanelUrlMap.value || {}).map(([name, url]) => ({ name, url }))
     const agentRows = Object.keys(agentProviderByName.value || {}).map((name) => ({
       name,
       panelUrl: String((agentProviderByName.value as any)?.[name]?.panelUrl || '').trim(),
     }))
-    rows.value = buildMergedRows([agentRows, items as any[], localRows])
+    const snapshotRows = Object.keys(providerSslDbSnapshot.value || {}).map((name) => ({
+      name,
+      panelUrl: String((providerSslDbSnapshot.value as any)?.[name]?.panelUrl || '').trim(),
+    }))
+    let merged = buildMergedRows([agentRows, items as any[], snapshotRows, localRows])
+    if (!items.length && merged.length && detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) {
+      try {
+        items = await saveUbuntuProvidersAPI(merged.map((row) => ({ name: row.name, panelUrl: row.url, enabled: true })))
+        merged = buildMergedRows([agentRows, items as any[], snapshotRows, localRows])
+        await fetchAgentProviders(true)
+      } catch {
+        // keep merged fallback rows
+      }
+    }
+    rows.value = merged
     reflectRowsToLocalCache(rows.value as any[])
     dirty.value = false
   } catch {

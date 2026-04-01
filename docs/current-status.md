@@ -1,3 +1,10 @@
+# Current status — v0.6.60
+
+- Main runtime stays on **`ubuntu-service`**.
+- Server deploy workflow stays on **`git fetch origin --prune && git reset --hard origin/main`**.
+- `3x-ui Hosts` now restore provider rows into backend storage automatically when `/api/providers` comes back empty but local/users-db fallback still has known hosts.
+- Legacy status polling for pages that still called `agentStatusAPI()` is bridged to `/api/status` while `ubuntu-service` is active, instead of treating `:9099/cgi-bin/api.sh?cmd=status` as the primary route.
+
 Current prepared release: v0.6.59. The standalone Ubuntu backend stays on `ubuntu-service`; this hotfix removes the stale provider SSL gating in `Хосты 3x-ui` and sends SSL actions directly to the backend action endpoints from the page runtime.
 
 ## Обновление v0.6.59

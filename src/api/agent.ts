@@ -1,5 +1,9 @@
 import axios from 'axios'
+import { BACKEND_KINDS, UBUNTU_BACKEND_ENDPOINTS } from '@/config/backendContract'
+import { detectBackendKind } from '@/helper/backend'
+import { getUrlFromBackendEndpoint } from '@/helper/utils'
 import { agentToken, agentUrl } from '@/store/agent'
+import { activeBackend } from '@/store/setup'
 
 // Normalized agent base URL for plain fetch() calls.
 // (Vite does not typecheck by default; keeping this local avoids runtime ReferenceError.)
@@ -110,6 +114,33 @@ export type AgentTrafficLive = {
   error?: string
 }
 
+const ubuntuStatusBridgeAPI = async (): Promise<AgentStatus | null> => {
+  const backend = activeBackend.value
+  if (!backend || detectBackendKind(backend) !== BACKEND_KINDS.UBUNTU_SERVICE) return null
+  try {
+    const { data } = await axios.get(getUrlFromBackendEndpoint(backend, UBUNTU_BACKEND_ENDPOINTS.status), {
+      timeout: 4000,
+      headers: {
+        Accept: 'application/json',
+        ...(backend.password ? { Authorization: `Bearer ${backend.password}` } : {}),
+      },
+    })
+    const payload = data || {}
+    const service = (payload as any)?.service || {}
+    const host = (payload as any)?.host || {}
+    return {
+      ok: Boolean((payload as any)?.ok ?? service?.version ?? host?.hostname),
+      version: String(service?.version || '').trim() || undefined,
+      serverVersion: String(service?.version || '').trim() || undefined,
+      hostname: String(host?.hostname || '').trim() || undefined,
+      kernel: String(host?.kernel || '').trim() || undefined,
+      error: '',
+    }
+  } catch {
+    return null
+  }
+}
+
 const agentAxios = () => {
   const instance = axios.create({
     baseURL: agentUrl.value || '',
@@ -135,6 +166,8 @@ const agentAxios = () => {
 }
 
 export const agentStatusAPI = async (): Promise<AgentStatus> => {
+  const bridged = await ubuntuStatusBridgeAPI()
+  if (bridged) return bridged
   try {
     const { data } = await agentAxios().get('/cgi-bin/api.sh', {
       params: { cmd: 'status' },

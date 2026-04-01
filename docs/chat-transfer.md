@@ -1,3 +1,11 @@
+Prepared release: v0.6.60. The live Ubuntu backend contour stays on `ubuntu-service`; this hotfix restores lost 3x-ui host rows into backend storage when `/api/providers` is empty, prevents accidental empty provider wipes, and bridges legacy status polling to `/api/status` so the UI stops treating dead `:9099/cgi-bin/api.sh?cmd=status` as its primary status route.
+Актуальный релиз для переноса: **v0.6.60**
+
+## Update v0.6.60
+- if the standalone backend provider list is empty, the UI now rebuilds `3x-ui Hosts` from local/users-db fallback rows and seeds them back into backend storage automatically;
+- backend provider storage is hardened against accidental empty overwrites and can recover hosts from saved SSL state/history;
+- pages that still used `agentStatusAPI()` now bridge to `/api/status` while `ubuntu-service` is active, instead of hammering the dead `:9099/cgi-bin/api.sh?cmd=status` route.
+
 Prepared release: v0.6.58. The live Ubuntu backend contour stays on `ubuntu-service`, and this hotfix fixes the missing provider SSL actions by routing frontend REST calls to the real standalone backend origin instead of relative Mihomo UI `/api/...` paths.
 Актуальный релиз для переноса: **v0.6.58**
 

@@ -1,3 +1,7 @@
+## 2026-04-01 — request: restore 3x-ui host list and stop dead 9099 polling
+- user confirmed that `3x-ui` host list disappeared, backend `/api/providers` returned `[]`, SSL actions had nothing to check, and the browser still spammed `http://192.168.5.23:9099/cgi-bin/api.sh?cmd=status` with `ERR_CONNECTION_REFUSED`;
+- requested follow-up: restore provider persistence into backend, stop relying on old direct status polling when `ubuntu-service` is active, and continue work from the standalone backend contour.
+
 - 2026-04-01 — после `v0.6.58` пользователь показал, что `Хосты 3x-ui` всё ещё не запускают реальный SSL опрос: backend bridge уже отвечает `200`, но в логах по-прежнему нет `POST /api/providers/checks/run` и `POST /api/providers/ssl-cache/refresh`; запрос: убрать stale `capability-missing`, сделать так, чтобы кнопки реально вызывали backend action endpoints и после этого обновляли строки/детали.
 ## 2026-04-01 — provider SSL threshold and polling
 - пользователь уточнил рабочую бизнес-логику: предупреждение по сертификату по умолчанию должно срабатывать за 2 дня;

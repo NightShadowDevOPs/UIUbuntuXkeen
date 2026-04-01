@@ -5,6 +5,7 @@ import { agentMihomoProvidersAPI, agentProviderSslCacheRefreshAPI, agentUsersDbG
 import { detectBackendKind, getBackendEndpointPath } from '@/helper/backend'
 import { getUrlFromBackendEndpoint } from '@/helper/utils'
 import { activeBackend } from '@/store/setup'
+import { proxyProviderPanelUrlMap } from '@/store/settings'
 import dayjs from 'dayjs'
 
 const silentCfg = {
@@ -284,6 +285,31 @@ const saveUsersDbDocument = async (payload: any, rev: number) => {
   }
 }
 
+const getLocalProviderRows = () => {
+  return Object.entries(proxyProviderPanelUrlMap.value || {})
+    .map(([name, panelUrl]) => ({ name: str(name), panelUrl: str(panelUrl), enabled: true }))
+    .filter((item) => item.name && item.panelUrl)
+}
+
+const mergeProviderRows = (...groups: Array<Array<{ name: string; panelUrl: string; enabled?: boolean }>>) => {
+  const byName = new Map<string, { name: string; panelUrl: string; enabled: boolean }>()
+  for (const group of groups) {
+    for (const item of group || []) {
+      const name = str(item?.name)
+      const panelUrl = str(item?.panelUrl)
+      const enabled = boolish((item as any)?.enabled) ?? true
+      if (!name) continue
+      const current = byName.get(name)
+      byName.set(name, {
+        name,
+        panelUrl: panelUrl || current?.panelUrl || '',
+        enabled,
+      })
+    }
+  }
+  return [...byName.values()].filter((item) => item.name && item.panelUrl).sort((a, b) => a.name.localeCompare(b.name))
+}
+
 const listProvidersFromUsersDb = async () => {
   const doc = await loadUsersDbDocument()
   const byName = new Map<string, { name: string; panelUrl: string; enabled: boolean }>()
@@ -428,17 +454,37 @@ const bridgeRefreshProviderSslCache = async () => {
 
 
 export const fetchUbuntuProvidersAPI = async () => {
-  if (preferCompatibilityBridge()) return listProvidersFromUsersDb()
+  const fallbackRows = mergeProviderRows(await listProvidersFromUsersDb(), getLocalProviderRows())
+  if (preferCompatibilityBridge()) return fallbackRows
   try {
     const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers), silentCfg)
-    return pickList(data || {}).map((item) => ({
+    const remoteRows = pickList(data || {}).map((item) => ({
       ...item,
       name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
       panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
       enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
-    }))
+    })).filter((item) => item.name && item.panelUrl)
+    if (remoteRows.length > 0) return mergeProviderRows(remoteRows, fallbackRows)
+    if (fallbackRows.length > 0 && detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) {
+      try {
+        const { data: saved } = await axios.put(
+          ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers),
+          { providers: fallbackRows },
+          { ...silentCfg, timeout: 15000 },
+        )
+        const savedRows = pickList(saved || {}).map((item) => ({
+          name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
+          panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
+          enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
+        })).filter((item) => item.name && item.panelUrl)
+        if (savedRows.length > 0) return mergeProviderRows(savedRows, fallbackRows)
+      } catch {
+        // fallback rows below
+      }
+    }
+    return fallbackRows
   } catch {
-    return listProvidersFromUsersDb()
+    return fallbackRows
   }
 }
 

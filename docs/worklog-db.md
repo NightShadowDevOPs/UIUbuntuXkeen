@@ -1,3 +1,9 @@
+## 2026-04-01 — v0.6.60 backend provider restore and status bridge
+- reproduced the live issue where `/api/providers` on `ubuntu-service` returned an empty list while the browser still referenced old 3x-ui host rows;
+- added backend provider-host recovery from saved SSL state/history and guarded provider replacement against accidental empty wipes;
+- added frontend reseed logic to rebuild/save 3x-ui host rows from local/users-db fallback when backend storage is empty;
+- bridged legacy `agentStatusAPI()` to `/api/status` for `ubuntu-service`, reducing dead `:9099/cgi-bin/api.sh?cmd=status` polling noise.
+
 ## Шаги v0.6.59
 1. После live-проверки `v0.6.58` подтверждено, что backend bridge уже жив (`GET /api/capabilities`, `/api/configs`, `/api/proxies`, `/api/providers/proxies`, `/api/rules` отвечают `200`), но `Хосты 3x-ui` по-прежнему не отправляют action POST на SSL endpoints.
 2. В `XuiHostsPage.vue` убран stale gating для `ubuntu-service`: добавлен явный `providerActionEnabled`, скрыт ложный `capability-missing`, а SSL actions больше не зависят от застрявшего store-state.
