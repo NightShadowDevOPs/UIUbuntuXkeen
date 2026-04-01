@@ -1,3 +1,5 @@
+
+Latest hotfix: `v0.6.73` rolled back provider SSL probe default to `system-route` after blanket TLS timeouts seen with `v0.6.72 forced-direct`.
 Prepared release: v0.6.72. The active contour stays on `ubuntu-service`; this hotfix adds missing backend proxy routes for standard Mihomo UI actions, stabilizes empty backend writes, and makes provider SSL status cards readable while clearly marking checks as `system route` from the current Ubuntu host.
 Актуальный релиз для переноса: **v0.6.72**
 

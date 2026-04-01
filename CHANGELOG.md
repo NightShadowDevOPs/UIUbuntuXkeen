@@ -1,3 +1,9 @@
+## v0.6.73
+
+- revert provider SSL probe default route mode back to `system-route` to recover from broad TLS timeouts introduced by v0.6.72
+- keep forced-direct data available for future diagnostics, but make it opt-in instead of automatic
+- backend install now rewrites `ULTRA_UI_SSL_PROBE_ROUTE_MODE=system-route` during upgrade to safely undo v0.6.72 on existing servers
+
 ## v0.6.72
 - backend provider SSL probe now supports `forced-direct`: TLS checks can bind to the detected default interface/source IP, so certificate reads stop inheriting the current tunnel path when the host itself is routed through a provider.
 - install/update now writes `ULTRA_UI_SSL_PROBE_ROUTE_MODE`, `ULTRA_UI_SSL_PROBE_DIRECT_INTERFACE`, and `ULTRA_UI_SSL_PROBE_DIRECT_SOURCE_IP` into `/etc/ultra-ui-ubuntu/agent.env`, defaulting to `forced-direct` when a physical default route is detected.
