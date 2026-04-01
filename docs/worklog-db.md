@@ -1,4 +1,4 @@
-## 2026-04-01 — v0.6.62 xui hosts backend-first hydration hotfix
+## 2026-04-01 — v0.6.63 xui hosts backend-first hydration hotfix
 - reproduced the failure mode where `Хосты 3x-ui` stayed empty although `ubuntu-service` backend could still be healthy;
 - found that `fetchUbuntuProvidersAPI()` awaited users-db fallback first, so a failed `users_db_get` aborted provider loading before `GET /api/providers` was sent;
 - changed provider hydration to query backend `/api/providers` first and downgraded users-db fallback to best-effort;

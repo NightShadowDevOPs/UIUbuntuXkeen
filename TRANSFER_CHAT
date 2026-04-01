@@ -1,7 +1,7 @@
-Prepared release: v0.6.62. The active contour stays on `ubuntu-service`; this hotfix fixes `Хосты 3x-ui` when the standalone backend is healthy but the page still renders an empty list because the frontend crashes in fallback `users_db_get` before it reaches `GET /api/providers`.
-Актуальный релиз для переноса: **v0.6.62**
+Prepared release: v0.6.63. The active contour stays on `ubuntu-service`; this hotfix fixes `Хосты 3x-ui` when the standalone backend is healthy but the page still renders an empty list because the frontend crashes in fallback `users_db_get` before it reaches `GET /api/providers`.
+Актуальный релиз для переноса: **v0.6.63**
 
-## Update v0.6.62
+## Update v0.6.63
 - fixed `Хосты 3x-ui` provider loading for `ubuntu-service` when router-agent / `users_db_get` is unavailable or not configured;
 - `fetchUbuntuProvidersAPI()` now queries backend `/api/providers` first and treats users-db fallback as best-effort instead of a hard prerequisite;
 - if fallback loading fails, the page still renders backend provider rows instead of dying before the request;

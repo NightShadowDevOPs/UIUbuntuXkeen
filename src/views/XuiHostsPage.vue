@@ -331,10 +331,6 @@ const reflectRowsToLocalCache = (items: Array<{ name: string; panelUrl?: string;
 
 const loadRowsFromBackend = async () => {
   const activeKind = detectBackendKind(activeBackend.value)
-  if (activeKind !== BACKEND_KINDS.UBUNTU_SERVICE && !useBackendProviders.value) {
-    syncRowsFromStore()
-    return
-  }
 
   loadingBackendRows.value = true
   try {

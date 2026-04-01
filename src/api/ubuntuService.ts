@@ -142,6 +142,32 @@ export const normalizeUbuntuProviderState = (payload: any): UbuntuProviderState 
 
 const preferCompatibilityBridge = () => detectBackendKind(activeBackend.value) !== BACKEND_KINDS.UBUNTU_SERVICE
 
+const sameOriginUbuntuEndpoint = (endpoint: string) => {
+  const value = String(endpoint || '').trim()
+  if (!value) return '/'
+  return value.startsWith('/') ? value : `/${value}`
+}
+
+const parseUbuntuProviderRows = (payload: any) => {
+  return pickList(payload || {}).map((item) => ({
+    ...item,
+    name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
+    panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
+    enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
+  })).filter((item) => item.name && item.panelUrl)
+}
+
+const tryGetSameOriginUbuntu = async (endpoint: string, extra?: Record<string, any>) => {
+  return axios.get(sameOriginUbuntuEndpoint(endpoint), { ...silentCfg, ...(extra || {}) })
+}
+
+const tryPutSameOriginUbuntu = async (endpoint: string, payload: any, extra?: Record<string, any>) => {
+  return axios.put(sameOriginUbuntuEndpoint(endpoint), payload, { ...silentCfg, ...(extra || {}) })
+}
+
+const tryPostSameOriginUbuntu = async (endpoint: string, payload?: any, extra?: Record<string, any>) => {
+  return axios.post(sameOriginUbuntuEndpoint(endpoint), payload ?? null, { ...silentCfg, ...(extra || {}) })
+}
 
 const ubuntuEndpoint = (endpoint: string) => {
   if (!activeBackend.value) return endpoint
@@ -463,62 +489,79 @@ const bridgeRefreshProviderSslCache = async () => {
 
 export const fetchUbuntuProvidersAPI = async () => {
   const localRows = getLocalProviderRows()
+  const fallbackRows = mergeProviderRows(await safeListProvidersFromUsersDb(), localRows)
+  const activeKind = detectBackendKind(activeBackend.value)
 
-  if (preferCompatibilityBridge()) {
-    const fallbackRows = mergeProviderRows(await safeListProvidersFromUsersDb(), localRows)
-    return fallbackRows
+  const tryRead = async (mode: 'configured' | 'same-origin') => {
+    const response = mode === 'configured'
+      ? await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers), silentCfg)
+      : await tryGetSameOriginUbuntu(UBUNTU_BACKEND_ENDPOINTS.providers)
+    return parseUbuntuProviderRows(response.data || {})
+  }
+
+  const trySaveFallbackRows = async (mode: 'configured' | 'same-origin') => {
+    if (!fallbackRows.length) return [] as Array<{ name: string; panelUrl: string; enabled: boolean }>
+    const response = mode === 'configured'
+      ? await axios.put(
+        ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers),
+        { providers: fallbackRows },
+        { ...silentCfg, timeout: 15000 },
+      )
+      : await tryPutSameOriginUbuntu(
+        UBUNTU_BACKEND_ENDPOINTS.providers,
+        { providers: fallbackRows },
+        { timeout: 15000 },
+      )
+    return parseUbuntuProviderRows(response.data || {})
+  }
+
+  if (activeKind === BACKEND_KINDS.UBUNTU_SERVICE) {
+    try {
+      const remoteRows = await tryRead('configured')
+      if (remoteRows.length > 0) return mergeProviderRows(remoteRows, fallbackRows)
+      const savedRows = await trySaveFallbackRows('configured')
+      if (savedRows.length > 0) return mergeProviderRows(savedRows, fallbackRows)
+    } catch {
+      // try same-origin below
+    }
   }
 
   try {
-    const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers), silentCfg)
-    const fallbackRows = mergeProviderRows(await safeListProvidersFromUsersDb(), localRows)
-    const remoteRows = pickList(data || {}).map((item) => ({
-      ...item,
-      name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
-      panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
-      enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
-    })).filter((item) => item.name && item.panelUrl)
+    const remoteRows = await tryRead('same-origin')
     if (remoteRows.length > 0) return mergeProviderRows(remoteRows, fallbackRows)
-    if (fallbackRows.length > 0 && detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) {
-      try {
-        const { data: saved } = await axios.put(
-          ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers),
-          { providers: fallbackRows },
-          { ...silentCfg, timeout: 15000 },
-        )
-        const savedRows = pickList(saved || {}).map((item) => ({
-          name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
-          panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
-          enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
-        })).filter((item) => item.name && item.panelUrl)
-        if (savedRows.length > 0) return mergeProviderRows(savedRows, fallbackRows)
-      } catch {
-        // fallback rows below
-      }
-    }
-    return fallbackRows
+    const savedRows = await trySaveFallbackRows('same-origin')
+    if (savedRows.length > 0) return mergeProviderRows(savedRows, fallbackRows)
   } catch {
-    return mergeProviderRows(await safeListProvidersFromUsersDb(), localRows)
+    // final fallback below
   }
+
+  return fallbackRows
 }
 
 export const saveUbuntuProvidersAPI = async (items: Array<{ name: string; panelUrl: string; enabled?: boolean }>) => {
-  if (preferCompatibilityBridge()) return saveProvidersToUsersDb(items)
+  if (!preferCompatibilityBridge()) {
+    try {
+      const { data } = await axios.put(
+        ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers),
+        { providers: items },
+        {
+          ...silentCfg,
+          timeout: 15000,
+        },
+      )
+      return parseUbuntuProviderRows(data || {})
+    } catch {
+      // try same-origin below
+    }
+  }
+
   try {
-    const { data } = await axios.put(
-      ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providers),
+    const { data } = await tryPutSameOriginUbuntu(
+      UBUNTU_BACKEND_ENDPOINTS.providers,
       { providers: items },
-      {
-        ...silentCfg,
-        timeout: 15000,
-      },
+      { timeout: 15000 },
     )
-    return pickList(data || {}).map((item) => ({
-      ...item,
-      name: str(getAnyFromObj(item, ['name', 'providerName', 'provider_name', 'id'])),
-      panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
-      enabled: boolish(getAnyFromObj(item, ['enabled'])) ?? true,
-    }))
+    return parseUbuntuProviderRows(data || {})
   } catch {
     return saveProvidersToUsersDb(items)
   }
@@ -590,9 +633,17 @@ export const saveUbuntuUsersInventoryAPI = async (
 }
 
 export const fetchUbuntuProviderChecksAPI = async () => {
-  if (preferCompatibilityBridge()) return bridgeProviderChecks(false)
+  if (!preferCompatibilityBridge()) {
+    try {
+      const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerChecks), silentCfg)
+      return normalizeUbuntuProviderState(data || {})
+    } catch {
+      // try same-origin below
+    }
+  }
+
   try {
-    const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerChecks), silentCfg)
+    const { data } = await tryGetSameOriginUbuntu(UBUNTU_BACKEND_ENDPOINTS.providerChecks)
     return normalizeUbuntuProviderState(data || {})
   } catch {
     return bridgeProviderChecks(false)
@@ -616,39 +667,58 @@ export type UbuntuProviderCheckHistoryItem = {
 }
 
 export const fetchUbuntuProviderChecksHistoryAPI = async (provider: string, limit = 12): Promise<UbuntuProviderCheckHistoryItem[]> => {
-  if (preferCompatibilityBridge()) return []
+  const params = { name: str(provider), limit: Math.max(1, Math.min(100, Number(limit) || 12)) }
+  const mapHistory = (payload: any) => pickList(payload || {}).map((item) => ({
+    provider: str(getAnyFromObj(item, ['provider', 'providerName', 'provider_name', 'name'])),
+    panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
+    checkedAtSec: toSec(getAnyFromObj(item, ['checkedAtSec', 'checked_at_sec', 'checkedAt', 'checked_at'])),
+    status: str(getAnyFromObj(item, ['status'])),
+    validFrom: str(getAnyFromObj(item, ['validFrom', 'valid_from', 'panelSslValidFrom'])),
+    expiresAt: str(getAnyFromObj(item, ['expiresAt', 'expires_at', 'panelSslNotAfter', 'panelSslExpiresAt'])),
+    daysLeft: num(getAnyFromObj(item, ['daysLeft', 'days_left']), NaN),
+    issuer: str(getAnyFromObj(item, ['issuer', 'panelSslIssuer'])),
+    subject: str(getAnyFromObj(item, ['subject', 'panelSslSubject'])),
+    san: getAnyFromObj(item, ['san', 'panelSslSan']),
+    fingerprintSha256: str(getAnyFromObj(item, ['fingerprintSha256', 'fingerprint_sha256', 'panelSslFingerprintSha256'])),
+    verifyError: str(getAnyFromObj(item, ['verifyError', 'verify_error', 'panelSslVerifyError'])),
+    error: str(getAnyFromObj(item, ['error', 'errorText', 'error_text', 'panelSslError'])),
+  }))
+
+  if (!preferCompatibilityBridge()) {
+    try {
+      const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerChecksHistory), {
+        ...silentCfg,
+        params,
+      })
+      return mapHistory(data || {})
+    } catch {
+      // try same-origin below
+    }
+  }
+
   try {
-    const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerChecksHistory), {
-      ...silentCfg,
-      params: { name: str(provider), limit: Math.max(1, Math.min(100, Number(limit) || 12)) },
-    })
-    return pickList(data || {}).map((item) => ({
-      provider: str(getAnyFromObj(item, ['provider', 'providerName', 'provider_name', 'name'])),
-      panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
-      checkedAtSec: toSec(getAnyFromObj(item, ['checkedAtSec', 'checked_at_sec', 'checkedAt', 'checked_at'])),
-      status: str(getAnyFromObj(item, ['status'])),
-      validFrom: str(getAnyFromObj(item, ['validFrom', 'valid_from', 'panelSslValidFrom'])),
-      expiresAt: str(getAnyFromObj(item, ['expiresAt', 'expires_at', 'panelSslNotAfter', 'panelSslExpiresAt'])),
-      daysLeft: num(getAnyFromObj(item, ['daysLeft', 'days_left']), NaN),
-      issuer: str(getAnyFromObj(item, ['issuer', 'panelSslIssuer'])),
-      subject: str(getAnyFromObj(item, ['subject', 'panelSslSubject'])),
-      san: getAnyFromObj(item, ['san', 'panelSslSan']),
-      fingerprintSha256: str(getAnyFromObj(item, ['fingerprintSha256', 'fingerprint_sha256', 'panelSslFingerprintSha256'])),
-      verifyError: str(getAnyFromObj(item, ['verifyError', 'verify_error', 'panelSslVerifyError'])),
-      error: str(getAnyFromObj(item, ['error', 'errorText', 'error_text', 'panelSslError'])),
-    }))
+    const { data } = await tryGetSameOriginUbuntu(UBUNTU_BACKEND_ENDPOINTS.providerChecksHistory, { params })
+    return mapHistory(data || {})
   } catch {
     return []
   }
 }
 
 export const runUbuntuProviderChecksAPI = async () => {
-  if (preferCompatibilityBridge()) return bridgeRefreshProviderSslCache()
+  if (!preferCompatibilityBridge()) {
+    try {
+      const { data } = await axios.post(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerChecksRun), null, {
+        ...silentCfg,
+        timeout: 15000,
+      })
+      return normalizeUbuntuProviderState(data || {})
+    } catch {
+      // try same-origin below
+    }
+  }
+
   try {
-    const { data } = await axios.post(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerChecksRun), null, {
-      ...silentCfg,
-      timeout: 15000,
-    })
+    const { data } = await tryPostSameOriginUbuntu(UBUNTU_BACKEND_ENDPOINTS.providerChecksRun, null, { timeout: 15000 })
     return normalizeUbuntuProviderState(data || {})
   } catch {
     return bridgeRefreshProviderSslCache()
@@ -669,12 +739,20 @@ export const refreshUbuntuProvidersAPI = async () => {
 }
 
 export const refreshUbuntuProviderSslCacheAPI = async () => {
-  if (preferCompatibilityBridge()) return bridgeRefreshProviderSslCache()
+  if (!preferCompatibilityBridge()) {
+    try {
+      const { data } = await axios.post(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheRefresh), null, {
+        ...silentCfg,
+        timeout: 15000,
+      })
+      return normalizeUbuntuProviderState(data || {})
+    } catch {
+      // try same-origin below
+    }
+  }
+
   try {
-    const { data } = await axios.post(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheRefresh), null, {
-      ...silentCfg,
-      timeout: 15000,
-    })
+    const { data } = await tryPostSameOriginUbuntu(UBUNTU_BACKEND_ENDPOINTS.providerSslCacheRefresh, null, { timeout: 15000 })
     return normalizeUbuntuProviderState(data || {})
   } catch {
     return bridgeRefreshProviderSslCache()
