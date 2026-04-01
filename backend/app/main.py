@@ -124,6 +124,13 @@ async def proxy_proxies(request: Request):
     return await _proxy_mihomo(request, "/proxies")
 
 
+@app.api_route("/proxies/{proxy_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/proxies/{proxy_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/api/proxies/{proxy_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+async def proxy_proxy_item(request: Request, proxy_path: str):
+    return await _proxy_mihomo(request, f"/proxies/{proxy_path}")
+
+
 @app.api_route("/providers/proxies", methods=["GET"])
 @app.api_route("/api/providers/proxies", methods=["GET"])
 @app.api_route("/api/api/providers/proxies", methods=["GET"])
@@ -131,11 +138,25 @@ async def proxy_provider_proxies(request: Request):
     return await _proxy_mihomo(request, "/providers/proxies")
 
 
+@app.api_route("/providers/proxies/{provider_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/providers/proxies/{provider_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/api/providers/proxies/{provider_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+async def proxy_provider_proxy_item(request: Request, provider_path: str):
+    return await _proxy_mihomo(request, f"/providers/proxies/{provider_path}")
+
+
 @app.api_route("/providers/rules", methods=["GET"])
 @app.api_route("/api/providers/rules", methods=["GET"])
 @app.api_route("/api/api/providers/rules", methods=["GET"])
 async def proxy_provider_rules(request: Request):
     return await _proxy_mihomo(request, "/providers/rules")
+
+
+@app.api_route("/providers/rules/{provider_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/providers/rules/{provider_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+@app.api_route("/api/api/providers/rules/{provider_path:path}", methods=["GET", "PUT", "POST", "DELETE", "PATCH"])
+async def proxy_provider_rules_item(request: Request, provider_path: str):
+    return await _proxy_mihomo(request, f"/providers/rules/{provider_path}")
 
 
 @app.api_route("/rules", methods=["GET"])

@@ -108,8 +108,11 @@ const rows = computed(() => {
       const nearExpiryDays = Number.isFinite(override) ? override : Number(sslNearExpiryDaysDefault.value || 2)
       const health = getProviderHealth(provider, agent, { nearExpiryDays, sslRefreshing: agentProvidersSslRefreshing.value })
       const diag = getProviderSslDiagnostics(provider, agent, { nearExpiryDays, sslRefreshing: agentProvidersSslRefreshing.value })
-      const expires = diag.dateTime ? dayjs(diag.dateTime).format('DD.MM.YYYY HH:mm') : ''
-      const sourceText = diag.source === 'panel-probe' ? t('providerSslSourcePanelProbe') : diag.source === 'panel' ? t('providerSslSourcePanelUrl') : diag.source === 'provider' ? t('providerSslSourceProviderUrl') : diag.source === 'subscription' ? t('providerSslSourceSubscription') : t('providerSslSourceUnknown')
+      const fallbackExpiry = String(agent?.panelSslLastSuccessNotAfter || '').trim()
+      const expires = diag.dateTime ? dayjs(diag.dateTime).format('DD.MM.YYYY HH:mm') : (fallbackExpiry ? dayjs(fallbackExpiry).format('DD.MM.YYYY HH:mm') : '')
+      const sourceText = diag.dateTime
+        ? (diag.source === 'panel-probe' ? t('providerSslSourcePanelProbe') : diag.source === 'panel' ? t('providerSslSourcePanelUrl') : diag.source === 'provider' ? t('providerSslSourceProviderUrl') : diag.source === 'subscription' ? t('providerSslSourceSubscription') : t('providerSslSourceUnknown'))
+        : (fallbackExpiry ? t('providerSslSourceLastSuccess') : t('providerSslSourceUnknown'))
       return {
         name,
         url: String(agent?.url || provider?.url || '').trim(),

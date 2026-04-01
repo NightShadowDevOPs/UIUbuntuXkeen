@@ -1,3 +1,8 @@
+## v0.6.65
+- fixed missing ubuntu-service passthrough routes for provider actions: `/api/providers/proxies/{name}`, `/api/providers/proxies/{name}/healthcheck`, `/api/providers/rules/{name}`, and nested `/api/proxies/{name}/delay` now proxy to Mihomo instead of returning local 404.
+- provider SSL runtime now keeps the latest successful certificate snapshot next to the latest attempt, so cards/details can still show the last valid certificate when the newest TLS handshake times out.
+- improved dark-theme readability on `Хосты 3x-ui`: compact outlined TLS badges replace raw traceback text inside pills, and details show a dedicated last-success block.
+
 ## v0.6.64
 - fixed `Хосты 3x-ui` on `ubuntu-service` when router-agent users-db fallback is unavailable: the frontend now requests backend `/api/providers` first instead of dying in `users_db_get` before the real backend call;
 - made users-db fallback best-effort for provider loading, so a dead `cgi-bin/api.sh?cmd=users_db_get` path no longer hides a healthy backend provider list;

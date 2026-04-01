@@ -1,3 +1,8 @@
+## 2026-04-01 — v0.6.65 provider action passthrough + last-success SSL snapshot
+- added missing ubuntu-service passthrough routes for provider update/health-check and nested proxy delay actions, eliminating local 404s from the standalone backend.
+- provider SSL state now exposes the latest successful certificate snapshot separately from the latest attempt, so timeout-heavy panels still show the last valid certificate on cards/details.
+- compact outlined TLS badges improve dark-theme readability on `Хосты 3x-ui`.
+
 ## 2026-04-01 — v0.6.64 provider URL persistence and stale backend kind hotfix
 - reproduced the live state where 3x-ui host rows reappeared only after manual re-entry of panel URLs, which pointed to provider panel URL loss outside backend.sqlite3 itself;
 - found a second regression path: saved backend profiles could still keep `kind=compatibility-bridge` even with host `:18090` and `secondaryPath=/api`, which disabled ubuntu-service-only actions and surfaced false `capability-missing`;

@@ -291,6 +291,19 @@ class BackendService:
             self._log_event(conn, "users.replaced", "users_inventory", "inventory", f"Users inventory replaced: {len(cleaned)}", {"items": cleaned, "policyMode": normalized_policy_mode})
         return self.list_users_inventory()
 
+    def _latest_successful_provider_ssl(self) -> dict[str, dict[str, Any]]:
+        with get_conn(self.settings.db_path) as conn:
+            rows = conn.execute(
+                "SELECT provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, valid_from, fingerprint_sha256, verify_error, error_text FROM provider_ssl_checks WHERE COALESCE(expires_at, '') <> '' AND COALESCE(error_text, '') = '' ORDER BY checked_at DESC, id DESC"
+            ).fetchall()
+        result: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            name = str(row["provider_name"] or "").strip()
+            if not name or name in result:
+                continue
+            result[name] = row_to_dict(row)
+        return result
+
     def provider_ssl_cache_status(self) -> dict[str, Any]:
         last_run_at = self.get_setting("provider_checks_last_run_at", "")
         next_run_sec = _ts_to_sec(last_run_at) + self.settings.ssl_interval_secs if last_run_at else 0
@@ -320,10 +333,12 @@ class BackendService:
                 "SELECT provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, valid_from, fingerprint_sha256, verify_error, error_text FROM provider_ssl_state"
             ).fetchall()
         by_name = {str(row["provider_name"]): row_to_dict(row) for row in rows}
+        latest_success_by_name = self._latest_successful_provider_ssl()
         cache = self.provider_ssl_cache_status()
         merged: list[dict[str, Any]] = []
         for provider in providers:
             state = by_name.get(provider["name"], {})
+            last_success = latest_success_by_name.get(provider["name"], {})
             merged.append(
                 {
                     "name": provider["name"],
@@ -340,6 +355,15 @@ class BackendService:
                     "panelSslDaysLeft": state.get("days_left"),
                     "panelSslStatus": self._classify_ssl_status(days_left=state.get("days_left"), expires_at=str(state.get("expires_at") or ""), error_text=str(state.get("error_text") or "")),
                     "panelSslError": state.get("error_text") or "",
+                    "panelSslLastSuccessCheckedAtSec": _ts_to_sec(last_success.get("checked_at")),
+                    "panelSslLastSuccessNotAfter": last_success.get("expires_at") or "",
+                    "panelSslLastSuccessIssuer": last_success.get("issuer") or "",
+                    "panelSslLastSuccessSubject": last_success.get("subject") or "",
+                    "panelSslLastSuccessSan": last_success.get("san") or "",
+                    "panelSslLastSuccessValidFrom": last_success.get("valid_from") or "",
+                    "panelSslLastSuccessFingerprintSha256": last_success.get("fingerprint_sha256") or "",
+                    "panelSslLastSuccessVerifyError": last_success.get("verify_error") or "",
+                    "panelSslLastSuccessDaysLeft": last_success.get("days_left"),
                     "jobStatus": str(cache.get("job", {}).get("status") or "").strip(),
                 }
             )

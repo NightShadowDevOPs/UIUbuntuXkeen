@@ -172,6 +172,32 @@
               <div class="text-[11px] uppercase tracking-wide opacity-80">{{ $t('providerSslError') }}</div>
               <div class="mt-1 break-words text-xs">{{ sslDiagnosticsCard.error }}</div>
             </div>
+            <div v-if="sslLastSuccessCard" class="rounded-xl border border-success/30 bg-success/10 p-3 sm:col-span-2 xl:col-span-3">
+              <div class="text-[11px] uppercase tracking-wide text-success/80">{{ $t('providerSslLastSuccessLabel') }}</div>
+              <div class="mt-1 flex flex-wrap items-center gap-2 text-sm">
+                <span class="badge badge-success badge-outline">{{ $t('providerSslSourceLastSuccess') }}</span>
+                <span class="font-medium">{{ sslLastSuccessCard.expiresLabel }}</span>
+              </div>
+              <div class="mt-1 text-xs opacity-80">{{ sslLastSuccessCard.checkedLabel }}</div>
+              <div class="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                <div class="rounded-xl border border-base-content/10 bg-base-100/60 p-3">
+                  <div class="text-[11px] uppercase tracking-wide opacity-60">{{ $t('providerSslUrlLabel') }}</div>
+                  <div class="mt-1 break-all text-xs font-mono opacity-80">{{ sslLastSuccessCard.urlLabel }}</div>
+                </div>
+                <div v-if="sslLastSuccessCard.issuer" class="rounded-xl border border-base-content/10 bg-base-100/60 p-3">
+                  <div class="text-[11px] uppercase tracking-wide opacity-60">{{ $t('providerSslIssuer') }}</div>
+                  <div class="mt-1 break-words text-xs">{{ sslLastSuccessCard.issuer }}</div>
+                </div>
+                <div v-if="sslLastSuccessCard.subject" class="rounded-xl border border-base-content/10 bg-base-100/60 p-3">
+                  <div class="text-[11px] uppercase tracking-wide opacity-60">{{ $t('providerSslSubject') }}</div>
+                  <div class="mt-1 break-words text-xs">{{ sslLastSuccessCard.subject }}</div>
+                </div>
+                <div v-if="sslLastSuccessCard.san.length" class="rounded-xl border border-base-content/10 bg-base-100/60 p-3">
+                  <div class="text-[11px] uppercase tracking-wide opacity-60">{{ $t('providerSslSan') }}</div>
+                  <div class="mt-1 break-words text-xs">{{ sslLastSuccessCard.san.join(', ') }}</div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <pre
@@ -783,6 +809,27 @@ const sslExpireInfo = computed(() => {
             : t('providerSslSourceUnknown')
   const tip = checked ? `${source} • ${t('checkedAt')}: ${checked}` : source
   return { dateTime: d.dateTime, days: d.days, cls, label, tip }
+})
+
+const sslLastSuccessCard = computed(() => {
+  const agentP: any = agentProviderByName.value[props.name] || {}
+  const rawExpiry = String(agentP?.panelSslLastSuccessNotAfter || '').trim()
+  if (!rawExpiry) return null
+  const expires = parseDateMaybe(rawExpiry)
+  const checkedAtMs = Number(agentP?.panelSslLastSuccessCheckedAtSec || 0) * 1000
+  const issuer = String(agentP?.panelSslLastSuccessIssuer || '').trim()
+  const subject = String(agentP?.panelSslLastSuccessSubject || '').trim()
+  const sanRaw = agentP?.panelSslLastSuccessSan
+  const san = Array.isArray(sanRaw)
+    ? sanRaw.map((item: any) => String(item || '').trim()).filter(Boolean)
+    : String(sanRaw || '').split(/\s*,\s*|\s*;\s*/).map((item) => String(item || '').trim()).filter(Boolean)
+  const urlLabel = String(agentP?.panelUrl || panelUrl.value || '').trim() || '—'
+  const checkedLabel = checkedAtMs ? `${t('providerSslLastSuccessCheckedLabel')}: ${dayjs(checkedAtMs).format('DD-MM-YYYY HH:mm:ss')}` : `${t('providerSslLastSuccessCheckedLabel')}: —`
+  const expiresLabel = expires ? `${dayjs(expires).format('DD-MM-YYYY HH:mm:ss')}` : rawExpiry
+  const currentHasFreshCert = Boolean(sslDiagnosticsRaw.value.notAfter)
+  const currentHasError = Boolean(String(sslDiagnosticsRaw.value.error || '').trim())
+  if (!currentHasError && currentHasFreshCert) return null
+  return { expiresLabel, checkedLabel, urlLabel, issuer, subject, san }
 })
 
 const sslDiagnosticsCard = computed(() => {

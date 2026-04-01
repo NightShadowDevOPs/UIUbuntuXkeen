@@ -1,3 +1,8 @@
+## v0.6.65
+- fixed ubuntu-service passthrough gaps for provider actions (`providers/proxies/{name}`, `providers/proxies/{name}/healthcheck`, `providers/rules/{name}`, `proxies/{name}/delay`) so cards stop hitting local 404s for update/health-check operations.
+- provider SSL state now keeps the latest successful certificate snapshot next to the latest failed attempt, so cards can still show the last valid certificate when remote 3x-ui panels stall during TLS handshake.
+- improved dark-theme readability on `Хосты 3x-ui`: compact outlined badges replace raw exception text inside pills, and details now show a dedicated "Последний успешный сертификат" block.
+
 ## v0.6.64
 - fixed stale backend kind detection for ubuntu-service profiles that still carried compatibility mode in saved settings; host /api contour is now treated as ubuntu-service even if the old explicit kind remained in storage
 - fixed users-db startup sync so provider panel URLs are not wiped locally when the remote payload comes back without providerPanelUrls after restart/reset

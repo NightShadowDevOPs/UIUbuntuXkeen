@@ -84,7 +84,7 @@
                 />
               </td>
               <td>
-                <span class="badge badge-sm" :class="row.status.badgeCls">{{ row.status.text }}</span>
+                <span class="badge badge-sm font-medium" :class="row.status.badgeCls" :title="row.status.title || row.errorText || ''">{{ row.status.text }}</span>
               </td>
               <td class="text-xs">{{ row.status.expiresAt || '—' }}</td>
               <td class="text-xs">{{ row.status.checkedAt || '—' }}</td>
@@ -157,6 +157,28 @@
           <div class="rounded-lg border border-base-content/10 bg-base-200/30 px-3 py-2 md:col-span-2">
             <div class="text-[11px] uppercase opacity-60">Последняя ошибка</div>
             <div class="mt-1 break-all text-xs">{{ detailsRow.errorText || '—' }}</div>
+          </div>
+        </div>
+
+        <div v-if="detailsRow.lastSuccess" class="mt-3 rounded-lg border border-success/30 bg-success/10 p-3">
+          <div class="font-medium text-success">Последний успешный сертификат</div>
+          <div class="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+            <div class="rounded-lg border border-base-content/10 bg-base-100/60 px-3 py-2">
+              <div class="text-[11px] uppercase opacity-60">Действует / истекает</div>
+              <div class="mt-1 text-sm">{{ detailsRow.lastSuccess.validFromLabel || '—' }} → {{ detailsRow.lastSuccess.expiresAt || '—' }}</div>
+            </div>
+            <div class="rounded-lg border border-base-content/10 bg-base-100/60 px-3 py-2">
+              <div class="text-[11px] uppercase opacity-60">Последняя удачная проверка</div>
+              <div class="mt-1 text-sm">{{ detailsRow.lastSuccess.checkedAt || '—' }}</div>
+            </div>
+            <div class="rounded-lg border border-base-content/10 bg-base-100/60 px-3 py-2">
+              <div class="text-[11px] uppercase opacity-60">Issuer</div>
+              <div class="mt-1 break-all text-xs">{{ detailsRow.lastSuccess.issuer || '—' }}</div>
+            </div>
+            <div class="rounded-lg border border-base-content/10 bg-base-100/60 px-3 py-2">
+              <div class="text-[11px] uppercase opacity-60">SAN</div>
+              <div class="mt-1 break-all text-xs">{{ detailsRow.lastSuccess.sanText || '—' }}</div>
+            </div>
           </div>
         </div>
 
@@ -468,6 +490,31 @@ const normalizeSanText = (value: any) => {
   return String(value || '').trim()
 }
 
+const friendlyTlsError = (value: any) => {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  const lowered = raw.toLowerCase()
+  if (lowered.includes('handshake operation timed out') || lowered.includes('ssl connection timeout') || lowered.includes('timed out')) return 'TLS timeout'
+  if (lowered.includes('certificate verify failed')) return 'Ошибка проверки сертификата'
+  if (lowered.includes('wrong version number')) return 'Неверная версия TLS'
+  if (lowered.includes('connection refused')) return 'Соединение отклонено'
+  return raw
+}
+
+const extractLastSuccess = (item: any) => {
+  const expiresAt = String(item?.panelSslLastSuccessNotAfter || '').trim()
+  if (!expiresAt) return null
+  const checkedAtSec = Number(item?.panelSslLastSuccessCheckedAtSec || 0)
+  return {
+    expiresAt: formatIsoDate(expiresAt),
+    checkedAt: checkedAtSec > 0 ? fmtTs(checkedAtSec * 1000) : '',
+    issuer: String(item?.panelSslLastSuccessIssuer || '').trim(),
+    subject: String(item?.panelSslLastSuccessSubject || '').trim(),
+    sanText: normalizeSanText(item?.panelSslLastSuccessSan),
+    validFromLabel: formatIsoDate(String(item?.panelSslLastSuccessValidFrom || '').trim()),
+  }
+}
+
 const sslWarnDaysDefault = computed(() => {
   const raw = Number(sslNearExpiryDaysDefault.value || 2)
   return Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : 2
@@ -499,23 +546,27 @@ const rowsView = computed(() => {
       nearExpiryDays: sslWarnDaysDefault.value,
     })
 
-    let badgeCls = 'badge-ghost'
+    const lastSuccess = extractLastSuccess(item)
+    const friendlyError = friendlyTlsError(diag.error)
+    let badgeCls = 'badge-ghost badge-outline'
     let text = 'Нет данных'
+    let title = ''
     if (diag.status === 'refreshing') {
-      badgeCls = 'badge-info'
+      badgeCls = 'badge-info badge-outline'
       text = t('providerSslRefreshing')
     } else if (diag.status === 'healthy') {
-      badgeCls = 'badge-success'
+      badgeCls = 'badge-success badge-outline'
       text = 'OK'
     } else if (diag.status === 'warning') {
-      badgeCls = 'badge-warning'
+      badgeCls = 'badge-warning badge-outline'
       text = 'Скоро истекает'
     } else if (diag.status === 'expired') {
-      badgeCls = 'badge-error'
+      badgeCls = 'badge-error badge-outline'
       text = 'Просрочен'
     } else if (diag.error) {
-      badgeCls = 'badge-error'
-      text = diag.error
+      badgeCls = 'badge-error badge-outline'
+      text = friendlyError || 'Ошибка TLS'
+      title = diag.error
     }
 
     return {
@@ -531,9 +582,11 @@ const rowsView = computed(() => {
       errorText: String(item?.panelSslError || diag.error || '').trim(),
       daysLeft: Number.isFinite(Number(item?.panelSslDaysLeft)) ? Number(item?.panelSslDaysLeft) : null,
       daysLeftLabel: Number.isFinite(Number(item?.panelSslDaysLeft)) ? String(Number(item?.panelSslDaysLeft)) : '—',
+      lastSuccess,
       status: {
         badgeCls,
         text,
+        title,
         source: diag.source || '',
         key: diag.status || '',
         expiresAt: diag.dateTime ? diag.dateTime.replace(/^(\d{2})-(\d{2})-(\d{4})/, '$1.$2.$3') : '',

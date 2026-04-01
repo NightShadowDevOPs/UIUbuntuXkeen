@@ -1,3 +1,8 @@
+## 2026-04-01 — provider SSL UX / routing hotfix request (v0.6.65)
+- keep provider actions working on ubuntu-service without local 404 on `providers/proxies/{name}`, health-check, rules update, and nested `/proxies/{name}/delay`.
+- keep showing the last successful certificate snapshot even when the newest TLS handshake times out.
+- improve dark-theme readability of TLS status badges on `Хосты 3x-ui`.
+
 ## 2026-04-01 — request: keep provider panel URLs after restart and restore 3x-ui certificate actions
 - user confirmed that after restart panel URLs in proxy providers had slipped out, manually re-entering them made the 3x-ui host list appear again;
 - follow-up request: fix persistence/sync so panel URLs do not disappear after restart, and restore availability of `Проверить сейчас` / `Обновить SSL-кэш` for the ubuntu-service contour.
