@@ -55,3 +55,10 @@
 7. Обновлены CHANGELOG, current-status, releases, transfer-файлы, request log и отдельная заметка `docs/backend-realtime-v0.6.53.md`.
 
 - 2026-04-01 — v0.6.54: added Mihomo bridge routes for configs/proxies/providers/rules and switched ubuntu-service `/api/connections` to relay the real Mihomo WebSocket when available.
+
+## Шаги v0.6.57
+1. После live-проверки `v0.6.56` подтверждено, что список 3x-ui host загружается, но кнопка `Проверить сейчас` не доводит SSL flow до результата, а `Обновить SSL-кэш` блокируется ложным `capability-missing`.
+2. По коду и поведению экрана установлено две причины: фронт слишком жёстко блокировал действия capability-флагами, а backend action `run_provider_checks` выполнялся как один длинный HTTP request и мог упираться в timeout на обходе нескольких 3x-ui host.
+3. В backend добавлен неблокирующий запуск SSL job через `start_provider_checks`, который стартует проверку в фоне и сразу возвращает payload текущего состояния job/cache.
+4. В frontend store provider health ослаблен capability gating для активного `ubuntu-service`, чтобы экран не уходил в ложный `capability-missing`, если standalone backend уже выбран и жив.
+5. Добавлен polling завершения provider SSL refresh job: после запуска `Проверить сейчас` и `Обновить SSL-кэш` экран сам опрашивает backend до завершения job и затем обновляет строки/детали.

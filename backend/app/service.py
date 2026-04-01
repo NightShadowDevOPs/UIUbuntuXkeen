@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -346,6 +347,28 @@ class BackendService:
                 }
             )
         return {"ok": True, "provider": provider_name, "limit": limit, "items": items, "checks": items}
+
+    def start_provider_checks(self, reason: str = "manual") -> dict[str, Any]:
+        if self.is_provider_checks_running():
+            return self.provider_checks_payload()
+
+        def _runner() -> None:
+            try:
+                self.run_provider_checks(reason)
+            except Exception:
+                pass
+
+        thread = threading.Thread(target=_runner, name=f"provider-ssl-checks-{reason}", daemon=True)
+        thread.start()
+        for _ in range(20):
+            if self.is_provider_checks_running():
+                break
+            time.sleep(0.05)
+        payload = self.provider_checks_payload()
+        if not payload.get("sslRefreshing"):
+            payload["sslRefreshing"] = True
+            payload["sslRefreshPending"] = True
+        return payload
 
     def run_provider_checks(self, reason: str = "manual") -> dict[str, Any]:
         if not self._checks_lock.acquire(blocking=False):

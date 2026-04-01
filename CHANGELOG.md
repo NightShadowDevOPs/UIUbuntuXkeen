@@ -54,3 +54,9 @@
 - `Пользователи` now show the same warning and keep working with local UI data instead of claiming that shared users DB is already connected
 - provider health error now surfaces the actual backend-route failure instead of a vague `capability-missing` placeholder
 - removed stale `backend:dev` / `backend:smoke` scripts that still referenced the phantom `ubuntu-service`
+
+## v0.6.57
+- fixed provider SSL action flow on `ubuntu-service`: `Проверить сейчас` and `Обновить SSL-кэш` now trigger backend SSL checks asynchronously instead of waiting for a long blocking HTTP response;
+- relaxed provider capability gating for the standalone Ubuntu backend so `Хосты 3x-ui` no longer show a false `capability-missing` state while the active backend is already `ubuntu-service`;
+- added provider refresh polling on the frontend so the screen waits for the running SSL job and updates details/history after the check finishes;
+- updated release docs, transfer docs, worklog, and request log for the confirmed SSL-action hotfix.

@@ -1,5 +1,5 @@
-Prepared release: v0.6.56. The live Ubuntu backend contour stays on `ubuntu-service`, and this step turns the 3x-ui certificate block into a real poller flow: provider save now triggers an SSL refresh, scheduler also refreshes when state is missing or URLs changed, and the default SSL warning threshold is fixed at 2 days for short-lived 6-day IP certificates.
-Актуальный релиз для переноса: **v0.6.56**
+Prepared release: v0.6.57. The live Ubuntu backend contour stays on `ubuntu-service`, and this step turns the 3x-ui certificate block into a real poller flow: provider save now triggers an SSL refresh, scheduler also refreshes when state is missing or URLs changed, and the default SSL warning threshold is fixed at 2 days for short-lived 6-day IP certificates.
+Актуальный релиз для переноса: **v0.6.57**
 
 Что сделано в `v0.6.52`
 - backend `ubuntu-service` закреплён как основной рабочий режим; возвращаться на `direct` не нужно
@@ -49,3 +49,5 @@ Prepared release: v0.6.56. The live Ubuntu backend contour stays on `ubuntu-serv
 - stayed on `ubuntu-service` as the main backend contour;
 - added provider SSL history endpoint and richer per-host diagnostics in `Хосты 3x-ui`;
 - server deploy workflow remains `git fetch origin --prune && git reset --hard origin/main`, then install/build/deploy.
+
+- Current confirmed step: `v0.6.57` fixes provider SSL actions on `ubuntu-service` by starting backend SSL jobs asynchronously and polling their completion from the UI; `Хосты 3x-ui` should no longer block `Обновить SSL-кэш` with a false `capability-missing` state.

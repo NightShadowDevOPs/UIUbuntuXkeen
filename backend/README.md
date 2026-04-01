@@ -1,6 +1,6 @@
 # UIUbuntuXkeen backend
 
-Версия: **v0.6.56**
+Версия: **v0.6.57**
 
 Что это:
 - отдельный Ubuntu backend/service для UIUbuntuXkeen;

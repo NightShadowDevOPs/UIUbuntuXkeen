@@ -1,4 +1,4 @@
-Current prepared release: v0.6.56. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
+Current prepared release: v0.6.57. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
 
 ## Обновление v0.6.56
 - для `ubuntu-service` включён реальный SSL poller по 3x-ui host: после сохранения списка хостов UI сразу инициирует обновление SSL-кеша, а scheduler backend теперь считает проверку обязательной не только по интервалу, но и при отсутствии state/изменении panel URL;
@@ -44,3 +44,8 @@ Current prepared release: v0.6.56. The standalone Ubuntu backend is already conf
 - сохранение `Users inventory` через SQLite backend
 - следующий live-check: подтвердить realtime-диаграммы и поведение websocket-каналов на `ubuntu-service`
 - после этого идти в backend-блок `Host / resources / services / logs` глубже, уже без возврата к setup/runtime-fix этапу
+
+## Обновление v0.6.57
+- после `v0.6.56` подтвержден живой дефект: на `Хосты 3x-ui` кнопка `Проверить сейчас` не давала рабочего server-side опроса, `Обновить SSL-кэш` блокировалась ложным `capability-missing`, а при длинном SSL обходе backend action упирался в HTTP timeout;
+- `v0.6.57` переводит server-side SSL actions в асинхронный запуск job, а фронт теперь ждёт завершения проверки опросом статуса backend вместо ожидания одного длинного ответа;
+- на `ubuntu-service` capability gating для provider SSL действий ослаблен: если выбран standalone backend, экран больше не должен сам себя блокировать ошибкой `capability-missing`.

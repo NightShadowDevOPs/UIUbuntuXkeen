@@ -180,7 +180,7 @@ def api_provider_checks():
 
 @app.post("/api/providers/checks/run")
 async def api_provider_checks_run():
-    return await asyncio.to_thread(service.run_provider_checks, "manual")
+    return await asyncio.to_thread(service.start_provider_checks, "manual")
 
 
 @app.get("/api/providers/checks/history")
@@ -190,12 +190,12 @@ def api_provider_checks_history(name: str = "", limit: int = 20):
 
 @app.post("/api/providers/refresh")
 async def api_provider_refresh():
-    return await asyncio.to_thread(service.run_provider_checks, "refresh")
+    return await asyncio.to_thread(service.start_provider_checks, "refresh")
 
 
 @app.post("/api/providers/ssl-cache/refresh")
 async def api_provider_ssl_cache_refresh():
-    return await asyncio.to_thread(service.run_provider_checks, "ssl-cache-refresh")
+    return await asyncio.to_thread(service.start_provider_checks, "ssl-cache-refresh")
 
 
 @app.get("/api/providers/ssl-cache/status")

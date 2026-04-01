@@ -21,11 +21,11 @@
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <button type="button" class="btn btn-sm" @click="runChecksNow" :disabled="checksBusy || !providerHealthActionsAvailable">
+          <button type="button" class="btn btn-sm" @click="runChecksNow" :disabled="checksBusy || (!providerHealthActionsAvailable && !useBackendProviders)">
             <span v-if="checksBusy" class="loading loading-spinner loading-xs"></span>
             <span v-else>{{ t('providerSslChecksRunNow') }}</span>
           </button>
-          <button type="button" class="btn btn-sm btn-outline" @click="refreshCacheNow" :disabled="cacheBusy || !providerHealthActionsAvailable">
+          <button type="button" class="btn btn-sm btn-outline" @click="refreshCacheNow" :disabled="cacheBusy || (!providerHealthActionsAvailable && !useBackendProviders)">
             <span v-if="cacheBusy" class="loading loading-spinner loading-xs"></span>
             <span v-else>{{ t('refreshProviderSslCache') }}</span>
           </button>

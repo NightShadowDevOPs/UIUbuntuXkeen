@@ -1,5 +1,7 @@
 import { fetchUbuntuProviderChecksAPI, fetchUbuntuProviderSslCacheStatusAPI, refreshUbuntuProviderSslCacheAPI, refreshUbuntuProvidersAPI, runUbuntuProviderChecksAPI } from '@/api/ubuntuService'
 import { normalizeProxyProtoKey } from '@/helper/proxyProto'
+import { detectBackendKind } from '@/helper/backend'
+import { BACKEND_KINDS } from '@/config/backendContract'
 import { useStorage } from '@vueuse/core'
 import { computed, ref, watch } from 'vue'
 import { activeBackendCapabilities, activeBackendCapabilitiesError } from './backendCapabilities'
@@ -47,11 +49,15 @@ const hasUbuntuProviderCapability = (...keys: string[]) => {
   return keys.some((key) => Boolean((caps as any)?.[key]))
 }
 
+const providerHealthUsesUbuntuRuntime = computed(() => detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE)
+
 export const providerHealthAvailable = computed(() => {
+  if (providerHealthUsesUbuntuRuntime.value) return true
   return hasUbuntuProviderCapability('providers', 'providerChecks', 'providerSslCacheStatus', 'providerChecksRun', 'providerRefresh', 'providerSslCacheRefresh')
 })
 
 export const providerHealthActionsAvailable = computed(() => {
+  if (providerHealthUsesUbuntuRuntime.value) return true
   return hasUbuntuProviderCapability('providerChecksRun', 'providerRefresh', 'providerSslCacheRefresh')
 })
 
@@ -138,7 +144,7 @@ const collectSavedProviderSubscriptionTargets = () => {
 }
 
 export const fetchAgentProviders = async (force = false) => {
-  if (!providerHealthAvailable.value) {
+  if (!providerHealthAvailable.value && !providerHealthUsesUbuntuRuntime.value) {
     resetProviderRuntimeState(activeBackendCapabilitiesError.value || (Object.keys(activeBackendCapabilities.value || {}).length ? 'capability-missing' : null))
     return
   }
@@ -146,10 +152,12 @@ export const fetchAgentProviders = async (force = false) => {
   if (agentProvidersLoading.value) return
   agentProvidersLoading.value = true
   try {
-    const checksPromise = hasUbuntuProviderCapability('providerChecks', 'providers')
+    const canReadChecks = providerHealthUsesUbuntuRuntime.value || hasUbuntuProviderCapability('providerChecks', 'providers')
+    const canReadCache = providerHealthUsesUbuntuRuntime.value || hasUbuntuProviderCapability('providerSslCacheStatus')
+    const checksPromise = canReadChecks
       ? fetchUbuntuProviderChecksAPI()
       : Promise.resolve({ ok: false, providers: [], error: '' } as any)
-    const cachePromise = hasUbuntuProviderCapability('providerSslCacheStatus')
+    const cachePromise = canReadCache
       ? fetchUbuntuProviderSslCacheStatusAPI()
       : Promise.resolve({ ok: false } as any)
 
@@ -230,7 +238,7 @@ export const refreshSavedProviderSubscriptionSsl = async () => {
   return { ok: false, error, checkedAtSec: Math.floor(Date.now() / 1000), items: [] as any[] }
 }
 
-const providerHealthUsesUbuntuService = computed(() => providerHealthAvailable.value)
+const providerHealthUsesUbuntuService = computed(() => providerHealthUsesUbuntuRuntime.value || providerHealthAvailable.value)
 
 const applyProviderState = (res: any, opts?: { optimisticRefreshing?: boolean }) => {
   if (!res?.ok) {
@@ -266,6 +274,26 @@ const applyProviderState = (res: any, opts?: { optimisticRefreshing?: boolean })
   return res
 }
 
+const waitForProviderRefreshCompletion = async (timeoutMs = 90000, intervalMs = 1500) => {
+  const startedAt = Date.now()
+  while (Date.now() - startedAt < timeoutMs) {
+    await fetchAgentProviders(true)
+    const hasRows = Array.isArray(agentProviders.value) && agentProviders.value.length > 0
+    const hasSslState = hasRows && agentProviders.value.some((item: any) => {
+      const expires = str((item as any)?.panelSslNotAfter)
+      const issuer = str((item as any)?.panelSslIssuer)
+      const error = str((item as any)?.panelSslError)
+      const status = str((item as any)?.panelSslStatus)
+      return Boolean(expires || issuer || error || (status && status !== 'unknown'))
+    })
+    if (!agentProvidersSslRefreshing.value && !agentProvidersSslRefreshPending.value) {
+      return { ok: true, hasRows, hasSslState }
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, intervalMs))
+  }
+  return { ok: false, timeout: true }
+}
+
 export const runAgentProviderChecks = async () => {
   if (!providerHealthUsesUbuntuService.value) {
     return refreshSavedProviderSubscriptionSsl()
@@ -273,7 +301,7 @@ export const runAgentProviderChecks = async () => {
 
   let res: any = { ok: false, error: 'capability-missing' }
   try {
-    if (hasUbuntuProviderCapability('providerChecksRun')) {
+    if (providerHealthUsesUbuntuRuntime.value || hasUbuntuProviderCapability('providerChecksRun')) {
       res = await runUbuntuProviderChecksAPI()
     } else if (hasUbuntuProviderCapability('providerSslCacheRefresh')) {
       res = await refreshUbuntuProviderSslCacheAPI()
@@ -284,7 +312,11 @@ export const runAgentProviderChecks = async () => {
     res = { ok: false, error: e?.message || 'failed' }
   }
 
-  return applyProviderState(res, { optimisticRefreshing: true })
+  const applied = applyProviderState(res, { optimisticRefreshing: true })
+  if (providerHealthUsesUbuntuService.value && applied?.ok) {
+    await waitForProviderRefreshCompletion()
+  }
+  return applied
 }
 
 export const refreshAgentProviderSslCache = async () => {
@@ -294,7 +326,7 @@ export const refreshAgentProviderSslCache = async () => {
 
   let res: any = { ok: false, error: 'capability-missing' }
   try {
-    if (hasUbuntuProviderCapability('providerSslCacheRefresh')) {
+    if (providerHealthUsesUbuntuRuntime.value || hasUbuntuProviderCapability('providerSslCacheRefresh')) {
       res = await refreshUbuntuProviderSslCacheAPI()
     } else if (hasUbuntuProviderCapability('providerChecksRun')) {
       res = await runUbuntuProviderChecksAPI()
@@ -305,7 +337,11 @@ export const refreshAgentProviderSslCache = async () => {
     res = { ok: false, error: e?.message || 'failed' }
   }
 
-  return applyProviderState(res, { optimisticRefreshing: true })
+  const applied = applyProviderState(res, { optimisticRefreshing: true })
+  if (providerHealthUsesUbuntuService.value && applied?.ok) {
+    await waitForProviderRefreshCompletion()
+  }
+  return applied
 }
 
 export const probePanelSsl = async (force = false) => {
