@@ -1,4 +1,9 @@
-Current prepared release: v0.6.57. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
+Current prepared release: v0.6.58. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
+
+## Обновление v0.6.58
+- после live-проверки `v0.6.57` подтверждено, что блок `Хосты 3x-ui` всё ещё не запускал реальные SSL actions: в логах backend не было `POST /api/providers/checks/run` и `POST /api/providers/ssl-cache/refresh`, а кнопки фактически упирались в ложный `capability-missing`;
+- причина зафиксирована: frontend-клиент `ubuntuService` ходил по относительным `/api/...` путям и попадал в origin Mihomo UI, а не в standalone backend `ubuntu-service`;
+- `v0.6.58` переводит provider SSL REST calls на полный backend origin `http(s)://host:port/api/...`, форсирует свежий capability probe при открытии страницы и убирает самоблокировку `Хосты 3x-ui` для активного `ubuntu-service`.
 
 ## Обновление v0.6.56
 - для `ubuntu-service` включён реальный SSL poller по 3x-ui host: после сохранения списка хостов UI сразу инициирует обновление SSL-кеша, а scheduler backend теперь считает проверку обязательной не только по интервалу, но и при отсутствии state/изменении panel URL;

@@ -1,6 +1,6 @@
 # UIUbuntuXkeen — Ubuntu backend contract
 
-Актуальная версия документа: **v0.6.57**  
+Актуальная версия документа: **v0.6.58**  
 Дата актуализации: **2026-04-01**
 
 ## 1. Назначение
@@ -139,3 +139,8 @@ Service выполняет плановые проверки без участи
 - `GET /api/providers/checks` provider items now also expose `panelSslValidFrom`, `panelSslFingerprintSha256`, `panelSslVerifyError`, and `panelSslStatus`;
 - `GET /api/providers/checks/history` rows now also expose `validFrom`, `fingerprintSha256`, and `verifyError`;
 - backend scheduler should rerun provider SSL checks when cached state is missing or a provider panel URL changed, even if the regular interval has not elapsed yet.
+
+
+### Реализовано в `v0.6.58`
+- UI REST client for provider SSL actions now uses the full standalone backend origin for `ubuntu-service` instead of relative Mihomo UI paths.
+- `Хосты 3x-ui` forces a fresh capability probe on mount and treats the selected `ubuntu-service` backend as provider-capable immediately.

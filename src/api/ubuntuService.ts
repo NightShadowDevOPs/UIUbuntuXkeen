@@ -3,6 +3,7 @@ import { getAnyFromObj } from '@/helper/providerHealth'
 import axios from 'axios'
 import { agentMihomoProvidersAPI, agentProviderSslCacheRefreshAPI, agentUsersDbGetAPI, agentUsersDbPutAPI } from '@/api/agent'
 import { detectBackendKind, getBackendEndpointPath } from '@/helper/backend'
+import { getUrlFromBackendEndpoint } from '@/helper/utils'
 import { activeBackend } from '@/store/setup'
 import dayjs from 'dayjs'
 
@@ -143,6 +144,9 @@ const preferCompatibilityBridge = () => detectBackendKind(activeBackend.value) !
 
 const ubuntuEndpoint = (endpoint: string) => {
   if (!activeBackend.value) return endpoint
+  if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) {
+    return getUrlFromBackendEndpoint(activeBackend.value, endpoint)
+  }
   return getBackendEndpointPath(activeBackend.value, endpoint)
 }
 

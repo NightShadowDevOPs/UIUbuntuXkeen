@@ -1,3 +1,9 @@
+## Шаги v0.6.58
+1. После live-проверки `v0.6.57` подтверждено, что `Хосты 3x-ui` не отправляют backend POST actions: в `journalctl` есть только `GET /api/providers/checks`, но нет `POST /api/providers/checks/run` / `POST /api/providers/ssl-cache/refresh`.
+2. Зафиксирована корневая причина: frontend helper `ubuntuEndpoint()` возвращал относительный путь `/api/...`, поэтому axios на `ubuntu-service` бился в origin Mihomo UI вместо standalone backend `http://host:18090/api/...`.
+3. Для `ubuntu-service` `ubuntuEndpoint()` переведён на `getUrlFromBackendEndpoint()`, а `Хосты 3x-ui` теперь сразу считает выбранный standalone backend provider-capable и делает свежий capability probe при открытии страницы.
+4. Версии и release docs обновлены до `v0.6.58`, архивы будут упакованы без `.git/`.
+
 ## 2026-04-01 — v0.6.56 provider SSL poller
 - закреплён рабочий SSL warning threshold по умолчанию: 2 дня;
 - backend poller теперь запускается не только по TTL, но и при отсутствии SSL state / смене panel URL;

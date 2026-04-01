@@ -222,7 +222,10 @@ import {
   runAgentProviderChecks,
 } from '@/store/providerHealth'
 import { getProviderSslDiagnostics } from '@/helper/providerHealth'
-import { activeBackendCapabilities, activeBackendCapabilitiesError } from '@/store/backendCapabilities'
+import { activeBackendCapabilities, activeBackendCapabilitiesError, refreshActiveBackendCapabilities } from '@/store/backendCapabilities'
+import { activeBackend } from '@/store/setup'
+import { detectBackendKind } from '@/helper/backend'
+import { BACKEND_KINDS } from '@/config/backendContract'
 
 const { t } = useI18n()
 const checksBusy = ref(false)
@@ -239,11 +242,15 @@ const detailsLoading = ref(false)
 const detailsError = ref('')
 
 const useBackendProviders = computed(() => {
+  if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) return true
   const caps = activeBackendCapabilities.value || {}
   return Boolean(caps.providers || caps.providerChecks || caps.providerSslCacheStatus)
 })
 
-const backendRouteError = computed(() => String(activeBackendCapabilitiesError.value || '').trim())
+const backendRouteError = computed(() => {
+  if (detectBackendKind(activeBackend.value) === BACKEND_KINDS.UBUNTU_SERVICE) return ''
+  return String(activeBackendCapabilitiesError.value || '').trim()
+})
 
 const normalizeUrl = (raw: string) => {
   const value = String(raw || '').trim()
@@ -534,6 +541,7 @@ const refreshCacheNow = async () => {
 }
 
 onMounted(async () => {
+  await refreshActiveBackendCapabilities(true)
   await fetchAgentProviders(false)
   await loadRowsFromBackend()
   if (useBackendProviders.value && rows.value.length && !lastCheckedAtMs.value) {

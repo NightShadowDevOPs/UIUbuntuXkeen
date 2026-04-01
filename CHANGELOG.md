@@ -1,3 +1,9 @@
+## v0.6.58
+- fixed the standalone Ubuntu frontend API client so provider SSL actions call the real `ubuntu-service` origin (`http://host:18090/api/...`) instead of accidentally posting to the Mihomo UI origin with relative `/api/...` URLs;
+- `Хосты 3x-ui` now treats the selected `ubuntu-service` backend as a real provider runtime immediately, so the page no longer self-blocks its SSL actions behind stale capability state;
+- forced a fresh backend capability probe when the page mounts, reducing false `capability-missing` badges after switching or updating the active backend;
+- updated release docs, transfer docs, worklog, and change-request log for the live SSL-action hotfix.
+
 ## v0.6.56
 - added a real provider SSL poller flow for `ubuntu-service`: scheduler now re-runs checks not only by interval, but also when provider state is missing or panel URLs changed;
 - `Хосты 3x-ui` now triggers an immediate SSL refresh after saving providers, so certificate data appears without waiting for the next long cache TTL;

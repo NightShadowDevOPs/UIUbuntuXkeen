@@ -51,3 +51,5 @@
 - 2026-04-01 — v0.6.54: added Mihomo bridge routes for configs/proxies/providers/rules and switched ubuntu-service `/api/connections` to relay the real Mihomo WebSocket when available.
 
 - 2026-04-01 — после v0.6.56 пользователь подтвердил, что в `Хосты 3x-ui` кнопка `Проверить сейчас` не даёт реального SSL опроса, `Обновить SSL-кэш` недоступна, а блок с сертификатами остаётся пустым; запрос: сделать server-side SSL actions реально рабочими, с приоритетом на short-lived IP certificates и без ложного `capability-missing`.
+
+- 2026-04-01 — после `v0.6.57` пользователь показал, что `Хосты 3x-ui` по-прежнему не запускают реальный SSL опрос: кнопки не доходят до backend action endpoints, в `journalctl` нет `POST /api/providers/checks/run` / `POST /api/providers/ssl-cache/refresh`, а экран продолжает висеть в ложном `capability-missing`; запрос: починить именно маршрутизацию frontend REST calls к `ubuntu-service`.

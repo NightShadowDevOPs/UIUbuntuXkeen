@@ -1,5 +1,10 @@
-Prepared release: v0.6.57. The live Ubuntu backend contour stays on `ubuntu-service`, and this step turns the 3x-ui certificate block into a real poller flow: provider save now triggers an SSL refresh, scheduler also refreshes when state is missing or URLs changed, and the default SSL warning threshold is fixed at 2 days for short-lived 6-day IP certificates.
-Актуальный релиз для переноса: **v0.6.57**
+Prepared release: v0.6.58. The live Ubuntu backend contour stays on `ubuntu-service`, and this hotfix fixes the missing provider SSL actions by routing frontend REST calls to the real standalone backend origin instead of relative Mihomo UI `/api/...` paths.
+Актуальный релиз для переноса: **v0.6.58**
+
+## Update v0.6.58
+- `Хосты 3x-ui` finally send provider SSL actions to the real `ubuntu-service` origin (`http://host:18090/api/...`) instead of falling back to relative Mihomo UI paths.
+- The page now forces a fresh backend capability probe on mount and treats the selected `ubuntu-service` backend as provider-capable immediately, so stale `capability-missing` no longer blocks SSL actions.
+
 
 ## Update v0.6.57
 - stayed on `ubuntu-service` as the main backend contour;
@@ -22,7 +27,7 @@ Prepared release: v0.6.57. The live Ubuntu backend contour stays on `ubuntu-serv
 
 Что делать дальше на сервере
 1. Залить релиз в репозиторий.
-2. На Ubuntu-хосте выполнить `git pull --ff-only` в `/opt/UIUbuntu/app`.
+2. На Ubuntu-хосте выполнить `git fetch origin --prune && git reset --hard origin/main` в `/opt/UIUbuntu/app`.
 3. Запустить `backend/scripts/install.sh` — он обновит backend и перезапустит `ultra-ui-ubuntu-backend.service`.
 4. Если менялся frontend, пересобрать и переложить UI в `/etc/mihomo/uiubuntu`.
 5. В UI оставить выбранным backend `ubuntu-service`.
