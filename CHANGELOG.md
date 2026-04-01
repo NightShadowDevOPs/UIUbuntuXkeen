@@ -1,3 +1,7 @@
+## v0.6.69
+- improve provider TLS probe diagnostics and fallback strategies (SNI / no-SNI / TLS 1.2 fallback) to reduce false `_ssl.c:983` timeouts on some 3x-ui panels.
+- polish dark-theme status pills on Xui Hosts and provider SSL workspace so text stays readable.
+
 ## v0.6.68
 - backend Mihomo bridge now retries transient connect-refused/timeouts for controller API calls right after controller restart, reducing false 502 on `/api/providers/proxies`.
 - 502 payload keeps per-attempt diagnostics so startup races are visible instead of looking random.

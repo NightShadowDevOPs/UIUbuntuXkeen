@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import socket
 import ssl
+import time
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from urllib.parse import urlparse
@@ -50,7 +51,7 @@ def _extract_cert_payload(cert: dict, cert_bin: bytes | None, *, host: str, port
     }
 
 
-def _read_cert(host: str, port: int, timeout: float, *, verify: bool):
+def _build_context(*, verify: bool, tls12_only: bool = False) -> ssl.SSLContext:
     if verify:
         context = ssl.create_default_context()
         context.check_hostname = True
@@ -59,8 +60,18 @@ def _read_cert(host: str, port: int, timeout: float, *, verify: bool):
         context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         context.check_hostname = False
         context.verify_mode = ssl.CERT_NONE
+    if tls12_only:
+        context.minimum_version = ssl.TLSVersion.TLSv1_2
+        context.maximum_version = ssl.TLSVersion.TLSv1_2
+    return context
+
+
+def _read_cert(host: str, port: int, timeout: float, *, verify: bool, send_sni: bool, tls12_only: bool = False):
+    context = _build_context(verify=verify, tls12_only=tls12_only)
+    server_hostname = host if send_sni else None
     with socket.create_connection((host, port), timeout=timeout) as sock:
-        with context.wrap_socket(sock, server_hostname=host if verify else None) as tls:
+        sock.settimeout(timeout)
+        with context.wrap_socket(sock, server_hostname=server_hostname) as tls:
             cert = tls.getpeercert()
             cert_bin = tls.getpeercert(binary_form=True)
     return cert, cert_bin
@@ -96,33 +107,91 @@ def probe_panel_ssl(panel_url: str, timeout: float = 8.0) -> dict:
     verify_error = ""
     cert = None
     cert_bin = None
-    try:
-        cert, cert_bin = _read_cert(host, port, timeout, verify=True)
-    except Exception as exc:  # noqa: BLE001
-        verify_error = str(exc)
-        try:
-            cert, cert_bin = _read_cert(host, port, timeout, verify=False)
-        except Exception as exc2:  # noqa: BLE001
-            return {
-                "status": "error",
-                "panel_url": normalized_url,
-                "checked_at": checked_at.isoformat().replace("+00:00", "Z"),
-                "expires_at": "",
-                "valid_from": "",
-                "days_left": None,
-                "issuer": "",
-                "subject": "",
-                "san": "",
-                "fingerprint_sha256": "",
-                "verify_error": verify_error,
-                "error_text": str(exc2),
-                "raw_payload": {
-                    "host": host,
-                    "port": port,
-                    "verifyError": verify_error,
-                    "error": str(exc2),
-                },
+    attempts: list[dict] = []
+    deadline = time.monotonic() + max(3.0, float(timeout or 8.0))
+
+    def next_timeout() -> float:
+        remaining = deadline - time.monotonic()
+        return max(1.2, min(4.5, remaining))
+
+    def remember_attempt(*, stage: str, verify: bool, send_sni: bool, tls12_only: bool, error: str = "") -> None:
+        attempts.append(
+            {
+                "stage": stage,
+                "verify": verify,
+                "sendSni": send_sni,
+                "tls12Only": tls12_only,
+                "error": error,
             }
+        )
+
+    probe_plan = [
+        {"stage": "verify", "verify": True, "send_sni": True, "tls12_only": False},
+        {"stage": "insecure-sni", "verify": False, "send_sni": True, "tls12_only": False},
+        {"stage": "insecure-no-sni", "verify": False, "send_sni": False, "tls12_only": False},
+        {"stage": "insecure-sni-tls12", "verify": False, "send_sni": True, "tls12_only": True},
+        {"stage": "insecure-no-sni-tls12", "verify": False, "send_sni": False, "tls12_only": True},
+    ]
+    last_error = ""
+    for plan in probe_plan:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0.2:
+            break
+        attempt_timeout = next_timeout()
+        try:
+            cert, cert_bin = _read_cert(
+                host,
+                port,
+                attempt_timeout,
+                verify=bool(plan["verify"]),
+                send_sni=bool(plan["send_sni"]),
+                tls12_only=bool(plan["tls12_only"]),
+            )
+            remember_attempt(
+                stage=str(plan["stage"]),
+                verify=bool(plan["verify"]),
+                send_sni=bool(plan["send_sni"]),
+                tls12_only=bool(plan["tls12_only"]),
+            )
+            if bool(plan["verify"]):
+                verify_error = ""
+            elif not verify_error:
+                verify_error = last_error
+            break
+        except Exception as exc:  # noqa: BLE001
+            err = str(exc)
+            last_error = err
+            if bool(plan["verify"]):
+                verify_error = err
+            remember_attempt(
+                stage=str(plan["stage"]),
+                verify=bool(plan["verify"]),
+                send_sni=bool(plan["send_sni"]),
+                tls12_only=bool(plan["tls12_only"]),
+                error=err,
+            )
+    if cert is None:
+        return {
+            "status": "error",
+            "panel_url": normalized_url,
+            "checked_at": checked_at.isoformat().replace("+00:00", "Z"),
+            "expires_at": "",
+            "valid_from": "",
+            "days_left": None,
+            "issuer": "",
+            "subject": "",
+            "san": "",
+            "fingerprint_sha256": "",
+            "verify_error": verify_error,
+            "error_text": last_error,
+            "raw_payload": {
+                "host": host,
+                "port": port,
+                "verifyError": verify_error,
+                "error": last_error,
+                "attempts": attempts,
+            },
+        }
 
     payload = _extract_cert_payload(cert or {}, cert_bin, host=host, port=port)
     expires_raw = payload.get("expires_at") or ""
@@ -151,5 +220,6 @@ def probe_panel_ssl(panel_url: str, timeout: float = 8.0) -> dict:
         "raw_payload": {
             **(payload.get("raw_payload") or {}),
             "verifyError": verify_error,
+            "attempts": attempts,
         },
     }

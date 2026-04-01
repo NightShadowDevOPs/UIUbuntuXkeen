@@ -52,7 +52,7 @@
               </div>
             </td>
             <td>
-              <span class="badge badge-sm" :class="row.badgeCls">{{ row.statusText }}</span>
+              <span class="inline-flex min-h-6 items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold" :class="row.pillCls">{{ row.statusText }}</span>
             </td>
             <td class="text-xs">
               <div class="flex flex-col gap-0.5">
@@ -98,6 +98,15 @@ const { t } = useI18n()
 const checksBusy = ref(false)
 const cacheBusy = ref(false)
 
+const sslStatusPillCls = (badgeCls: string) => {
+  const raw = String(badgeCls || '').toLowerCase()
+  if (raw.includes('success')) return 'border-success/30 bg-success/15 text-success-content dark:text-success'
+  if (raw.includes('warning')) return 'border-warning/30 bg-warning/15 text-warning-content dark:text-warning'
+  if (raw.includes('error')) return 'border-error/30 bg-error/15 text-error-content dark:text-error'
+  if (raw.includes('info')) return 'border-info/30 bg-info/15 text-info-content dark:text-info'
+  return 'border-base-content/15 bg-base-200/70 text-base-content'
+}
+
 const rows = computed(() => {
   return (proxyProviederList.value || [])
     .filter((provider: any) => String(provider?.name || '').trim() && String(provider?.name || '') !== 'default')
@@ -117,7 +126,7 @@ const rows = computed(() => {
         name,
         url: String(agent?.url || provider?.url || '').trim(),
         panelUrl: String(agent?.panelUrl || '').trim(),
-        badgeCls: health.badgeCls,
+        pillCls: sslStatusPillCls(health.badgeCls),
         statusText: t(health.labelKey as any),
         expiresAt: expires,
         sourceText,

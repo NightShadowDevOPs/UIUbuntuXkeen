@@ -1,3 +1,7 @@
+## v0.6.69
+- provider TLS probe now records multiple handshake attempts (verify, insecure with SNI, insecure without SNI, TLS 1.2 fallback) before declaring `_ssl.c:983: The handshake operation timed out`.
+- Xui Hosts and provider SSL workspace now use readable dark-theme status pills instead of low-contrast default badges.
+
 ## v0.6.68
 - backend Mihomo bridge now retries transient connect-refused/timeouts for controller API calls right after controller restart, reducing false 502 on `/api/providers/proxies`.
 - 502 payload keeps per-attempt diagnostics so startup races are visible instead of looking random.

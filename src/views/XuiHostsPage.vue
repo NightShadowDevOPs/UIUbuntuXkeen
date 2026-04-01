@@ -84,7 +84,7 @@
                 />
               </td>
               <td>
-                <span class="badge badge-sm font-medium" :class="row.status.badgeCls" :title="row.status.title || row.errorText || ''">{{ row.status.text }}</span>
+                <span class="inline-flex min-h-6 items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold" :class="row.status.pillCls" :title="row.status.title || row.errorText || ''">{{ row.status.text }}</span>
               </td>
               <td class="text-xs">{{ row.status.expiresAt || '—' }}</td>
               <td class="text-xs">{{ row.status.checkedAt || '—' }}</td>
@@ -115,7 +115,7 @@
           <div class="rounded-lg border border-base-content/10 bg-base-200/40 px-3 py-2">
             <div class="text-[11px] uppercase opacity-60">Статус</div>
             <div class="mt-1">
-              <span class="badge badge-sm" :class="detailsRow.status.badgeCls">{{ detailsRow.status.text }}</span>
+              <span class="inline-flex min-h-6 items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold" :class="detailsRow.status.pillCls">{{ detailsRow.status.text }}</span>
             </div>
           </div>
           <div class="rounded-lg border border-base-content/10 bg-base-200/40 px-3 py-2">
@@ -494,11 +494,22 @@ const friendlyTlsError = (value: any) => {
   const raw = String(value || '').trim()
   if (!raw) return ''
   const lowered = raw.toLowerCase()
-  if (lowered.includes('handshake operation timed out') || lowered.includes('ssl connection timeout') || lowered.includes('timed out')) return 'TLS timeout'
+  if (lowered.includes('handshake operation timed out') || lowered.includes('ssl connection timeout') || lowered.includes('handshake operation timed ot') || lowered.includes('timed out')) {
+    return 'TLS timeout — порт открыт, но рукопожатие не завершилось'
+  }
   if (lowered.includes('certificate verify failed')) return 'Ошибка проверки сертификата'
   if (lowered.includes('wrong version number')) return 'Неверная версия TLS'
   if (lowered.includes('connection refused')) return 'Соединение отклонено'
   return raw
+}
+
+const sslStatusPillCls = (kind: string) => {
+  if (kind === 'healthy') return 'border-success/30 bg-success/15 text-success-content dark:text-success'
+  if (kind === 'warning') return 'border-warning/30 bg-warning/15 text-warning-content dark:text-warning'
+  if (kind === 'expired') return 'border-error/30 bg-error/15 text-error-content dark:text-error'
+  if (kind === 'refreshing') return 'border-info/30 bg-info/15 text-info-content dark:text-info'
+  if (kind === 'error') return 'border-error/30 bg-error/12 text-error-content dark:text-error'
+  return 'border-base-content/15 bg-base-200/70 text-base-content'
 }
 
 const extractLastSuccess = (item: any) => {
@@ -548,23 +559,23 @@ const rowsView = computed(() => {
 
     const lastSuccess = extractLastSuccess(item)
     const friendlyError = friendlyTlsError(diag.error)
-    let badgeCls = 'badge-ghost badge-outline'
+    let pillCls = sslStatusPillCls('unknown')
     let text = 'Нет данных'
     let title = ''
     if (diag.status === 'refreshing') {
-      badgeCls = 'badge-info badge-outline'
+      pillCls = sslStatusPillCls('refreshing')
       text = t('providerSslRefreshing')
     } else if (diag.status === 'healthy') {
-      badgeCls = 'badge-success badge-outline'
+      pillCls = sslStatusPillCls('healthy')
       text = 'OK'
     } else if (diag.status === 'warning') {
-      badgeCls = 'badge-warning badge-outline'
+      pillCls = sslStatusPillCls('warning')
       text = 'Скоро истекает'
     } else if (diag.status === 'expired') {
-      badgeCls = 'badge-error badge-outline'
+      pillCls = sslStatusPillCls('expired')
       text = 'Просрочен'
     } else if (diag.error) {
-      badgeCls = 'badge-error badge-outline'
+      pillCls = sslStatusPillCls('error')
       text = friendlyError || 'Ошибка TLS'
       title = diag.error
     }
@@ -584,7 +595,7 @@ const rowsView = computed(() => {
       daysLeftLabel: Number.isFinite(Number(item?.panelSslDaysLeft)) ? String(Number(item?.panelSslDaysLeft)) : '—',
       lastSuccess,
       status: {
-        badgeCls,
+        pillCls,
         text,
         title,
         source: diag.source || '',
