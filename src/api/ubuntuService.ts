@@ -106,6 +106,7 @@ export const normalizeUbuntuProviderState = (payload: any): UbuntuProviderState 
         panelSslIssuer: str(getAnyFromObj(item, ['panelSslIssuer', 'panel_issuer'])),
         panelSslSubject: str(getAnyFromObj(item, ['panelSslSubject', 'panel_subject'])),
         panelSslSan: getAnyFromObj(item, ['panelSslSan', 'panel_san']),
+        panelSslDaysLeft: num(getAnyFromObj(item, ['panelSslDaysLeft', 'panel_days_left', 'daysLeft', 'days_left']), NaN),
         panelSslError: str(getAnyFromObj(item, ['panelSslError', 'panel_error'])),
         nextCheckAtSec: toSec(getAnyFromObj(item, ['nextCheckAtSec', 'next_check_at_sec', 'nextCheckAt', 'next_check_at'])),
         jobStatus: str(getAnyFromObj(item, ['jobStatus', 'job_status', 'status'])),
@@ -527,6 +528,43 @@ export const fetchUbuntuProviderChecksAPI = async () => {
     return normalizeUbuntuProviderState(data || {})
   } catch {
     return bridgeProviderChecks(false)
+  }
+}
+
+export type UbuntuProviderCheckHistoryItem = {
+  provider: string
+  panelUrl: string
+  checkedAtSec: number
+  status: string
+  expiresAt?: string
+  daysLeft?: number
+  issuer?: string
+  subject?: string
+  san?: string | string[]
+  error?: string
+}
+
+export const fetchUbuntuProviderChecksHistoryAPI = async (provider: string, limit = 12): Promise<UbuntuProviderCheckHistoryItem[]> => {
+  if (preferCompatibilityBridge()) return []
+  try {
+    const { data } = await axios.get(ubuntuEndpoint(UBUNTU_BACKEND_ENDPOINTS.providerChecksHistory), {
+      ...silentCfg,
+      params: { name: str(provider), limit: Math.max(1, Math.min(100, Number(limit) || 12)) },
+    })
+    return pickList(data || {}).map((item) => ({
+      provider: str(getAnyFromObj(item, ['provider', 'providerName', 'provider_name', 'name'])),
+      panelUrl: str(getAnyFromObj(item, ['panelUrl', 'panel_url', 'url'])),
+      checkedAtSec: toSec(getAnyFromObj(item, ['checkedAtSec', 'checked_at_sec', 'checkedAt', 'checked_at'])),
+      status: str(getAnyFromObj(item, ['status'])),
+      expiresAt: str(getAnyFromObj(item, ['expiresAt', 'expires_at', 'panelSslNotAfter', 'panelSslExpiresAt'])),
+      daysLeft: num(getAnyFromObj(item, ['daysLeft', 'days_left']), NaN),
+      issuer: str(getAnyFromObj(item, ['issuer', 'panelSslIssuer'])),
+      subject: str(getAnyFromObj(item, ['subject', 'panelSslSubject'])),
+      san: getAnyFromObj(item, ['san', 'panelSslSan']),
+      error: str(getAnyFromObj(item, ['error', 'errorText', 'error_text', 'panelSslError'])),
+    }))
+  } catch {
+    return []
   }
 }
 

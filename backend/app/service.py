@@ -233,6 +233,8 @@ class BackendService:
                     "panelSslIssuer": state.get("issuer") or "",
                     "panelSslSubject": state.get("subject") or "",
                     "panelSslSan": state.get("san") or "",
+                    "panelSslDaysLeft": state.get("days_left"),
+                    "panelSslStatus": state.get("status") or "",
                     "panelSslError": state.get("error_text") or "",
                     "jobStatus": str(cache.get("job", {}).get("status") or "").strip(),
                 }
@@ -250,6 +252,42 @@ class BackendService:
             "sslCacheNextRefreshAtSec": cache["sslCacheNextRefreshAtSec"],
             "job": cache["job"],
         }
+
+    def provider_checks_history(self, provider_name: str = "", limit: int = 20) -> dict[str, Any]:
+        provider_name = str(provider_name or "").strip()
+        try:
+            limit = max(1, min(200, int(limit)))
+        except Exception:
+            limit = 20
+        query = (
+            "SELECT provider_name, panel_url, checked_at, status, expires_at, days_left, issuer, subject, san, error_text FROM provider_ssl_checks "
+        )
+        params: list[Any] = []
+        if provider_name:
+            query += "WHERE provider_name = ? "
+            params.append(provider_name)
+        query += "ORDER BY checked_at DESC, id DESC LIMIT ?"
+        params.append(limit)
+        with get_conn(self.settings.db_path) as conn:
+            rows = conn.execute(query, tuple(params)).fetchall()
+        items: list[dict[str, Any]] = []
+        for row in rows:
+            item = row_to_dict(row)
+            items.append(
+                {
+                    "provider": str(item.get("provider_name") or "").strip(),
+                    "panelUrl": item.get("panel_url") or "",
+                    "checkedAtSec": _ts_to_sec(item.get("checked_at")),
+                    "status": item.get("status") or "",
+                    "expiresAt": item.get("expires_at") or "",
+                    "daysLeft": item.get("days_left"),
+                    "issuer": item.get("issuer") or "",
+                    "subject": item.get("subject") or "",
+                    "san": item.get("san") or "",
+                    "error": item.get("error_text") or "",
+                }
+            )
+        return {"ok": True, "provider": provider_name, "limit": limit, "items": items, "checks": items}
 
     def run_provider_checks(self, reason: str = "manual") -> dict[str, Any]:
         if not self._checks_lock.acquire(blocking=False):

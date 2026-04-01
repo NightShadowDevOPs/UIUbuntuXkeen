@@ -37,8 +37,13 @@
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-2 text-[11px]">
+      <div class="flex flex-wrap items-center gap-2 text-[11px]">
         <span class="badge badge-ghost badge-sm">Хостов: {{ rows.length }}</span>
+        <input v-model.trim="filterText" class="input input-bordered input-xs w-48" placeholder="Фильтр по имени / URL" />
+        <label class="label cursor-pointer gap-2 rounded-lg border border-base-content/10 px-2 py-1">
+          <span class="label-text text-[11px]">Только проблемные</span>
+          <input v-model="showOnlyIssues" type="checkbox" class="toggle toggle-xs" />
+        </label>
         <span v-if="lastCheckedAtMs" class="badge badge-ghost badge-sm">{{ t('checkedAt') }}: {{ fmtTs(lastCheckedAtMs) }}</span>
         <span v-if="agentProvidersNextCheckAtMs" class="badge badge-ghost badge-sm">{{ t('providerSslChecksNextCheck') }}: {{ fmtTs(agentProvidersNextCheckAtMs) }}</span>
         <span v-if="agentProvidersSslCacheNextRefreshAtMs" class="badge badge-ghost badge-sm">Следующая автопроверка: {{ fmtTs(agentProvidersSslCacheNextRefreshAtMs) }}</span>
@@ -57,11 +62,11 @@
               <th class="w-[160px]">{{ t('providerSslStatus') }}</th>
               <th class="w-[180px]">Дата окончания</th>
               <th class="w-[160px]">{{ t('checkedAt') }}</th>
-              <th class="w-[80px]"></th>
+              <th class="w-[180px]">Действия</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="row in rowsView" :key="row.id">
+            <tr v-for="row in filteredRowsView" :key="row.id">
               <td>
                 <input
                   class="input input-bordered input-xs w-full"
@@ -84,14 +89,104 @@
               <td class="text-xs">{{ row.status.expiresAt || '—' }}</td>
               <td class="text-xs">{{ row.status.checkedAt || '—' }}</td>
               <td>
-                <button type="button" class="btn btn-ghost btn-xs" @click="removeRow(row.id)">{{ t('delete') }}</button>
+                <div class="flex flex-wrap gap-1">
+                  <button type="button" class="btn btn-ghost btn-xs" @click="openDetails(row)">Детали</button>
+                  <button type="button" class="btn btn-ghost btn-xs text-error" @click="removeRow(row.id)">{{ t('delete') }}</button>
+                </div>
               </td>
             </tr>
-            <tr v-if="!rows.length">
-              <td colspan="6" class="text-sm opacity-70">Список 3x-ui хостов пока пуст. Добавьте имя провайдера и URL панели.</td>
+            <tr v-if="!filteredRowsView.length">
+              <td colspan="6" class="text-sm opacity-70">Список 3x-ui хостов пока пуст или не совпадает с фильтром.</td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div v-if="detailsRow" class="rounded-xl border border-base-content/10 bg-base-100 p-3">
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <div class="font-semibold">SSL-детали: {{ detailsRow.name }}</div>
+            <div class="mt-1 text-xs opacity-70">{{ detailsRow.url || detailsRow.panelUrl || 'URL панели не задан' }}</div>
+          </div>
+          <button type="button" class="btn btn-sm btn-ghost" @click="closeDetails">Закрыть</button>
+        </div>
+
+        <div class="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          <div class="rounded-lg border border-base-content/10 bg-base-200/40 px-3 py-2">
+            <div class="text-[11px] uppercase opacity-60">Статус</div>
+            <div class="mt-1">
+              <span class="badge badge-sm" :class="detailsRow.status.badgeCls">{{ detailsRow.status.text }}</span>
+            </div>
+          </div>
+          <div class="rounded-lg border border-base-content/10 bg-base-200/40 px-3 py-2">
+            <div class="text-[11px] uppercase opacity-60">Истекает</div>
+            <div class="mt-1 text-sm">{{ detailsRow.status.expiresAt || '—' }}</div>
+            <div class="text-xs opacity-70">Дней осталось: {{ detailsRow.daysLeftLabel }}</div>
+          </div>
+          <div class="rounded-lg border border-base-content/10 bg-base-200/40 px-3 py-2">
+            <div class="text-[11px] uppercase opacity-60">Проверено</div>
+            <div class="mt-1 text-sm">{{ detailsRow.status.checkedAt || '—' }}</div>
+          </div>
+          <div class="rounded-lg border border-base-content/10 bg-base-200/40 px-3 py-2">
+            <div class="text-[11px] uppercase opacity-60">Источник</div>
+            <div class="mt-1 text-sm">{{ detailsRow.status.source || '—' }}</div>
+          </div>
+        </div>
+
+        <div class="mt-3 grid gap-2 md:grid-cols-2">
+          <div class="rounded-lg border border-base-content/10 bg-base-200/30 px-3 py-2">
+            <div class="text-[11px] uppercase opacity-60">Issuer</div>
+            <div class="mt-1 break-all text-xs">{{ detailsRow.issuer || '—' }}</div>
+          </div>
+          <div class="rounded-lg border border-base-content/10 bg-base-200/30 px-3 py-2">
+            <div class="text-[11px] uppercase opacity-60">Subject</div>
+            <div class="mt-1 break-all text-xs">{{ detailsRow.subject || '—' }}</div>
+          </div>
+          <div class="rounded-lg border border-base-content/10 bg-base-200/30 px-3 py-2 md:col-span-2">
+            <div class="text-[11px] uppercase opacity-60">SAN</div>
+            <div class="mt-1 break-all text-xs">{{ detailsRow.sanText || '—' }}</div>
+          </div>
+          <div class="rounded-lg border border-base-content/10 bg-base-200/30 px-3 py-2 md:col-span-2">
+            <div class="text-[11px] uppercase opacity-60">Последняя ошибка</div>
+            <div class="mt-1 break-all text-xs">{{ detailsRow.errorText || '—' }}</div>
+          </div>
+        </div>
+
+        <div class="mt-3 rounded-lg border border-base-content/10 bg-base-200/20 p-3">
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <div class="font-medium">История последних SSL-проверок</div>
+            <button type="button" class="btn btn-xs btn-outline" @click="reloadDetailsHistory" :disabled="detailsLoading">
+              <span v-if="detailsLoading" class="loading loading-spinner loading-xs"></span>
+              <span v-else>Обновить историю</span>
+            </button>
+          </div>
+          <div v-if="detailsError" class="mb-2 text-xs text-error">{{ detailsError }}</div>
+          <div class="overflow-x-auto">
+            <table class="table table-xs">
+              <thead>
+                <tr>
+                  <th>Проверено</th>
+                  <th>Статус</th>
+                  <th>Истекает</th>
+                  <th>Дней</th>
+                  <th>Ошибка</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in detailsHistory" :key="`${item.checkedAtSec}-${item.status}-${item.panelUrl}`">
+                  <td>{{ fmtTs(item.checkedAtSec ? item.checkedAtSec * 1000 : 0) }}</td>
+                  <td>{{ item.status || '—' }}</td>
+                  <td>{{ formatIsoDate(item.expiresAt) }}</td>
+                  <td>{{ Number.isFinite(item.daysLeft) ? item.daysLeft : '—' }}</td>
+                  <td class="max-w-[320px] truncate" :title="item.error || ''">{{ item.error || '—' }}</td>
+                </tr>
+                <tr v-if="!detailsHistory.length && !detailsLoading">
+                  <td colspan="5" class="text-xs opacity-70">История ещё не накоплена.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -101,7 +196,7 @@
 import dayjs from 'dayjs'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { fetchUbuntuProvidersAPI, saveUbuntuProvidersAPI } from '@/api/ubuntuService'
+import { fetchUbuntuProviderChecksHistoryAPI, fetchUbuntuProvidersAPI, saveUbuntuProvidersAPI } from '@/api/ubuntuService'
 import { proxyProviderPanelUrlMap } from '@/store/settings'
 import { providerSslDbMeta, providerSslDbSnapshot } from '@/store/providerSslDb'
 import {
@@ -128,6 +223,12 @@ const saving = ref(false)
 const rows = ref<Array<{ id: string; name: string; url: string }>>([])
 const dirty = ref(false)
 const loadingBackendRows = ref(false)
+const filterText = ref('')
+const showOnlyIssues = ref(false)
+const detailsOpenName = ref('')
+const detailsHistory = ref<any[]>([])
+const detailsLoading = ref(false)
+const detailsError = ref('')
 
 const useBackendProviders = computed(() => {
   const caps = activeBackendCapabilities.value || {}
@@ -219,6 +320,12 @@ watch(agentProvidersAt, () => {
   loadRowsFromBackend()
 })
 
+watch(rows, () => {
+  if (detailsOpenName.value && !rows.value.some((row) => String(row.name || '').trim() === String(detailsOpenName.value || '').trim())) {
+    closeDetails()
+  }
+}, { deep: true })
+
 const addRow = () => {
   rows.value = [...rows.value, { id: `new-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`, name: '', url: '' }]
   dirty.value = true
@@ -274,6 +381,33 @@ const lastCheckedAtMs = computed(() => {
   return Number(agentProvidersAt.value || providerSslDbMeta.value?.checkedAtMs || 0)
 })
 
+const formatIsoDate = (value?: string) => {
+  const raw = String(value || '').trim()
+  if (!raw) return '—'
+  const d = dayjs(raw)
+  return d.isValid() ? d.format('DD.MM.YYYY HH:mm') : raw
+}
+
+const normalizeSanText = (value: any) => {
+  if (Array.isArray(value)) return value.map((item) => String(item || '').trim()).filter(Boolean).join(', ')
+  return String(value || '').trim()
+}
+
+const issueStatuses = new Set(['warning', 'expired', 'error'])
+
+const loadProviderHistory = async (name: string) => {
+  detailsLoading.value = true
+  detailsError.value = ''
+  try {
+    detailsHistory.value = await fetchUbuntuProviderChecksHistoryAPI(name, 12)
+  } catch (error: any) {
+    detailsHistory.value = []
+    detailsError.value = String(error?.message || error || 'history-load-failed')
+  } finally {
+    detailsLoading.value = false
+  }
+}
+
 const rowsView = computed(() => {
   return rows.value.map((row) => {
     const name = String(row.name || '').trim()
@@ -306,15 +440,52 @@ const rowsView = computed(() => {
 
     return {
       ...row,
+      panelUrl: String(item?.panelUrl || url || '').trim(),
+      issuer: String(item?.panelSslIssuer || '').trim(),
+      subject: String(item?.panelSslSubject || '').trim(),
+      sanText: normalizeSanText(item?.panelSslSan),
+      errorText: String(item?.panelSslError || diag.error || '').trim(),
+      daysLeft: Number.isFinite(Number(item?.panelSslDaysLeft)) ? Number(item?.panelSslDaysLeft) : null,
+      daysLeftLabel: Number.isFinite(Number(item?.panelSslDaysLeft)) ? String(Number(item?.panelSslDaysLeft)) : '—',
       status: {
         badgeCls,
         text,
+        source: diag.source || '',
+        key: diag.status || '',
         expiresAt: diag.dateTime ? diag.dateTime.replace(/^(\d{2})-(\d{2})-(\d{4})/, '$1.$2.$3') : '',
         checkedAt: diag.checkedAtMs ? fmtTs(diag.checkedAtMs) : fmtTs(lastCheckedAtMs.value),
       },
     }
   })
 })
+
+const filteredRowsView = computed(() => {
+  const q = String(filterText.value || '').trim().toLowerCase()
+  return rowsView.value.filter((row: any) => {
+    const issueMatch = !showOnlyIssues.value || issueStatuses.has(String(row?.status?.key || '').trim()) || !!String(row?.errorText || '').trim()
+    if (!issueMatch) return false
+    if (!q) return true
+    return [row.name, row.url, row.panelUrl, row.issuer, row.subject, row.sanText].some((item: any) => String(item || '').toLowerCase().includes(q))
+  })
+})
+
+const detailsRow = computed(() => rowsView.value.find((row: any) => String(row.name || '') === String(detailsOpenName.value || '')) || null)
+
+const openDetails = async (row: any) => {
+  detailsOpenName.value = String(row?.name || '')
+  await loadProviderHistory(detailsOpenName.value)
+}
+
+const closeDetails = () => {
+  detailsOpenName.value = ''
+  detailsHistory.value = []
+  detailsError.value = ''
+}
+
+const reloadDetailsHistory = async () => {
+  if (!detailsOpenName.value) return
+  await loadProviderHistory(detailsOpenName.value)
+}
 
 const runChecksNow = async () => {
   checksBusy.value = true
@@ -323,6 +494,7 @@ const runChecksNow = async () => {
     await runAgentProviderChecks()
     await fetchAgentProviders(true)
     if (useBackendProviders.value) await loadRowsFromBackend()
+    if (detailsOpenName.value) await loadProviderHistory(detailsOpenName.value)
   } finally {
     checksBusy.value = false
   }
@@ -335,6 +507,7 @@ const refreshCacheNow = async () => {
     await refreshAgentProviderSslCache()
     await fetchAgentProviders(true)
     if (useBackendProviders.value) await loadRowsFromBackend()
+    if (detailsOpenName.value) await loadProviderHistory(detailsOpenName.value)
   } finally {
     cacheBusy.value = false
   }

@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-APP_VERSION = "0.6.54"
+APP_VERSION = "0.6.55"
 DEFAULT_CAPABILITIES = {
     "status": True,
     "health": True,
@@ -16,6 +16,7 @@ DEFAULT_CAPABILITIES = {
     "providerRefresh": True,
     "providerSslCacheRefresh": True,
     "providerSslCacheStatus": True,
+    "providerChecksHistory": True,
     "usersInventory": True,
     "usersInventoryPut": True,
     "jobs": True,

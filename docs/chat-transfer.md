@@ -1,5 +1,5 @@
-Prepared release: v0.6.54. The live Ubuntu backend contour stays on `ubuntu-service`, and this step adds a Mihomo bridge for configs/proxies/rules plus a real `/api/connections` relay so overview topology can see actual hosts and chains.
-Актуальный релиз для переноса: **v0.6.54**
+Prepared release: v0.6.55. The live Ubuntu backend contour stays on `ubuntu-service`, and this step adds a Mihomo bridge for configs/proxies/rules plus a real `/api/connections` relay so overview topology can see actual hosts and chains.
+Актуальный релиз для переноса: **v0.6.55**
 
 Что сделано в `v0.6.52`
 - backend `ubuntu-service` закреплён как основной рабочий режим; возвращаться на `direct` не нужно
@@ -43,3 +43,9 @@ Prepared release: v0.6.54. The live Ubuntu backend contour stays on `ubuntu-serv
 - `/api/connections` now relays the real Mihomo WebSocket when the local controller is available, instead of only sending the lightweight host-local snapshot.
 - Backend install/update keeps using `backend/scripts/install.sh`; the env file now also keeps `MIHOMO_ACTIVE_CONFIG=/etc/mihomo/config.yaml` by default.
 - Goal of this release: make `Обзор / Топология соединений` on `ubuntu-service` see real hosts and proxy chains rather than only the Ubuntu host itself.
+
+
+## Update v0.6.55
+- stayed on `ubuntu-service` as the main backend contour;
+- added provider SSL history endpoint and richer per-host diagnostics in `Хосты 3x-ui`;
+- server deploy workflow remains `git fetch origin --prune && git reset --hard origin/main`, then install/build/deploy.

@@ -188,6 +188,11 @@ async def api_provider_checks_run():
     return await asyncio.to_thread(service.run_provider_checks, "manual")
 
 
+@app.get("/api/providers/checks/history")
+def api_provider_checks_history(name: str = "", limit: int = 20):
+    return service.provider_checks_history(name, limit)
+
+
 @app.post("/api/providers/refresh")
 async def api_provider_refresh():
     return await asyncio.to_thread(service.run_provider_checks, "refresh")

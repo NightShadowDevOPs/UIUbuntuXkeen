@@ -1,4 +1,9 @@
-Current prepared release: v0.6.54. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
+Current prepared release: v0.6.55. The standalone Ubuntu backend is already confirmed on the live host: `ultra-ui-ubuntu-backend.service` is running, `GET /api/health` responds, and the backend is selected in `Setup` as `ubuntu-service`.
+
+## Обновление v0.6.55
+- после стабилизации `ubuntu-service` на живом хосте следующий практический шаг перенесён в блок Providers / SSL: на экран `Хосты 3x-ui` добавлены фильтр, режим `только проблемные`, панель детальной диагностики и история последних SSL-проверок по каждому провайдеру;
+- standalone backend теперь отдаёт `/api/providers/checks/history` из SQLite истории `provider_ssl_checks`, а также расширяет основной payload полями `panelSslDaysLeft` и `panelSslStatus`;
+- серверный workflow обновления закреплён как `git fetch origin --prune && git reset --hard origin/main` для deploy-checkout в `/opt/UIUbuntu/app`, без возврата к `git pull --ff-only`;
 
 ## Обновление v0.6.52
 - подтверждено, что backend `ubuntu-service` остаётся рабочим активным режимом в `Setup`

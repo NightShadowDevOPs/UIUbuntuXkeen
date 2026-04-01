@@ -1,3 +1,4 @@
+- 2026-04-01 — v0.6.55: added provider SSL history/details for `ubuntu-service`, including `/api/providers/checks/history`, days-left/status fields, and richer `Хосты 3x-ui` diagnostics in UI.
 # База запросов на изменения
 
 Актуально для релиза: **v0.6.53**

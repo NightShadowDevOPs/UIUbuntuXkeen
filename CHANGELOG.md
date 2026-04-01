@@ -1,3 +1,9 @@
+## v0.6.55
+- added provider SSL history endpoint `/api/providers/checks/history` with per-check rows from SQLite history;
+- extended provider payload with panel SSL days-left and probe status fields, so UI can show richer per-host diagnostics;
+- enhanced `Хосты 3x-ui` with filter, issue-only toggle, per-host details panel, issuer/subject/SAN/error view, and recent SSL check history;
+- server update workflow remains `git fetch origin --prune && git reset --hard origin/main` for deploy checkout.
+
 ## v0.6.54
 - added a Mihomo bridge layer to the standalone Ubuntu backend for `GET /api/configs`, `GET /api/proxies`, `GET /api/providers/proxies`, `GET /api/providers/rules`, and `GET /api/rules`, so `ubuntu-service` can fetch the same core model data that the overview and proxy topology expect;
 - switched `/api/connections` on `ubuntu-service` from a host-local socket snapshot to a WebSocket relay into the real Mihomo controller when it is available, while keeping the lightweight local fallback only for bridge failures;
